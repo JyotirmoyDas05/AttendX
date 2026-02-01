@@ -1,0 +1,46 @@
+package `in`.jyotirmoy.attendx.core.di
+
+import android.content.Context
+import androidx.room.Room
+import dagger.Module
+import dagger.Provides
+import dagger.hilt.InstallIn
+import dagger.hilt.android.qualifiers.ApplicationContext
+import dagger.hilt.components.SingletonComponent
+import `in`.jyotirmoy.attendx.core.data.database.AttendanceDao
+import `in`.jyotirmoy.attendx.core.data.database.ClassScheduleDao
+import `in`.jyotirmoy.attendx.core.data.database.MIGRATION_2_3
+import `in`.jyotirmoy.attendx.core.data.database.MIGRATION_3_4
+import `in`.jyotirmoy.attendx.core.data.database.MIGRATION_4_5
+import `in`.jyotirmoy.attendx.core.data.database.MIGRATION_5_6
+import `in`.jyotirmoy.attendx.core.data.database.MIGRATION_6_7
+import `in`.jyotirmoy.attendx.core.data.database.MIGRATION_7_8
+import `in`.jyotirmoy.attendx.core.data.database.SubjectDao
+import `in`.jyotirmoy.attendx.core.data.database.SubjectDatabase
+import javax.inject.Singleton
+
+@Module
+@InstallIn(SingletonComponent::class)
+object DatabaseModule {
+
+    @Provides
+    @Singleton
+    fun provideDatabase(@ApplicationContext context: Context): SubjectDatabase =
+        Room.databaseBuilder(
+            context,
+            SubjectDatabase::class.java,
+            "attendance_app_db"
+        )
+            .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
+            .build()
+
+    @Provides
+    fun provideSubjectDao(db: SubjectDatabase): SubjectDao = db.subjectDao()
+
+    @Provides
+    fun provideAttendanceDao(db: SubjectDatabase): AttendanceDao = db.attendanceDao()
+
+    @Provides
+    fun provideClassScheduleDao(db: SubjectDatabase): ClassScheduleDao = db.classScheduleDao()
+}
+
