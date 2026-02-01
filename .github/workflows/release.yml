@@ -5,6 +5,20 @@ on:
     tags:
       - "v*" # Runs when a tag like "v1.0.0" is pushed
   workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version tag (e.g., v2.3.0)'
+        required: true
+        type: string
+      changelog:
+        description: 'Changelog for this release (use \n for new lines)'
+        required: true
+        type: string
+      create_tag:
+        description: 'Create git tag for this version?'
+        required: true
+        type: boolean
+        default: true
   
 jobs:
   build:
@@ -63,12 +77,31 @@ jobs:
   release:
     name: Create GitHub Release
     needs: build
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
+
+      - name: Set Version Tag
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "tag=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            echo "tag=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create Git Tag (if manual trigger)
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.create_tag == 'true'
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git tag ${{ steps.version.outputs.tag }}
+          git push origin ${{ steps.version.outputs.tag }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Download Signed APK
         uses: actions/download-artifact@v4
@@ -89,36 +122,43 @@ jobs:
 
       - name: Rename APK
         run: |
-          mv "${{ steps.find_downloaded_apk.outputs.apk_path }}" "AttendX-${{ github.ref_name }}-release.apk"
+          mv "${{ steps.find_downloaded_apk.outputs.apk_path }}" "AttendX-${{ steps.version.outputs.tag }}-release.apk"
 
       - name: Install xmllint
         run: sudo apt-get install -y libxml2-utils
 
-      - name: Extract Changelog from strings.xml
+      - name: Extract Changelog
         run: |
-          VERSION_TAG="${{ github.ref_name }}"       # Example: v6.0.1
-          VERSION_TAG_XML=$(echo $VERSION_TAG | tr '.' '_' | tr -d 'v')  # Convert v6.0.1 → 6_0_1
-          CHANGELOG=$(xmllint --xpath "string(//string[@name='changelogs_v${VERSION_TAG_XML}']/text())" app/src/main/res/values/strings.xml || echo "No changelog found for $VERSION_TAG")
-
-          if [[ -z "$CHANGELOG" ]]; then
-            echo "#### Refer to full changelogs $VERSION_TAG"
-            exit 1
+          VERSION_TAG="${{ steps.version.outputs.tag }}"
+          
+          # Check if manual changelog was provided
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ] && [ -n "${{ github.event.inputs.changelog }}" ]; then
+            CHANGELOG="${{ github.event.inputs.changelog }}"
+          else
+            # Extract from strings.xml
+            VERSION_TAG_XML=$(echo $VERSION_TAG | tr '.' '_' | tr -d 'v')
+            CHANGELOG=$(xmllint --xpath "string(//string[@name='changelogs_v${VERSION_TAG_XML}']/text())" app/src/main/res/values/strings.xml || echo "")
           fi
 
-          # Replace \n with \n*
-          CHANGELOG=$(echo "$CHANGELOG" | sed 's/\\n/\\n* /g')
+          if [[ -z "$CHANGELOG" ]]; then
+            echo "No changelog found for $VERSION_TAG"
+            CHANGELOG="Release $VERSION_TAG"
+          fi
 
-          # Add ### Changelog before the changelog text
-          CHANGELOG="### Changelog \n* $CHANGELOG"
+          # Replace \n with actual newlines and bullet points
+          CHANGELOG=$(echo "$CHANGELOG" | sed 's/\\n/\n* /g')
 
-          # Write CHANGELOG to a temporary file
-          echo -e "$CHANGELOG" > changelog.txt
+          # Add header
+          echo -e "### Changelog\n* $CHANGELOG" > changelog.txt
+          
+          echo "Generated changelog:"
+          cat changelog.txt
 
       - name: Publish Release using gh CLI
         run: |
-          gh release create "${{ github.ref_name }}" \
-            "AttendX-${{ github.ref_name }}-release.apk" \
-            --title "AttendX ${{ github.ref_name }}" \
+          gh release create "${{ steps.version.outputs.tag }}" \
+            "AttendX-${{ steps.version.outputs.tag }}-release.apk" \
+            --title "AttendX ${{ steps.version.outputs.tag }}" \
             --notes-file changelog.txt
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
