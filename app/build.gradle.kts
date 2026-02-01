@@ -60,9 +60,9 @@ android {
                 val keystoreFile = rootProject.file("attendx-release-key.jks")
                 if (keystoreFile.exists()) {
                     storeFile = keystoreFile
-                    storePassword = "mdfarhan"
+                    storePassword = "JyotirmoyDas05"
                     keyAlias = "attendx"
-                    keyPassword = "mdfarhan"
+                    keyPassword = "JyotirmoyDas05"
                 }
             }
         }
