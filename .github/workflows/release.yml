@@ -96,10 +96,9 @@ jobs:
       - name: Create Git Tag (if manual trigger)
         if: github.event_name == 'workflow_dispatch' && github.event.inputs.create_tag == 'true'
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git tag ${{ steps.version.outputs.tag }}
-          git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git ${{ steps.version.outputs.tag }}
+          gh api repos/${{ github.repository }}/git/refs \
+            -f sha=${{ github.sha }} \
+            -f ref='refs/tags/${{ steps.version.outputs.tag }}'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
