@@ -96,7 +96,7 @@
     <string name="all_months_data">Данные всех месяцев</string>
     <string name="last_backup_time">Время последней резервной копии</string>
     <string name="last_backup_date">Дата последней резервной копии</string>
-    <string name="pick_attendx_extension">Пожалуйста выберите файл с расширением .attendx</string>
+    <string name="pick_AttendX_extension">Пожалуйста выберите файл с расширением .attendx</string>
     <string name="backup_found">Найдена резервная копия</string>
     <string name="restore_dialog_message">Данные в сохраненном файле перезапишут текущие данные.</string>
     <string name="backup_date">Дата резервной копии</string>

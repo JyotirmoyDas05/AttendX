@@ -96,7 +96,7 @@
     <string name="all_months_data">All months data</string>
     <string name="last_backup_time">Last backup time</string>
     <string name="last_backup_date">Last backup date</string>
-    <string name="pick_attendx_extension">Please pick a file with .attendx extension</string>
+    <string name="pick_AttendX_extension">Please pick a file with .attendx extension</string>
     <string name="backup_found">Backup found</string>
     <string name="restore_dialog_message">The data in the saved file will override the current data.</string>
     <string name="backup_date">Backup date</string>

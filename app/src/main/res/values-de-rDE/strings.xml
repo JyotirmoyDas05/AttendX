@@ -96,7 +96,7 @@
     <string name="all_months_data">Daten aller Monate</string>
     <string name="last_backup_time">Zeitpunkt der letzten Sicherung</string>
     <string name="last_backup_date">Datum der letzten Sicherung</string>
-    <string name="pick_attendx_extension">Bitte wählen Sie eine Datei mit .attendx-Endung</string>
+    <string name="pick_AttendX_extension">Bitte wählen Sie eine Datei mit .attendx-Endung</string>
     <string name="backup_found">Sicherung gefunden</string>
     <string name="restore_dialog_message">Die Daten in der gespeicherten Datei werden die aktuellen Daten überschreiben.</string>
     <string name="backup_date">Sicherungsdatum</string>

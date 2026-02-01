@@ -96,7 +96,7 @@
     <string name="all_months_data">بيانات جميع الأشهر</string>
     <string name="last_backup_time">وقت النسخ الاحتياطي الأخير</string>
     <string name="last_backup_date">تاريخ النسخ الاحتياطي الأخير</string>
-    <string name="pick_attendx_extension">الرجاء اختيار ملف مع امتداد .drifly</string>
+    <string name="pick_AttendX_extension">الرجاء اختيار ملف مع امتداد .attendx</string>
     <string name="backup_found">تم العثور على نسخة احتياطية</string>
     <string name="restore_dialog_message">سيتم استبدال البيانات الحالية بالبيانات الموجودة في الملف المحفوظ.</string>
     <string name="backup_date">تاريخ النسخة الاحتياطية</string>
