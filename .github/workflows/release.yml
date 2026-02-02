@@ -93,15 +93,6 @@ jobs:
             echo "tag=${{ github.ref_name }}" >> $GITHUB_OUTPUT
           fi
 
-      - name: Create Git Tag (if manual trigger)
-        if: github.event_name == 'workflow_dispatch' && github.event.inputs.create_tag == 'true'
-        run: |
-          gh api repos/${{ github.repository }}/git/refs \
-            -f sha=${{ github.sha }} \
-            -f ref='refs/tags/${{ steps.version.outputs.tag }}'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Download Signed APK
         uses: actions/download-artifact@v4
         with:
