@@ -62,6 +62,11 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import `in`.jyotirmoy.attendx.settings.presentation.components.shape.ScallopedShape
 import `in`.jyotirmoy.attendx.core.common.constants.UrlConst
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.rounded.NewReleases
+import `in`.jyotirmoy.attendx.core.presentation.components.bottomsheet.ChangelogBottomSheet
 
 @Composable
 fun AboutScreen(
@@ -71,6 +76,7 @@ fun AboutScreen(
     val navController = LocalNavController.current
     val context = LocalContext.current
     val settings = settingsViewModel.aboutPageList
+    var showChangelogBottomSheet by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         settingsViewModel.uiEvent.collect { event ->
@@ -276,22 +282,42 @@ fun AboutScreen(
                             .padding(vertical = 20.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        OutlinedButton(
-                            onClick = { openUrl(UrlConst.URL_GITHUB_ISSUE_REPORT, context) },
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                contentColor = MaterialTheme.colorScheme.error
-                            ),
-                            border = ButtonDefaults.outlinedButtonBorder.copy(
-                                brush = androidx.compose.ui.graphics.SolidColor(MaterialTheme.colorScheme.error)
-                            )
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
-                            Icon(
-                                imageVector = Icons.Outlined.BugReport,
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(text = "Report a Bug")
+                            OutlinedButton(
+                                onClick = { showChangelogBottomSheet = true },
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    contentColor = MaterialTheme.colorScheme.primary
+                                )
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.NewReleases,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(text = "Changelog")
+                            }
+
+                            OutlinedButton(
+                                onClick = { openUrl(UrlConst.URL_GITHUB_ISSUE_REPORT, context) },
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    contentColor = MaterialTheme.colorScheme.error
+                                ),
+                                border = ButtonDefaults.outlinedButtonBorder.copy(
+                                    brush = androidx.compose.ui.graphics.SolidColor(MaterialTheme.colorScheme.error)
+                                )
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.BugReport,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(text = "Report a Bug")
+                            }
                         }
                     }
                 }
@@ -306,4 +332,10 @@ fun AboutScreen(
             }
         },
     )
+
+    if (showChangelogBottomSheet) {
+        ChangelogBottomSheet(
+            onDismiss = { showChangelogBottomSheet = false }
+        )
+    }
 }

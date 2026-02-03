@@ -1,6 +1,9 @@
 package `in`.jyotirmoy.attendx.calender.presentation.screens
 
+
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.ContentTransform
+import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -9,7 +12,9 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.basicMarquee
@@ -267,24 +272,39 @@ fun CalendarScreen(
                 .fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
-            CalendarCanvas(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 15.dp),
-                year = year,
-                month = month,
-                markedDates = markedDates,
-                streakMap = streakMap,
-                onStatusChange = onStatusChange,
-                onNavigate = { newYear, newMonth ->
-                    viewModel.updateMonthYear(newYear, newMonth)
-                    viewModel.saveMonthYearForSubject(subjectId)
+            AnimatedContent(
+                targetState = monthYear,
+                transitionSpec = {
+                    val isNext = targetState.isAfter(initialState)
+                    val slideDirection = if (isNext) 1 else -1
+
+                    (slideInHorizontally { width -> slideDirection * width } + fadeIn()).togetherWith(
+                        slideOutHorizontally { width -> -slideDirection * width } + fadeOut()
+                    ).using(
+                        SizeTransform(clip = false)
+                    )
                 },
-                onResetMonth = {
-                    viewModel.resetYearMonthToCurrent()
-                    viewModel.saveMonthYearForSubject(subjectId)
-                }
-            )
+                label = "calendar_month_transition"
+            ) { targetMonthYear ->
+                CalendarCanvas(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 15.dp),
+                    year = targetMonthYear.year,
+                    month = targetMonthYear.monthValue,
+                    markedDates = markedDates,
+                    streakMap = streakMap,
+                    onStatusChange = onStatusChange,
+                    onNavigate = { newYear, newMonth ->
+                        viewModel.updateMonthYear(newYear, newMonth)
+                        viewModel.saveMonthYearForSubject(subjectId)
+                    },
+                    onResetMonth = {
+                        viewModel.resetYearMonthToCurrent()
+                        viewModel.saveMonthYearForSubject(subjectId)
+                    }
+                )
+            }
 
             // Add spacing between calendar and buttons
             Spacer(modifier = Modifier.height(10.dp))

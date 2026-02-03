@@ -1,4 +1,4 @@
-# Self Attendance
+# AttendX
 
 <p align="center">
   <img src="./right%20now/img%201.jpeg" width="31%" style="border-radius:26px; margin: 2px;"/>
@@ -24,9 +24,9 @@
 
 ---
 
-**Self Attendance** is a comprehensive, privacy-focused academic tracking tool designed for effortless attendance management. Built with modern Android technologies, it revolutionizes how students manage their class attendance by moving beyond simple counters to a **calendar-first approach**.
+**AttendX** is a comprehensive, privacy-focused academic tracking tool designed for effortless attendance management. Built with modern Android technologies, it revolutionizes how students manage their class attendance by moving beyond simple counters to a **calendar-first approach**.
 
-Unlike traditional apps that only show percentages, Self Attendance provides an intuitive visual calendar interface where you can mark attendance for specific dates, view patterns at a glance, and get smart **AI-powered insights** about your bunk allowance.
+Unlike traditional apps that only show percentages, AttendX provides an intuitive visual calendar interface where you can mark attendance for specific dates, view patterns at a glance, and get smart **AI-powered insights** about your bunk allowance.
 
 ---
 
@@ -42,11 +42,11 @@ The latest update brings a suite of UI/UX improvements and highly requested them
 
 ---
 
-## Why Self Attendance Stands Out
+## Why AttendX Stands Out
 
-Most attendance trackers are just simple counters with no context. Self Attendance solves this:
+Most attendance trackers are just simple counters with no context. AttendX solves this:
 
-| Traditional Apps ❌                                     | Self Attendance ✅                                                                    |
+| Traditional Apps ❌                                     | AttendX ✅                                                                    |
 | :------------------------------------------------------ | :------------------------------------------------------------------------------------ |
 | **No Date Association**: Can't see _when_ you attended. | **Date-Specific Records**: Every attendance is tied to a calendar date.               |
 | **Just Numbers**: No visual history.                    | **Visual Calendar**: See streaks, gaps, and monthly patterns instantly.               |

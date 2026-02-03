@@ -13,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.style.TextOverflow
 
 @Composable
 fun SubjectText(
@@ -35,7 +36,9 @@ fun SubjectText(
                 fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
                 lineHeight = 28.sp
             ),
-            color = subjectTextColor
+            color = subjectTextColor,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
         )
 
         if (!subjectCode.isNullOrBlank()) {

@@ -45,6 +45,8 @@ import `in`.jyotirmoy.attendx.core.common.LocalSettings
 import `in`.jyotirmoy.attendx.core.common.LocalWeakHaptic
 import `in`.jyotirmoy.attendx.core.domain.model.AttendanceStatus
 import `in`.jyotirmoy.attendx.core.domain.model.StreakType
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.ui.input.pointer.pointerInput
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
@@ -80,9 +82,25 @@ fun CalendarCanvas(
     Column(
         modifier = modifier
             .padding(horizontal = 10.dp)
+            .padding(horizontal = 10.dp)
+            .pointerInput(Unit) {
+                detectHorizontalDragGestures { change, dragAmount ->
+                    change.consume()
+                    val threshold = 50.dp.toPx()
+                    if (dragAmount < -threshold) {
+                         // Swiped Left -> Next Month
+                         val next = yearMonth.plusMonths(1)
+                         onNavigate(next.year, next.monthValue)
+                    } else if (dragAmount > threshold) {
+                        // Swiped Right -> Previous Month
+                        val prev = yearMonth.minusMonths(1)
+                        onNavigate(prev.year, prev.monthValue)
+                    }
+                }
+            }
             .animateContentSize(
                 animationSpec = tween(
-                    durationMillis = 1000, easing = FastOutSlowInEasing
+                    durationMillis = 500, easing = FastOutSlowInEasing
                 )
             ),
         horizontalAlignment = Alignment.CenterHorizontally,

@@ -26,6 +26,7 @@
     <string name="calendar">Calendar</string>
     <string name="cancel">Cancel</string>
     <string name="changelogs">Changelogs</string>
+    <string name="changelogs_v2_2_4">Fixed GitHub Release workflow permissions.\nAdded Changelog button to About page.</string>
     <string name="changelogs_v2_2_3">Fixed translation string name mismatch.\nImproved localization support across 8 languages.</string>
     <string name="changelogs_v2_2_2">Fixed GitHub Release workflow automation.\nImproved stability and performance.</string>
     <string name="changelogs_v2_2_0">Added fully native Dark Mode support with system follow option.\nFixed UI padding across all screens for a more balanced look.\nImplemented a modern Card Based UI for better content organization.\nEnhanced accessibility and smooth animations.</string>
