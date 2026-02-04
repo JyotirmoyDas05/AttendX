@@ -50,3 +50,28 @@ val MIGRATION_7_8 = object : Migration(7, 8) {
     }
 }
 
+val MIGRATION_8_9 = object : Migration(8, 9) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("""
+            CREATE TABLE IF NOT EXISTS class_schedule (
+                id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                subjectId INTEGER NOT NULL,
+                dayOfWeek INTEGER NOT NULL,
+                startTime INTEGER NOT NULL,
+                endTime INTEGER NOT NULL,
+                room TEXT,
+                professor TEXT,
+                classType TEXT NOT NULL DEFAULT 'Lecture',
+                isActive INTEGER NOT NULL DEFAULT 1,
+                weekPattern TEXT NOT NULL DEFAULT 'all',
+                notes TEXT,
+                colorHex TEXT,
+                FOREIGN KEY(subjectId) REFERENCES subjects(id) ON UPDATE NO ACTION ON DELETE CASCADE 
+            )
+        """.trimIndent())
+
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_class_schedule_subjectId ON class_schedule(subjectId)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_class_schedule_dayOfWeek_startTime ON class_schedule(dayOfWeek, startTime)")
+    }
+}
+

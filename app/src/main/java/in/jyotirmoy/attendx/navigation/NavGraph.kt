@@ -14,6 +14,7 @@ import `in`.jyotirmoy.attendx.settings.presentation.page.lookandfeel.screens.Dar
 import `in`.jyotirmoy.attendx.settings.presentation.page.lookandfeel.screens.LookAndFeelScreen
 import `in`.jyotirmoy.attendx.settings.presentation.page.mainscreen.screen.SettingsScreen
 import `in`.jyotirmoy.attendx.settings.presentation.page.notification.screens.NotificationScreen
+import `in`.jyotirmoy.attendx.main.presentation.MainScreen
 import kotlinx.serialization.Serializable
 
 @Composable
@@ -21,13 +22,13 @@ fun Navigation() {
     val navController = rememberNavController()
     CompositionLocalProvider(LocalNavController provides navController) {
         NavHost(
-            navController = navController, startDestination = HomeScreen
+            navController = navController, startDestination = MainScreenRoute
         ) {
-            composable<HomeScreen>(
+            composable<MainScreenRoute>(
                 exitTransition = { sharedAxisXExit() },
                 popEnterTransition = { sharedAxisXPopEnter() }
             ) {
-                HomeScreen()
+                MainScreen()
             }
 
             composable<CalendarScreen>(
@@ -99,9 +100,21 @@ fun Navigation() {
             ) {
                 NotificationScreen()
             }
+
+            composable<TimeTableScreen>(
+                enterTransition = { slideFadeInFromRight() },
+                exitTransition = { slideFadeOutToLeft() },
+                popEnterTransition = { slideFadeInFromLeft() },
+                popExitTransition = { slideFadeOutToRight() }
+            ) {
+                `in`.jyotirmoy.attendx.timetable.presentation.screens.TimeTableScreen()
+            }
         }
     }
 }
+
+@Serializable
+object MainScreenRoute
 
 @Serializable
 object HomeScreen
@@ -133,3 +146,6 @@ object BackupAndRestoreScreen
 
 @Serializable
 object NotificationScreen
+
+@Serializable
+object TimeTableScreen

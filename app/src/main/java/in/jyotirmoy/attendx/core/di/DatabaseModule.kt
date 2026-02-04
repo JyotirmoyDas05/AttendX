@@ -15,8 +15,10 @@ import `in`.jyotirmoy.attendx.core.data.database.MIGRATION_4_5
 import `in`.jyotirmoy.attendx.core.data.database.MIGRATION_5_6
 import `in`.jyotirmoy.attendx.core.data.database.MIGRATION_6_7
 import `in`.jyotirmoy.attendx.core.data.database.MIGRATION_7_8
+import `in`.jyotirmoy.attendx.core.data.database.MIGRATION_8_9
 import `in`.jyotirmoy.attendx.core.data.database.SubjectDao
 import `in`.jyotirmoy.attendx.core.data.database.SubjectDatabase
+import `in`.jyotirmoy.attendx.timetable.data.dao.TimeTableDao
 import javax.inject.Singleton
 
 @Module
@@ -31,7 +33,7 @@ object DatabaseModule {
             SubjectDatabase::class.java,
             "attendance_app_db"
         )
-            .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
+            .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9)
             .build()
 
     @Provides
@@ -42,5 +44,8 @@ object DatabaseModule {
 
     @Provides
     fun provideClassScheduleDao(db: SubjectDatabase): ClassScheduleDao = db.classScheduleDao()
+
+    @Provides
+    fun provideTimeTableDao(db: SubjectDatabase): TimeTableDao = db.timeTableDao()
 }
 

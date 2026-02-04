@@ -14,3 +14,8 @@ local.properties
 *.jks
 *.keystore
 password.md
+
+# Temp files
+temp_*.svg
+convert_svg.py
+build_log.txt

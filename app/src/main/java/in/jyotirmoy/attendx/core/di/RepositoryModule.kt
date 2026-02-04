@@ -12,6 +12,8 @@ import `in`.jyotirmoy.attendx.core.domain.repository.ClassScheduleRepository
 import `in`.jyotirmoy.attendx.core.domain.repository.SubjectRepository
 import `in`.jyotirmoy.attendx.settings.data.local.repository.BackupAndRestoreRepositoryImpl
 import `in`.jyotirmoy.attendx.settings.domain.repository.BackupAndRestoreRepository
+import `in`.jyotirmoy.attendx.timetable.data.repository.TimeTableRepositoryImpl
+import `in`.jyotirmoy.attendx.timetable.domain.repository.TimeTableRepository
 import javax.inject.Singleton
 
 @Module
@@ -40,5 +42,11 @@ abstract class RepositoryModule {
     abstract fun bindBackupAndRestoreRepository(
         backupAndRestoreRepositoryImpl: BackupAndRestoreRepositoryImpl
     ): BackupAndRestoreRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindTimeTableRepository(
+        timeTableRepositoryImpl: TimeTableRepositoryImpl
+    ): TimeTableRepository
 }
 

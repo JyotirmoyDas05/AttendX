@@ -30,15 +30,15 @@ Unlike traditional apps that only show percentages, AttendX provides an intuitiv
 
 ---
 
-## 🚀 New in v2.2.0: Native Dark Mode + Refined Card UI
+## 🚀 New in v2.3.0: M3 Expressive Timetable Enhancements
 
-The latest update brings a suite of UI/UX improvements and highly requested theme options.
+The latest update brings Material 3 Expressive design principles to the timetable feature.
 
-- **Native Dark Mode**: Full support for Dark Theme with "Follow System" capabilities and High Contrast OLED mode.
-- **Modern Card UI**: Re-engineered the subject and settings cards for a cleaner, more organized aesthetic.
-- **Balanced Spacing**: Fixed padding and alignment issues across the home screen, sidebar, and settings for a premium feel.
-- **Vertical Centering**: Subject cards now intelligently center content regardless of the information displayed.
-- **Performance**: Optimized transitions and fixed scroll-reservation issues in the navigation drawer.
+- **Enhanced Swipe-to-Delete**: Progressive color transitions, haptic feedback at 50% threshold, and animated icon scaling.
+- **Multi-Select Mode**: Long-press to select multiple classes, with a dedicated selection app bar and batch delete.
+- **Calendar Grid View**: Visual weekly schedule with toggle between List and Calendar views.
+- **Smart Add Class**: The Add Class sheet now defaults to the currently viewed day.
+- **Smooth Transitions**: AnimatedContent for fluid view switching.
 
 ---
 
@@ -46,7 +46,7 @@ The latest update brings a suite of UI/UX improvements and highly requested them
 
 Most attendance trackers are just simple counters with no context. AttendX solves this:
 
-| Traditional Apps ❌                                     | AttendX ✅                                                                    |
+| Traditional Apps ❌                                     | AttendX ✅                                                                            |
 | :------------------------------------------------------ | :------------------------------------------------------------------------------------ |
 | **No Date Association**: Can't see _when_ you attended. | **Date-Specific Records**: Every attendance is tied to a calendar date.               |
 | **Just Numbers**: No visual history.                    | **Visual Calendar**: See streaks, gaps, and monthly patterns instantly.               |
