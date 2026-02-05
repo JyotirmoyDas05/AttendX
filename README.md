@@ -30,15 +30,14 @@ Unlike traditional apps that only show percentages, AttendX provides an intuitiv
 
 ---
 
-## 🚀 New in v2.3.0: M3 Expressive Timetable Enhancements
+## 🚀 New in v2.3.1: Multi-Architecture APK Support
 
-The latest update brings Material 3 Expressive design principles to the timetable feature.
+Android 15+ requires 64-bit apps. This update ensures compatibility across all devices.
 
-- **Enhanced Swipe-to-Delete**: Progressive color transitions, haptic feedback at 50% threshold, and animated icon scaling.
-- **Multi-Select Mode**: Long-press to select multiple classes, with a dedicated selection app bar and batch delete.
-- **Calendar Grid View**: Visual weekly schedule with toggle between List and Calendar views.
-- **Smart Add Class**: The Add Class sheet now defaults to the currently viewed day.
-- **Smooth Transitions**: AnimatedContent for fluid view switching.
+- **Multi-Architecture Builds**: APKs for arm64-v8a, armeabi-v7a, x86_64, and universal.
+- **Smart OTA Updates**: Auto-detects your device architecture and downloads the best APK.
+- **Android 15+ Ready**: 64-bit devices automatically get the arm64-v8a build.
+- **GitHub Releases**: All architecture variants included in each release.
 
 ---
 
