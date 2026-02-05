@@ -30,8 +30,10 @@ android {
         abi {
             isEnable = true
             reset()
-            include("armeabi-v7a", "arm64-v8a", "x86", "x86_64")
-            isUniversalApk = false
+            // 64-bit architectures for Android 15+ compatibility
+            include("arm64-v8a", "armeabi-v7a", "x86_64")
+            // Universal APK for max compatibility
+            isUniversalApk = true
         }
     }
 

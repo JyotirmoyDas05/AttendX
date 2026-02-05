@@ -60,22 +60,23 @@ jobs:
       - name: Build APK
         run: ./gradlew assembleRelease --stacktrace
 
-      - name: Find Release APK
-        id: find_apk
+      - name: Find All Release APKs
+        id: find_apks
         run: |
-          APK_PATH=$(find app/build/outputs/apk/release -name '*.apk' -print -quit)
-          if [[ -z "$APK_PATH" ]]; then
-            echo "No APK found!"
+          APK_DIR="app/build/outputs/apk/release"
+          APK_FILES=$(find "$APK_DIR" -name '*.apk' | tr '\n' ' ')
+          if [[ -z "$APK_FILES" ]]; then
+            echo "No APKs found!"
             exit 1
           fi
-          echo "apk_path=$APK_PATH" >> $GITHUB_OUTPUT
-          echo "Found APK at: $APK_PATH"
+          echo "apk_dir=$APK_DIR" >> $GITHUB_OUTPUT
+          echo "Found APKs: $APK_FILES"
 
-      - name: Upload APK as Artifact
+      - name: Upload APKs as Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Signed-APK
-          path: ${{ steps.find_apk.outputs.apk_path }}
+          name: Signed-APKs
+          path: app/build/outputs/apk/release/*.apk
 
   release:
     name: Create GitHub Release
@@ -96,26 +97,42 @@ jobs:
             echo "tag=${{ github.ref_name }}" >> $GITHUB_OUTPUT
           fi
 
-      - name: Download Signed APK
+      - name: Download Signed APKs
         uses: actions/download-artifact@v4
         with:
-          name: Signed-APK
+          name: Signed-APKs
           path: artifacts/
 
-      - name: Find Downloaded APK
-        id: find_downloaded_apk
+      - name: List and Rename APKs
+        id: rename_apks
         run: |
-          APK_PATH=$(find artifacts -name '*.apk' -print -quit)
-          if [[ -z "$APK_PATH" ]]; then
-            echo "No downloaded APK found!"
-            exit 1
-          fi
-          echo "apk_path=$APK_PATH" >> $GITHUB_OUTPUT
-          echo "Downloaded APK at: $APK_PATH"
-
-      - name: Rename APK
-        run: |
-          mv "${{ steps.find_downloaded_apk.outputs.apk_path }}" "AttendX-${{ steps.version.outputs.tag }}-release.apk"
+          VERSION="${{ steps.version.outputs.tag }}"
+          mkdir -p release-apks
+          
+          echo "Found APKs:"
+          ls -la artifacts/
+          
+          # Rename each APK with version and architecture
+          for apk in artifacts/*.apk; do
+            filename=$(basename "$apk")
+            # Extract architecture from filename (e.g., app-arm64-v8a-release.apk)
+            if [[ "$filename" == *"arm64-v8a"* ]]; then
+              newname="AttendX-${VERSION}-arm64-v8a.apk"
+            elif [[ "$filename" == *"armeabi-v7a"* ]]; then
+              newname="AttendX-${VERSION}-armeabi-v7a.apk"
+            elif [[ "$filename" == *"x86_64"* ]]; then
+              newname="AttendX-${VERSION}-x86_64.apk"
+            elif [[ "$filename" == *"universal"* ]]; then
+              newname="AttendX-${VERSION}-universal.apk"
+            else
+              newname="AttendX-${VERSION}-release.apk"
+            fi
+            cp "$apk" "release-apks/$newname"
+            echo "Renamed: $filename -> $newname"
+          done
+          
+          echo "Release APKs:"
+          ls -la release-apks/
 
       - name: Install xmllint
         run: sudo apt-get install -y libxml2-utils
@@ -150,7 +167,7 @@ jobs:
       - name: Publish Release using gh CLI
         run: |
           gh release create "${{ steps.version.outputs.tag }}" \
-            "AttendX-${{ steps.version.outputs.tag }}-release.apk" \
+            release-apks/*.apk \
             --title "AttendX ${{ steps.version.outputs.tag }}" \
             --notes-file changelog.txt
         env:
