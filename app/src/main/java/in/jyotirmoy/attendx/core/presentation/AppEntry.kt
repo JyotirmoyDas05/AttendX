@@ -16,6 +16,7 @@ import `in`.jyotirmoy.attendx.core.presentation.components.bottomsheet.UpdateBot
 import `in`.jyotirmoy.attendx.navigation.Navigation
 import `in`.jyotirmoy.attendx.settings.data.local.SettingsKeys
 import `in`.jyotirmoy.attendx.settings.domain.model.UpdateResult
+import `in`.jyotirmoy.attendx.core.utils.DeviceArchitecture
 import `in`.jyotirmoy.attendx.settings.presentation.page.autoupdate.viewmodel.AutoUpdateViewModel
 import `in`.jyotirmoy.attendx.settings.presentation.viewmodel.SettingsViewModel
 import kotlinx.coroutines.flow.collectLatest
@@ -35,9 +36,10 @@ fun AppEntry(
         autoUpdateViewModel.updateEvents.collectLatest { result ->
             if (result is UpdateResult.Success && result.isUpdateAvailable) {
                 tagName = result.release.tagName
-                apkUrl = result.release.apkUrl.toString()
-                Log.d("AppEntry", result.release.apkUrl.toString())
-                showUpdateSheet = true
+                val bestApk = DeviceArchitecture.selectBestApk(result.release.assets)
+                apkUrl = bestApk?.downloadUrl ?: ""
+                Log.d("AppEntry", "Selected APK: ${bestApk?.name} (${bestApk?.architecture})")
+                showUpdateSheet = bestApk != null
             }
         }
     }
