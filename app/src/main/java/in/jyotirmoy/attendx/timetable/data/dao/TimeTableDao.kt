@@ -56,4 +56,13 @@ interface TimeTableDao {
         )
     """)
     suspend fun checkTimeClash(day: Int, start: Long, end: Long, excludeId: Int = -1): List<TimeTableScheduleEntity>
+
+    @Query("SELECT * FROM class_schedule WHERE subjectId = :subjectId AND isActive = 1 ORDER BY dayOfWeek ASC, startTime ASC")
+    fun getSchedulesForSubject(subjectId: Int): Flow<List<TimeTableScheduleEntity>>
+
+    @Query("DELETE FROM class_schedule WHERE subjectId = :subjectId")
+    suspend fun deleteSchedulesForSubject(subjectId: Int)
+
+    @Query("DELETE FROM class_schedule WHERE id IN (:ids)")
+    suspend fun deleteClassesByIds(ids: List<Int>)
 }

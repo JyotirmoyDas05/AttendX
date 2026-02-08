@@ -20,4 +20,10 @@ interface TimeTableRepository {
     suspend fun deleteClass(id: Int)
     
     suspend fun checkTimeClash(day: Int, start: Long, end: Long, excludeId: Int = -1): List<TimeTableScheduleEntity>
+
+    fun getSchedulesForSubject(subjectId: Int): Flow<List<TimeTableScheduleEntity>>
+
+    suspend fun deleteSchedulesForSubject(subjectId: Int)
+
+    suspend fun deleteClassesByIds(ids: List<Int>)
 }

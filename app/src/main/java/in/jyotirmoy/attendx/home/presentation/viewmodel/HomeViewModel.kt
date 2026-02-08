@@ -12,10 +12,10 @@ import `in`.jyotirmoy.attendx.core.domain.model.SubjectAttendance
 import `in`.jyotirmoy.attendx.core.domain.model.SubjectError
 import `in`.jyotirmoy.attendx.core.domain.model.TotalAttendance
 import `in`.jyotirmoy.attendx.core.domain.model.ClassSchedule
-import `in`.jyotirmoy.attendx.core.domain.model.toDomain
+import `in`.jyotirmoy.attendx.core.domain.model.toClassSchedule
 import `in`.jyotirmoy.attendx.core.domain.repository.AttendanceRepository
-import `in`.jyotirmoy.attendx.core.domain.repository.ClassScheduleRepository
 import `in`.jyotirmoy.attendx.core.domain.repository.SubjectRepository
+import `in`.jyotirmoy.attendx.timetable.domain.repository.TimeTableRepository
 import `in`.jyotirmoy.attendx.notification.createAppNotificationSettingsIntent
 import `in`.jyotirmoy.attendx.notification.ClassNotificationScheduler
 import `in`.jyotirmoy.attendx.notification.TimetableAlarmScheduler
@@ -38,7 +38,7 @@ class HomeViewModel @Inject constructor(
     @param:ApplicationContext private val context: Context,
     private val subjectRepository: SubjectRepository,
     private val attendanceRepository: AttendanceRepository,
-    private val classScheduleRepository: ClassScheduleRepository
+    private val timetableRepository: TimeTableRepository
 ) : ViewModel() {
 
     private val _uiEvent = MutableSharedFlow<SettingsUiEvent>()
@@ -236,14 +236,14 @@ class HomeViewModel @Inject constructor(
 
     // Timetable Management
     fun getSchedulesForSubject(subjectId: Int): Flow<List<ClassSchedule>> {
-        return classScheduleRepository.getSchedulesForSubject(subjectId)
-            .map { schedules -> schedules.map { it.toDomain() } }
+        return timetableRepository.getSchedulesForSubject(subjectId)
+            .map { schedules -> schedules.map { it.toClassSchedule() } }
     }
 
     fun saveSchedulesForSubject(subjectId: Int, schedules: List<ClassSchedule>) {
         viewModelScope.launch {
             // Get current schedules from DB to identify deletions
-            val currentSchedules = classScheduleRepository.getSchedulesForSubject(subjectId).first().map { it.toDomain() }
+            val currentSchedules = timetableRepository.getSchedulesForSubject(subjectId).first().map { it.toClassSchedule() }
             
             // Identify schedules to delete (present in DB but not in new list)
             val newScheduleIds = schedules.map { it.id }.toSet()
@@ -251,10 +251,7 @@ class HomeViewModel @Inject constructor(
 
             // Delete removed schedules and cancel their alarms
             if (schedulesToDelete.isNotEmpty()) {
-                val entitiesToDelete = schedulesToDelete.map { it.toEntity() }
-                entitiesToDelete.forEach { entity ->
-                    classScheduleRepository.deleteSchedule(entity)
-                }
+                timetableRepository.deleteClassesByIds(schedulesToDelete.map { it.id })
                 
                 schedulesToDelete.forEach { schedule ->
                     ClassNotificationScheduler.cancelScheduleNotification(context, schedule.id)
@@ -263,8 +260,9 @@ class HomeViewModel @Inject constructor(
 
             // Upsert new/updated schedules
             if (schedules.isNotEmpty()) {
-                val entitiesToUpsert = schedules.map { it.copy(subjectId = subjectId).toEntity() }
-                classScheduleRepository.insertSchedules(entitiesToUpsert)
+                schedules.forEach { schedule ->
+                    timetableRepository.insertClass(schedule.copy(subjectId = subjectId).toTimeTableEntity())
+                }
                 
                 // Check Exact Alarm Permission
                 if (!TimetableAlarmScheduler.canScheduleExactAlarms(context)) {
@@ -274,16 +272,10 @@ class HomeViewModel @Inject constructor(
                     }
                 }
                 
-                // Fetch the updated list from DB (to get generated IDs for new items)
-                // Actually, insertSchedules might not return IDs immediately if it's void.
-                // But for Alarm scheduling, we ideally need the ID. 
-                // However, 'schedules' has 0 for new ones. 
-                // If we schedule with ID 0, it won't be unique?
-                // PROBLEM: We need the new IDs.
-                // Assuming inserts happens fast, we can re-fetch.
-                val updatedSchedules = classScheduleRepository.getSchedulesForSubject(subjectId).first().map { it.toDomain() }
+                // Fetch the updated list to get generated IDs for new items
+                val updatedSchedules = timetableRepository.getSchedulesForSubject(subjectId).first().map { it.toClassSchedule() }
                 
-                // Schedule exact alarms using AlarmManager for precise timing
+                // Schedule exact alarms using AlarmManager
                 updatedSchedules.forEach { schedule ->
                     TimetableAlarmScheduler.scheduleClassAlarms(
                         context = context,
@@ -300,16 +292,14 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-
-
     fun deleteSchedulesForSubject(subjectId: Int) {
         viewModelScope.launch {
-            val schedules = classScheduleRepository.getSchedulesForSubject(subjectId).first()
+            val schedules = timetableRepository.getSchedulesForSubject(subjectId).first()
             TimetableAlarmScheduler.cancelAllAlarmsForSubject(
                 context,
                 schedules.map { it.id }
             )
-            classScheduleRepository.deleteSchedulesForSubject(subjectId)
+            timetableRepository.deleteSchedulesForSubject(subjectId)
         }
     }
 }

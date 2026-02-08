@@ -31,6 +31,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.SystemUpdate
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -91,6 +92,8 @@ import `in`.jyotirmoy.attendx.navigation.SettingsScreen
 import `in`.jyotirmoy.attendx.settings.data.local.SettingsKeys
 import `in`.jyotirmoy.attendx.settings.presentation.event.SettingsUiEvent
 import `in`.jyotirmoy.attendx.settings.presentation.viewmodel.SettingsViewModel
+import `in`.jyotirmoy.attendx.settings.presentation.page.autoupdate.viewmodel.AutoUpdateViewModel
+import `in`.jyotirmoy.attendx.core.presentation.components.bottomsheet.UpdateBottomSheet
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
@@ -99,7 +102,8 @@ import kotlinx.coroutines.launch
 fun HomeScreen(
     modifier: Modifier = Modifier,
     viewModel: HomeViewModel = hiltViewModel(),
-    settingsViewModel: SettingsViewModel = hiltViewModel()
+    settingsViewModel: SettingsViewModel = hiltViewModel(),
+    autoUpdateViewModel: AutoUpdateViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
     val weakHaptic = LocalWeakHaptic.current
@@ -130,6 +134,12 @@ fun HomeScreen(
     var selectedCardsCount by rememberSaveable { mutableIntStateOf(0) }
     var showNotificationPermissionDialog by rememberSaveable { mutableStateOf(false) }
     var editingSubject by remember { mutableStateOf<SubjectEntity?>(null) }
+    
+    // Update state for persistent update button
+    val isUpdateAvailable by autoUpdateViewModel.isUpdateAvailable.collectAsState()
+    val latestVersion by autoUpdateViewModel.latestVersion.collectAsState()
+    val apkUrl by autoUpdateViewModel.apkUrl.collectAsState()
+    var showUpdateSheet by rememberSaveable { mutableStateOf(false) }
     
     // Track scroll state for FAB visibility
     val listState = rememberLazyListState()
@@ -242,6 +252,36 @@ fun HomeScreen(
                     )
 
                     Spacer(modifier = Modifier.weight(1f))
+
+                    // Persistent update button - visible when update available
+                    AnimatedVisibility(
+                        visible = isUpdateAvailable && apkUrl.isNotEmpty(),
+                        enter = fadeIn() + slideInVertically(initialOffsetY = { -it }),
+                        exit = fadeOut() + slideOutVertically(targetOffsetY = { -it })
+                    ) {
+                        Surface(
+                            onClick = {
+                                showUpdateSheet = true
+                                weakHaptic()
+                            },
+                            shape = CircleShape,
+                            color = MaterialTheme.colorScheme.tertiary,
+                            contentColor = MaterialTheme.colorScheme.onTertiary,
+                            modifier = Modifier.size(42.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.Rounded.SystemUpdate,
+                                    contentDescription = "Update Available",
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        }
+                    }
+
+                    if (isUpdateAvailable && apkUrl.isNotEmpty()) {
+                        Spacer(modifier = Modifier.width(8.dp))
+                    }
 
                     Surface(
                         onClick = {
@@ -481,6 +521,16 @@ fun HomeScreen(
                     true
                 )
             })
+    }
+
+    // Update sheet triggered from header button
+    if (showUpdateSheet) {
+        UpdateBottomSheet(
+            onDismiss = { showUpdateSheet = false },
+            latestVersion = latestVersion,
+            apkUrl = apkUrl,
+            viewModel = autoUpdateViewModel
+        )
     }
     }
 }

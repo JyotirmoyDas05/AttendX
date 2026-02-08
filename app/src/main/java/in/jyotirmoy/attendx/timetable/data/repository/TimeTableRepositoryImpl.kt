@@ -42,4 +42,16 @@ class TimeTableRepositoryImpl @Inject constructor(
     override suspend fun checkTimeClash(day: Int, start: Long, end: Long, excludeId: Int): List<TimeTableScheduleEntity> {
         return dao.checkTimeClash(day, start, end, excludeId)
     }
+
+    override fun getSchedulesForSubject(subjectId: Int): Flow<List<TimeTableScheduleEntity>> {
+        return dao.getSchedulesForSubject(subjectId)
+    }
+
+    override suspend fun deleteSchedulesForSubject(subjectId: Int) {
+        dao.deleteSchedulesForSubject(subjectId)
+    }
+
+    override suspend fun deleteClassesByIds(ids: List<Int>) {
+        dao.deleteClassesByIds(ids)
+    }
 }

@@ -1,8 +1,7 @@
 package `in`.jyotirmoy.attendx.core.domain.model
 
 import `in`.jyotirmoy.attendx.core.data.model.ClassScheduleEntity
-import java.time.DayOfWeek
-import java.time.LocalTime
+import `in`.jyotirmoy.attendx.timetable.data.model.TimeTableScheduleEntity
 
 data class ClassSchedule(
     val id: Int = 0,
@@ -22,6 +21,19 @@ data class ClassSchedule(
             endTime = endTime,
             location = location,
             isEnabled = isEnabled
+        )
+    }
+
+    // converts HH:mm to minutes from midnight
+    fun toTimeTableEntity(): TimeTableScheduleEntity {
+        return TimeTableScheduleEntity(
+            id = id,
+            subjectId = subjectId,
+            dayOfWeek = dayOfWeek,
+            startTime = parseTimeToMinutes(startTime),
+            endTime = parseTimeToMinutes(endTime),
+            room = location,
+            isActive = isEnabled
         )
     }
 
@@ -53,4 +65,33 @@ fun ClassScheduleEntity.toDomain(): ClassSchedule {
         location = location,
         isEnabled = isEnabled
     )
+}
+
+// converts TimeTableScheduleEntity to ClassSchedule
+fun TimeTableScheduleEntity.toClassSchedule(): ClassSchedule {
+    return ClassSchedule(
+        id = id,
+        subjectId = subjectId,
+        dayOfWeek = dayOfWeek,
+        startTime = minutesToTimeString(startTime),
+        endTime = minutesToTimeString(endTime),
+        location = room,
+        isEnabled = isActive
+    )
+}
+
+// HH:mm -> minutes from midnight
+private fun parseTimeToMinutes(time: String): Long {
+    val parts = time.split(":")
+    if (parts.size != 2) return 0L
+    val hours = parts[0].toIntOrNull() ?: 0
+    val minutes = parts[1].toIntOrNull() ?: 0
+    return (hours * 60 + minutes).toLong()
+}
+
+// minutes from midnight -> HH:mm
+private fun minutesToTimeString(minutes: Long): String {
+    val hours = (minutes / 60).toInt()
+    val mins = (minutes % 60).toInt()
+    return "%02d:%02d".format(hours, mins)
 }

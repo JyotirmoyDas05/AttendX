@@ -16,8 +16,8 @@ android {
         applicationId = "in.jyotirmoy.attendx"
         minSdk = 26
         targetSdk = 36
-        versionCode = 21
-        versionName = "2.3.1"
+        versionCode = 22
+        versionName = "2.3.2"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

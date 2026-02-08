@@ -6,6 +6,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import `in`.jyotirmoy.attendx.BuildConfig
 import `in`.jyotirmoy.attendx.core.domain.model.DownloadState
 import `in`.jyotirmoy.attendx.core.domain.usecase.DownloadApkUseCase
+import `in`.jyotirmoy.attendx.core.utils.DeviceArchitecture
 import `in`.jyotirmoy.attendx.settings.data.local.SettingsKeys
 import `in`.jyotirmoy.attendx.settings.domain.model.UpdateResult
 import `in`.jyotirmoy.attendx.settings.domain.repository.SettingsRepository
@@ -27,9 +28,28 @@ class AutoUpdateViewModel @Inject constructor(
     private val _updateEvents = MutableSharedFlow<UpdateResult>()
     val updateEvents = _updateEvents.asSharedFlow()
 
+    // persistent update state for UI
+    private val _isUpdateAvailable = MutableStateFlow(false)
+    val isUpdateAvailable = _isUpdateAvailable.asStateFlow()
+
+    private val _latestVersion = MutableStateFlow("")
+    val latestVersion = _latestVersion.asStateFlow()
+
+    private val _apkUrl = MutableStateFlow("")
+    val apkUrl = _apkUrl.asStateFlow()
+
     fun checkForUpdates(includePrerelease: Boolean) {
         viewModelScope.launch {
             val result = checkUpdateUseCase(BuildConfig.VERSION_NAME, includePrerelease)
+            
+            // persist update info
+            if (result is UpdateResult.Success && result.isUpdateAvailable) {
+                _isUpdateAvailable.value = true
+                _latestVersion.value = result.release.tagName
+                val bestApk = DeviceArchitecture.selectBestApk(result.release.assets)
+                _apkUrl.value = bestApk?.downloadUrl ?: ""
+            }
+            
             _updateEvents.emit(result)
         }
     }
@@ -53,5 +73,9 @@ class AutoUpdateViewModel @Inject constructor(
 
     fun cancelDownload() {
         downloadApkUseCase.cancel()
+    }
+
+    fun showUpdateSheet(): Boolean {
+        return _isUpdateAvailable.value && _apkUrl.value.isNotEmpty()
     }
 }
