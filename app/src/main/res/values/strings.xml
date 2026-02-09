@@ -26,6 +26,7 @@
     <string name="calendar">Calendar</string>
     <string name="cancel">Cancel</string>
     <string name="changelogs">Changelogs</string>
+    <string name="changelogs_v2_3_3">Hotfix Update!\n• Fixed OTA update system: app now correctly checks for updates on startup.\n• Fixed "View Release" button linking to wrong URL.\n• Added detailed logs for update troubleshooting.</string>
     <string name="changelogs_v2_3_2">Bug Fixes &amp; Improvements!\n• Fixed timetable sync: schedules from Add/Edit Subject now appear correctly.\n• Added persistent update button in header when update is available.\n• Various performance improvements.</string>
     <string name="changelogs_v2_3_1">Multi-Architecture APK Support!\n• Build now generates APKs for arm64-v8a, armeabi-v7a, x86_64, and universal.\n• OTA updates auto-detect device architecture and download the best APK.\n• Android 15+ devices now get 64-bit APK automatically.\n• GitHub releases include all architecture variants.</string>
     <string name="changelogs_v2_3_0">Material 3 Expressive Timetable Enhancements!\n• Swipe-to-delete with progressive color and haptic feedback.\n• Multi-select mode with selection app bar and batch delete.\n• Calendar Grid View for visual weekly schedule.\n• Add Class sheet now defaults to currently viewed day.\n• Smooth AnimatedContent transitions between views.</string>

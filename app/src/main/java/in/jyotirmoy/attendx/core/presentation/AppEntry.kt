@@ -38,9 +38,18 @@ fun AppEntry(
                 tagName = result.release.tagName
                 val bestApk = DeviceArchitecture.selectBestApk(result.release.assets)
                 apkUrl = bestApk?.downloadUrl ?: ""
+                Log.d("AppEntry", "Update found: $tagName")
                 Log.d("AppEntry", "Selected APK: ${bestApk?.name} (${bestApk?.architecture})")
+                Log.d("AppEntry", "APK URL: $apkUrl")
                 showUpdateSheet = bestApk != null
             }
+        }
+    }
+
+    // Check for updates on app start
+    LaunchedEffect(Unit) {
+        settingsViewModel.getInt(SettingsKeys.GITHUB_RELEASE_TYPE).collectLatest { type ->
+            autoUpdateViewModel.checkForUpdates(type == `in`.jyotirmoy.attendx.core.domain.model.GithubReleaseType.PRE_RELEASE)
         }
     }
 

@@ -154,11 +154,14 @@ fun UpdateBottomSheet(
     val downloadButtonClickAction: () -> Unit = {
         if (isDirectDownloadEnabled) {
             permissionPromptShown = false
+            Log.d("UpdateBottomSheet", "Starting direct download: $apkUrl")
             viewModel.downloadApk(apkUrl, apkName)
         } else {
+            val url = if (apkUrl.isNotEmpty()) apkUrl else "https://github.com/JyotirmoyDas05/AttendX/releases/tag/$latestVersion"
+            Log.d("UpdateBottomSheet", "Opening URL: $url")
             openUrl(
                 context = context,
-                url = "https://github.com/dp-jyotirmoy/attendx/releases/tag/$latestVersion"
+                url = url
             )
         }
     }
