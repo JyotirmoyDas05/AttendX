@@ -38,6 +38,9 @@ class AutoUpdateViewModel @Inject constructor(
     private val _apkUrl = MutableStateFlow("")
     val apkUrl = _apkUrl.asStateFlow()
 
+    private val _releaseNotes = MutableStateFlow("")
+    val releaseNotes = _releaseNotes.asStateFlow()
+
     fun checkForUpdates(includePrerelease: Boolean) {
         viewModelScope.launch {
             val result = checkUpdateUseCase(BuildConfig.VERSION_NAME, includePrerelease)
@@ -46,6 +49,7 @@ class AutoUpdateViewModel @Inject constructor(
             if (result is UpdateResult.Success && result.isUpdateAvailable) {
                 _isUpdateAvailable.value = true
                 _latestVersion.value = result.release.tagName
+                _releaseNotes.value = result.release.releaseNotes
                 val bestApk = DeviceArchitecture.selectBestApk(result.release.assets)
                 _apkUrl.value = bestApk?.downloadUrl ?: ""
             }

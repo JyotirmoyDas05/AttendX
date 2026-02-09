@@ -138,6 +138,7 @@ fun HomeScreen(
     // Update state for persistent update button
     val isUpdateAvailable by autoUpdateViewModel.isUpdateAvailable.collectAsState()
     val latestVersion by autoUpdateViewModel.latestVersion.collectAsState()
+    val releaseNotes by autoUpdateViewModel.releaseNotes.collectAsState()
     val apkUrl by autoUpdateViewModel.apkUrl.collectAsState()
     var showUpdateSheet by rememberSaveable { mutableStateOf(false) }
     
@@ -514,6 +515,7 @@ fun HomeScreen(
         UpdateBottomSheet(
             onDismiss = { showUpdateSheet = false },
             latestVersion = latestVersion,
+            releaseNotes = releaseNotes,
             apkUrl = apkUrl,
             viewModel = autoUpdateViewModel
         )

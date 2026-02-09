@@ -29,6 +29,7 @@ fun AppEntry(
     var showUpdateSheet by rememberSaveable { mutableStateOf(false) }
     var showChangelogSheet by rememberSaveable { mutableStateOf(false) }
     var tagName by rememberSaveable { mutableStateOf(BuildConfig.VERSION_NAME) }
+    var releaseNotes by rememberSaveable { mutableStateOf("") }
     var apkUrl by rememberSaveable { mutableStateOf("") }
     val savedVersionCode = LocalSettings.current.savedVersionCode
 
@@ -36,6 +37,7 @@ fun AppEntry(
         autoUpdateViewModel.updateEvents.collectLatest { result ->
             if (result is UpdateResult.Success && result.isUpdateAvailable) {
                 tagName = result.release.tagName
+                releaseNotes = result.release.releaseNotes
                 val bestApk = DeviceArchitecture.selectBestApk(result.release.assets)
                 apkUrl = bestApk?.downloadUrl ?: ""
                 Log.d("AppEntry", "Update found: $tagName")
@@ -64,6 +66,7 @@ fun AppEntry(
             UpdateBottomSheet(
                 onDismiss = { showUpdateSheet = false },
                 latestVersion = tagName,
+                releaseNotes = releaseNotes,
                 apkUrl = apkUrl,
             )
         }

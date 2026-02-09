@@ -26,6 +26,7 @@
     <string name="calendar">Calendar</string>
     <string name="cancel">Cancel</string>
     <string name="changelogs">Changelogs</string>
+    <string name="changelogs_v2_4_1">Update Features!\n• Changelogs are now displayed directly in the Update Sheet before downloading.\n• Improved update flow and transparency.</string>
     <string name="changelogs_v2_4_0">Major Timetable &amp; UI Update!\n• Revamped Timetable with Google Calendar-style Grid View (Synchronized Scrolling).\n• Replaced legacy Add Subject button with Material 3 Expressive FAB.\n• Added Undo option for class deletions.\n• Fixed duplicate notifications and zombie alarms.</string>
     <string name="changelogs_v2_3_3">Hotfix Update!\n• Fixed OTA update system: app now correctly checks for updates on startup.\n• Fixed "View Release" button linking to wrong URL.\n• Added detailed logs for update troubleshooting.</string>
     <string name="changelogs_v2_3_2">Bug Fixes &amp; Improvements!\n• Fixed timetable sync: schedules from Add/Edit Subject now appear correctly.\n• Added persistent update button in header when update is available.\n• Various performance improvements.</string>

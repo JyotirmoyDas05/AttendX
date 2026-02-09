@@ -12,9 +12,13 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ButtonGroup
@@ -61,6 +65,7 @@ fun UpdateBottomSheet(
     modifier: Modifier = Modifier,
     onDismiss: () -> Unit,
     latestVersion: String = "",
+    releaseNotes: String = "", // Added release notes parameter
     apkUrl: String = "",
     viewModel: AutoUpdateViewModel = hiltViewModel()
 ) {
@@ -194,6 +199,28 @@ fun UpdateBottomSheet(
             text = stringResource(R.string.current_version) + " : ${BuildConfig.VERSION_NAME}",
             style = MaterialTheme.typography.labelLarge,
         )
+
+        if (releaseNotes.isNotEmpty()) {
+            Text(
+                modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp),
+                text = stringResource(R.string.whats_new),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 200.dp)
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 20.dp)
+            ) {
+                Text(
+                    text = releaseNotes,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+        }
 
         Box(
             modifier = Modifier
