@@ -1,22 +1,22 @@
 # AttendX
 
 <p align="center">
-  <img src="./right%20now/img%201.jpeg" width="31%" style="border-radius:26px; margin: 2px;"/>
-  <img src="./right%20now/img%202.jpeg" width="31%" style="border-radius:26px; margin: 2px;"/>
-  <img src="./right%20now/img%203.jpeg" width="31%" style="border-radius:26px; margin: 2px;"/>
+  <img src="./right%20now/img%201.jpg" width="31%" style="border-radius:26px; margin: 2px;"/>
+  <img src="./right%20now/img%202.jpg" width="31%" style="border-radius:26px; margin: 2px;"/>
+  <img src="./right%20now/img%203.jpg" width="31%" style="border-radius:26px; margin: 2px;"/>
 </p>
 
 <p align="center">
-  <img src="./right%20now/img%204.jpeg" width="31%" style="border-radius:26px; margin: 2px;"/>
-  <img src="./right%20now/img%205.jpeg" width="31%" style="border-radius:26px; margin: 2px;"/>
+  <img src="./right%20now/img%204.jpg" width="31%" style="border-radius:26px; margin: 2px;"/>
+  <img src="./right%20now/img%205.jpg" width="31%" style="border-radius:26px; margin: 2px;"/>
 </p>
 
 <p align="center">
-    <a href="https://github.com/xtractiion/self.attendance/releases/latest">
-        <img src="https://img.shields.io/github/v/release/xtractiion/self.attendance?include_prereleases&logo=github&style=for-the-badge&label=Latest%20Release" alt="Latest Release">
+    <a href="https://github.com/JyotirmoyDas05/AttendX/releases/latest">
+        <img src="https://img.shields.io/github/v/release/JyotirmoyDas05/AttendX?include_prereleases&logo=github&style=for-the-badge&label=Latest%20Release" alt="Latest Release">
     </a>
-    <a href="https://github.com/xtractiion/self.attendance/releases">
-        <img src="https://img.shields.io/github/downloads/xtractiion/self.attendance/total?logo=github&style=for-the-badge" alt="Total Downloads">
+    <a href="https://github.com/JyotirmoyDas05/AttendX/releases">
+        <img src="https://img.shields.io/github/downloads/JyotirmoyDas05/AttendX/total?logo=github&style=for-the-badge" alt="Total Downloads">
     </a>
     <img src="https://img.shields.io/badge/Android-10%2B-green?style=for-the-badge&logo=android" alt="Android 10+">
     <img src="https://img.shields.io/badge/Kotlin-100%25-purple?style=for-the-badge&logo=kotlin" alt="Kotlin">
