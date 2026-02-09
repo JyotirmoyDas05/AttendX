@@ -94,7 +94,7 @@ fun TimeTableScreen(
                     },
                     actions = {
                         IconButton(
-                            onClick = {
+                                onClick = {
                                 val count = selectedIds.size
                                 viewModel.deleteSelected()
                                 scope.launch {
@@ -104,7 +104,7 @@ fun TimeTableScreen(
                                         duration = SnackbarDuration.Short
                                     )
                                     if (result == SnackbarResult.ActionPerformed) {
-                                        // undo not implemented yet
+                                        viewModel.restoreDeletedClasses()
                                     }
                                 }
                             }
@@ -239,19 +239,9 @@ fun TimeTableScreen(
                                 }
                             } else {
                                 items(dailySchedule, key = { it.schedule.id }) { schedule ->
-                                    SwipeableClassCard(
+                                    `in`.jyotirmoy.attendx.timetable.presentation.components.SelectableClassCard(
                                         scheduleWithSubject = schedule,
                                         isSelected = selectedIds.contains(schedule.schedule.id),
-                                        onSwipeDelete = { 
-                                            viewModel.deleteClass(schedule.schedule.id)
-                                            scope.launch {
-                                                snackbarHostState.showSnackbar(
-                                                    message = "Class deleted",
-                                                    actionLabel = "Undo",
-                                                    duration = SnackbarDuration.Short
-                                                )
-                                            }
-                                        },
                                         onLongPress = { viewModel.toggleSelection(schedule.schedule.id) },
                                         onClick = {
                                             if (selectedIds.isNotEmpty()) {

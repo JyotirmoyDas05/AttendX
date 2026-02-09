@@ -169,7 +169,16 @@ class HomeViewModel @Inject constructor(
     fun deleteSubject(subjectId: Int, onSuccess: () -> Unit) {
         viewModelScope.launch {
             // Cancel notifications first
+            // Fetch schedules to cancel individual alarms
+            val schedules = timetableRepository.getSchedulesForSubject(subjectId).first()
+            schedules.forEach { schedule ->
+                ClassNotificationScheduler.cancelScheduleNotification(context, schedule.id)
+                TimetableAlarmScheduler.cancelClassAlarms(context, schedule.id)
+            }
+            
+            // Also call bulk cancel for safety (legacy WorkManager tags)
             ClassNotificationScheduler.cancelNotifications(context, subjectId)
+            
             subjectRepository.deleteSubject(subjectId)
             onSuccess()
         }
@@ -245,17 +254,18 @@ class HomeViewModel @Inject constructor(
             // Get current schedules from DB to identify deletions
             val currentSchedules = timetableRepository.getSchedulesForSubject(subjectId).first().map { it.toClassSchedule() }
             
+            // Cancel Legacy Alarms for ALL current schedules to prevent duplication
+            currentSchedules.forEach { schedule ->
+                ClassNotificationScheduler.cancelScheduleNotification(context, schedule.id)
+            }
+
             // Identify schedules to delete (present in DB but not in new list)
             val newScheduleIds = schedules.map { it.id }.toSet()
             val schedulesToDelete = currentSchedules.filter { it.id != 0 && it.id !in newScheduleIds }
 
-            // Delete removed schedules and cancel their alarms
+            // Delete removed schedules
             if (schedulesToDelete.isNotEmpty()) {
                 timetableRepository.deleteClassesByIds(schedulesToDelete.map { it.id })
-                
-                schedulesToDelete.forEach { schedule ->
-                    ClassNotificationScheduler.cancelScheduleNotification(context, schedule.id)
-                }
             }
 
             // Upsert new/updated schedules

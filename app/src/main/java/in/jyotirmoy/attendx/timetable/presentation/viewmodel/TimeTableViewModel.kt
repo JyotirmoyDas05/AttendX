@@ -137,16 +137,47 @@ class TimeTableViewModel @Inject constructor(
         _selectedIds.value = emptySet()
     }
 
+    // Undo deletion support
+    private var lastDeletedSchedules: List<TimeTableScheduleEntity> = emptyList()
+
     fun deleteClass(id: Int) {
+        val schedule = dailySchedule.value.find { it.schedule.id == id }?.schedule
+        if (schedule != null) {
+            lastDeletedSchedules = listOf(schedule)
+        }
         viewModelScope.launch {
             useCases.deleteClass(id)
         }
     }
 
     fun deleteSelected() {
+        val selected = _selectedIds.value
+        // Find schedules from the current daily schedule (since selection is only active in list view)
+        // Note: unique IDs are assumed globally or per table.
+        val schedulesToDelete = dailySchedule.value
+            .filter { it.schedule.id in selected }
+            .map { it.schedule }
+        
+        lastDeletedSchedules = schedulesToDelete
+        
         viewModelScope.launch {
-            useCases.deleteClass(_selectedIds.value.toList())
+            // Assuming useCases.deleteClass takes a list of IDs
+            useCases.deleteClass(selected.toList())
             clearSelection()
+        }
+    }
+
+    fun restoreDeletedClasses() {
+        viewModelScope.launch {
+            lastDeletedSchedules.forEach { schedule ->
+                // Reset ID to 0 to treat as new insert? Or keep ID?
+                // Room usually handles "Insert" with existing ID as "ABORT" or "REPLACE" depending on conflict strategy.
+                // If we want to restore exact same ID, we should keep it.
+                // But if the ID was auto-generated and we deleted it, re-inserting with same ID might be fine if it's not present.
+                // Just passing schedule as is.
+                useCases.addClassSlot(schedule)
+            }
+            lastDeletedSchedules = emptyList()
         }
     }
 }

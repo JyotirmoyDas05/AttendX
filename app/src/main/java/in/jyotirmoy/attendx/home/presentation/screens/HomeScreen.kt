@@ -143,7 +143,7 @@ fun HomeScreen(
     
     // Track scroll state for FAB visibility
     val listState = rememberLazyListState()
-    val fabVisible by remember {
+    val isExpanded by remember {
         derivedStateOf {
             listState.firstVisibleItemIndex == 0 || 
             listState.firstVisibleItemScrollOffset < 100
@@ -434,48 +434,34 @@ fun HomeScreen(
         }
 
         // Wide pill-shaped button at bottom
+        // Material 3 Expressive FAB
         AnimatedVisibility(
-            visible = selectedCardsCount == 0 && fabVisible,
-            enter = fadeIn(animationSpec = tween(250)) + 
-                    slideInVertically(
-                        initialOffsetY = { it / 2 },
-                        animationSpec = tween(250)
-                    ),
-            exit = fadeOut(animationSpec = tween(250)) + 
-                   slideOutVertically(
-                       targetOffsetY = { it / 2 },
-                       animationSpec = tween(250)
-                   ),
+            visible = selectedCardsCount == 0 && !isDialogOpen, // Hide when selecting cards or dialog is open (container transform simulation)
+            enter = androidx.compose.animation.scaleIn(
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessLow
+                )
+            ) + fadeIn(animationSpec = tween(400)),
+            exit = androidx.compose.animation.scaleOut(
+                animationSpec = tween(200)
+            ) + fadeOut(animationSpec = tween(200)),
             modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(bottom = 25.dp)
+                .align(Alignment.BottomEnd)
+                .padding(end = 25.dp, bottom = 25.dp)
         ) {
-            Button(
+            
+            ExtendedFloatingActionButton(
                 onClick = {
                     isDialogOpen = true
                     weakHaptic()
                 },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 25.dp)
-                    .height(56.dp),
-                    shape = RoundedCornerShape(40.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary
-                )
-            ) {
-                Icon(
-                    imageVector = Icons.Rounded.Add,
-                    contentDescription = null
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = stringResource(R.string.add_subject),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
-                )
-            }
+                expanded = isExpanded,
+                icon = { Icon(Icons.Rounded.Add, "Add Subject") },
+                text = { Text(text = stringResource(R.string.add_subject)) },
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+            )
         }
     }
 

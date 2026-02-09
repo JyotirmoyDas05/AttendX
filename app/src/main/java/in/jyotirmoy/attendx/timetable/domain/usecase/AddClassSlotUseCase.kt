@@ -12,6 +12,9 @@ class AddClassSlotUseCase @Inject constructor(
     private val context: Context // Need context for alarm manager
 ) {
     suspend operator fun invoke(schedule: TimeTableScheduleEntity) {
+        // Cancel legacy notification if exists (migrating to new system)
+        `in`.jyotirmoy.attendx.notification.ClassNotificationScheduler.cancelScheduleNotification(context, schedule.id)
+        
         repository.insertClass(schedule)
         scheduler.scheduleClassAlarm(context, schedule)
     }

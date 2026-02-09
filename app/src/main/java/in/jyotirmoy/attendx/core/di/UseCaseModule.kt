@@ -47,7 +47,7 @@ object UseCaseModule {
             getCurrentClass = GetCurrentClassUseCase(repository),
             detectTimeClash = DetectTimeClashUseCase(repository),
             addClassSlot = AddClassSlotUseCase(repository, scheduler, context),
-            deleteClass = DeleteClassUseCase(repository)
+            deleteClass = DeleteClassUseCase(repository, context)
         )
     }
 }
