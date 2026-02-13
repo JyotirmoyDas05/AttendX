@@ -78,7 +78,7 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    val subjectList: Flow<List<SubjectEntity>> = subjectRepository.getAllSubjects().stateIn(
+    val subjectList: StateFlow<List<SubjectEntity>> = subjectRepository.getAllSubjects().stateIn(
         viewModelScope,
         SharingStarted.Eagerly, emptyList()
     )

@@ -34,6 +34,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import `in`.jyotirmoy.attendx.timetable.data.model.TimeTableScheduleWithSubject
+import `in`.jyotirmoy.attendx.core.presentation.util.bounceClick
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.runtime.remember
+import kotlinx.coroutines.launch
 
 /**
  * Google Calendar-style synchronized grid view
@@ -187,14 +191,40 @@ private fun ClassCell(
 ) {
     if (classItem == null) return
 
+    val scale = remember { androidx.compose.animation.core.Animatable(0.5f) }
+    val alpha = remember { androidx.compose.animation.core.Animatable(0f) }
+    
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        launch {
+            scale.animateTo(
+                targetValue = 1f,
+                animationSpec = androidx.compose.animation.core.spring(
+                    dampingRatio = androidx.compose.animation.core.Spring.DampingRatioMediumBouncy,
+                    stiffness = androidx.compose.animation.core.Spring.StiffnessLow
+                )
+            )
+        }
+        launch {
+            alpha.animateTo(
+                targetValue = 1f,
+                animationSpec = androidx.compose.animation.core.tween(300)
+            )
+        }
+    }
+
     Card(
-        modifier = modifier,
+        modifier = modifier
+            .graphicsLayer {
+                scaleX = scale.value
+                scaleY = scale.value
+                this.alpha = alpha.value
+            }
+            .bounceClick(onClick = { onClick(classItem) }),
         colors = CardDefaults.cardColors(
             containerColor = generateSubjectColor(classItem.subject.subject).copy(alpha = 0.85f), // Increased opacity for better look
             contentColor = Color.White
         ),
         shape = RoundedCornerShape(8.dp),
-        onClick = { onClick(classItem) },
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(

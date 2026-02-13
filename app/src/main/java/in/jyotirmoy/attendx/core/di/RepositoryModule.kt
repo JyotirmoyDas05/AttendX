@@ -48,5 +48,11 @@ abstract class RepositoryModule {
     abstract fun bindTimeTableRepository(
         timeTableRepositoryImpl: TimeTableRepositoryImpl
     ): TimeTableRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindTemplateRepository(
+        templateRepositoryImpl: `in`.jyotirmoy.attendx.timetable.data.repository.TemplateRepositoryImpl
+    ): `in`.jyotirmoy.attendx.timetable.domain.repository.TemplateRepository
 }
 

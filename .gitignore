@@ -19,3 +19,4 @@ password.md
 temp_*.svg
 convert_svg.py
 build_log.txt
+app/google-services.json

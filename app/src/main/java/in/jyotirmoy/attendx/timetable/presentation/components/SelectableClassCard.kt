@@ -32,6 +32,7 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import `in`.jyotirmoy.attendx.timetable.data.model.TimeTableScheduleWithSubject
+import `in`.jyotirmoy.attendx.core.presentation.util.bounceClick
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -66,6 +67,7 @@ fun SelectableClassCard(
             .fillMaxWidth()
             .padding(vertical = 4.dp)
             .then(borderModifier)
+            .bounceClick(onClick = onClick)
             .combinedClickable(
                 onClick = onClick,
                 onLongClick = {

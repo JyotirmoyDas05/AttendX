@@ -58,6 +58,7 @@ import `in`.jyotirmoy.attendx.core.presentation.components.text.AutoResizeableTe
 import `in`.jyotirmoy.attendx.core.utils.installApk
 import `in`.jyotirmoy.attendx.core.utils.openUrl
 import `in`.jyotirmoy.attendx.settings.presentation.page.autoupdate.viewmodel.AutoUpdateViewModel
+import `in`.jyotirmoy.attendx.core.presentation.util.bounceClick
 import java.io.File
 
 @Composable
@@ -277,7 +278,17 @@ fun UpdateBottomSheet(
                     }
                 },
                 modifier = Modifier
-                    .weight(1f),
+                    .weight(1f)
+                    .bounceClick(onClick = {
+                        weakHaptic()
+                        permissionPromptShown = false
+
+                        if (showDownloadButton) {
+                            onDismiss()
+                        } else {
+                            viewModel.cancelDownload()
+                        }
+                    }),
                     ) {
                 Text(text = stringResource(R.string.cancel))
             }
@@ -295,7 +306,17 @@ fun UpdateBottomSheet(
                         weakHaptic()
                     },
                     modifier = Modifier
-                        .weight(1f),
+                        .weight(1f)
+                        .bounceClick(onClick = {
+                            Log.d("test", showDialogPreference.toString())
+                            if (showDialogPreference) {
+                                showGithubWarningDialog = true
+                            } else {
+                                downloadButtonClickAction()
+                            }
+
+                            weakHaptic()
+                        }),
                         ) {
                     Text(text = stringResource(R.string.download))
                 }

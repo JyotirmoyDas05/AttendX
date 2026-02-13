@@ -1,0 +1,331 @@
+package `in`.jyotirmoy.attendx.timetable.presentation.screens.template.preview
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import `in`.jyotirmoy.attendx.timetable.data.model.community.CommunityTemplate
+import `in`.jyotirmoy.attendx.timetable.data.model.community.TemplateClassEntry
+import `in`.jyotirmoy.attendx.timetable.data.model.community.TemplateSubjectEntry
+import java.text.SimpleDateFormat
+import java.util.Locale
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun TemplatePreviewScreen(
+    onNavigateBack: () -> Unit,
+    viewModel: TemplatePreviewViewModel = hiltViewModel()
+) {
+    val state by remember { viewModel.state }
+    var selectedTab by remember { mutableIntStateOf(0) }
+    
+    LaunchedEffect(state.importSuccess) {
+        if (state.importSuccess) {
+            onNavigateBack()
+        }
+    }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Template Details") },
+                navigationIcon = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                }
+            )
+        },
+        bottomBar = {
+            state.template?.let {
+                Button(
+                    onClick = { viewModel.importTemplate() },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    enabled = !state.isImporting
+                ) {
+                    if (state.isImporting) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Importing...")
+                    } else {
+                        Text("Import Template")
+                    }
+                }
+            }
+        }
+    ) { padding ->
+        Box(
+            modifier = Modifier
+                .padding(padding)
+                .fillMaxSize()
+        ) {
+            if (state.isLoading) {
+                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+            } else if (state.error != null) {
+                Text(
+                    text = state.error!!,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.align(Alignment.Center)
+                )
+            } else if (state.template != null) {
+                Column(modifier = Modifier.fillMaxSize()) {
+                    // Template Header
+                    TemplateHeader(template = state.template!!)
+                    
+                    // Tabs
+                    TabRow(selectedTabIndex = selectedTab) {
+                        Tab(
+                            selected = selectedTab == 0,
+                            onClick = { selectedTab = 0 },
+                            text = { Text("Subjects") },
+                            icon = { Icon(Icons.Default.Info, contentDescription = null) }
+                        )
+                        Tab(
+                            selected = selectedTab == 1,
+                            onClick = { selectedTab = 1 },
+                            text = { Text("Timetable") },
+                            icon = { Icon(Icons.Default.Schedule, contentDescription = null) }
+                        )
+                    }
+                    
+                    // Content
+                    when (selectedTab) {
+                        0 -> SubjectsList(template = state.template!!)
+                        1 -> TimetableWeeklyView(template = state.template!!)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun TemplateHeader(template: CommunityTemplate) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp)
+    ) {
+        Text(
+            text = template.name,
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = "${template.college} • ${template.department}",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Text(
+            text = "Semester ${template.semester} • Section ${template.section}",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = "Uploaded by ${template.authorName}",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.outline
+        )
+    }
+}
+
+@Composable
+fun SubjectsList(template: CommunityTemplate) {
+    val subjects = remember(template) {
+        if (template.subjects.isNotEmpty()) {
+            template.subjects.sortedBy { it.name }
+        } else {
+            // Fallback for old templates
+            template.classes.map { it.subject }.distinct().sorted().map {
+                TemplateSubjectEntry(name = it)
+            }
+        }
+    }
+    
+    LazyColumn(
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier.fillMaxSize()
+    ) {
+        if (subjects.isEmpty()) {
+            item {
+                Text(
+                    "No subjects found in this template.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.fillMaxWidth(),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        } else {
+            items(subjects) { subject ->
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                    )
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .background(
+                                    MaterialTheme.colorScheme.primaryContainer,
+                                    shape = MaterialTheme.shapes.small
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = subject.name.take(1).uppercase(),
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Column {
+                            Text(
+                                text = subject.name,
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.Medium
+                            )
+                            if (!subject.code.isNullOrBlank()) {
+                                Text(
+                                    text = subject.code,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun TimetableWeeklyView(template: CommunityTemplate) {
+    val weekDays = listOf("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
+    
+    LazyColumn(
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        modifier = Modifier.fillMaxSize()
+    ) {
+        // Group classes by day of week (1=Monday, 7=Sunday)
+        val groupedClasses = template.classes.groupBy { it.dayOfWeek }
+        
+        items(weekDays.indices.toList()) { index ->
+            val dayOfWeek = index + 1
+            val classesForDay = groupedClasses[dayOfWeek]?.sortedBy { it.startTime } ?: emptyList()
+            
+            if (classesForDay.isNotEmpty()) {
+                Surface(
+                    shape = MaterialTheme.shapes.medium,
+                    tonalElevation = 2.dp,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        Text(
+                            text = weekDays[index],
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        
+                        classesForDay.forEach { classEntry ->
+                            ClassItemRow(classEntry)
+                            if (classEntry != classesForDay.last()) {
+                                HorizontalDivider(
+                                    modifier = Modifier.padding(vertical = 8.dp),
+                                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        if (template.classes.isEmpty()) {
+             item {
+                Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
+                    Text("No usage schedule found.")
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ClassItemRow(classEntry: TemplateClassEntry) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(modifier = Modifier.width(60.dp)) {
+            Text(
+                text = formatTime(classEntry.startTime),
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = formatTime(classEntry.endTime),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.outline
+            )
+        }
+        
+        Spacer(modifier = Modifier.width(8.dp))
+        
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = classEntry.subject,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold
+            )
+            if (!classEntry.room.isNullOrBlank()) {
+                Text(
+                    text = classEntry.room,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Text(
+                text = classEntry.type,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.secondary
+            )
+        }
+    }
+}
+
+private fun formatTime(minutes: Long): String {
+    val h = minutes / 60
+    val m = minutes % 60
+    return String.format(Locale.getDefault(), "%02d:%02d", h, m)
+}

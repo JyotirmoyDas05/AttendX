@@ -20,6 +20,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import `in`.jyotirmoy.attendx.home.presentation.screens.HomeScreen
 import `in`.jyotirmoy.attendx.timetable.presentation.screens.TimeTableScreen
+import `in`.jyotirmoy.attendx.navigation.LocalNavController
+import `in`.jyotirmoy.attendx.navigation.UploadTemplateScreen
+import `in`.jyotirmoy.attendx.navigation.MarketplaceScreen
 
 import androidx.compose.material.icons.outlined.DateRange
 import androidx.compose.material.icons.outlined.Home
@@ -33,6 +36,7 @@ data class BottomNavItem(
 
 @Composable
 fun MainScreen() {
+    val navController = LocalNavController.current
     var selectedTab by rememberSaveable { mutableIntStateOf(0) }
 
     val navItems = listOf(
@@ -46,7 +50,10 @@ fun MainScreen() {
             label = "Timetable",
             selectedIcon = Icons.Rounded.DateRange,
             unselectedIcon = Icons.Outlined.DateRange,
-            screen = { TimeTableScreen() }
+            screen = { TimeTableScreen(
+                onNavigateToUpload = { navController.navigate(UploadTemplateScreen) },
+                onNavigateToMarketplace = { navController.navigate(MarketplaceScreen()) }
+            ) }
         )
     )
 
@@ -78,7 +85,10 @@ fun MainScreen() {
         ) {
             when (selectedTab) {
                 0 -> HomeScreen()
-                1 -> TimeTableScreen()
+                1 -> TimeTableScreen(
+                    onNavigateToUpload = { navController.navigate(UploadTemplateScreen) },
+                    onNavigateToMarketplace = { navController.navigate(MarketplaceScreen()) }
+                )
             }
         }
     }

@@ -95,6 +95,15 @@ import `in`.jyotirmoy.attendx.settings.presentation.viewmodel.SettingsViewModel
 import `in`.jyotirmoy.attendx.settings.presentation.page.autoupdate.viewmodel.AutoUpdateViewModel
 import `in`.jyotirmoy.attendx.core.presentation.components.bottomsheet.UpdateBottomSheet
 import kotlinx.coroutines.launch
+import androidx.compose.foundation.text.ClickableText
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.withStyle
+import `in`.jyotirmoy.attendx.navigation.MarketplaceScreen
+import androidx.compose.material3.LocalContentColor
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @SuppressLint("DefaultLocale")
@@ -110,8 +119,10 @@ fun HomeScreen(
     val navController = LocalNavController.current
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
+    var importTextLayoutCoordinates by remember { mutableStateOf<androidx.compose.ui.layout.LayoutCoordinates?>(null) }
+    var rootLayoutCoordinates by remember { mutableStateOf<androidx.compose.ui.layout.LayoutCoordinates?>(null) }
     
-    val subjects by viewModel.subjectList.collectAsState(initial = emptyList())
+    val subjects by viewModel.subjectList.collectAsState()
     val subjectCount by viewModel.subjectCount.collectAsState(initial = 0)
     var isDialogOpen by rememberSaveable { mutableStateOf(false) }
     val totalAttendance by viewModel.getTotalAttendanceCounts()
@@ -146,8 +157,8 @@ fun HomeScreen(
     val listState = rememberLazyListState()
     val isExpanded by remember {
         derivedStateOf {
-            listState.firstVisibleItemIndex == 0 || 
-            listState.firstVisibleItemScrollOffset < 100
+            listState.firstVisibleItemIndex == 0 && 
+            listState.firstVisibleItemScrollOffset == 0
         }
     }
     // Interaction source removed
@@ -225,7 +236,7 @@ fun HomeScreen(
         modifier = modifier.fillMaxSize(),
     ) { innerPadding ->
 
-        Box(modifier = Modifier.fillMaxSize()) {
+        Box(modifier = Modifier.fillMaxSize().onGloballyPositioned { rootLayoutCoordinates = it }) {
             LazyColumn(
                 state = listState,
                 modifier = Modifier.fillMaxWidth(),
@@ -323,14 +334,51 @@ fun HomeScreen(
 
             if (subjectCount == 0) {
                 item {
-                    Text(
+
+
+// ... inside the composable, replacing the Text ...
+
+                    val noSubjectText = stringResource(R.string.no_subject_yet)
+                    val importText = stringResource(R.string.import_template)
+                    
+                    val annotatedString = buildAnnotatedString {
+                        append(noSubjectText)
+                        append(" ")
+                        pushStringAnnotation(tag = "IMPORT", annotation = "import")
+                        withStyle(style = SpanStyle(color = MaterialTheme.colorScheme.primary, textDecoration = TextDecoration.Underline, fontWeight = FontWeight.Bold)) {
+                            append(importText)
+                        }
+                        pop()
+                    }
+
+                    ClickableText(
+                        text = annotatedString,
+                        style = MaterialTheme.typography.bodyLarge.copy(
+                            textAlign = TextAlign.Center, 
+                            color = LocalContentColor.current.copy(alpha = 0.75f)
+                        ),
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 25.dp)
-                            .alpha(0.75f),
-                        text = stringResource(R.string.no_subject_yet),
-                        style = MaterialTheme.typography.bodyLarge,
-                        textAlign = TextAlign.Center
+                            .onGloballyPositioned { importTextLayoutCoordinates = it },
+                        onClick = { offset ->
+                            annotatedString.getStringAnnotations(tag = "IMPORT", start = offset, end = offset)
+                                .firstOrNull()?.let {
+                                    val rootHeight = rootLayoutCoordinates?.size?.height?.toFloat() ?: 1f
+                                    val textPosition = importTextLayoutCoordinates?.positionInRoot()
+                                    val textHeight = importTextLayoutCoordinates?.size?.height?.toFloat() ?: 0f
+                                    val textWidth = importTextLayoutCoordinates?.size?.width?.toFloat() ?: 0f
+                                    
+                                    // Calculate pivot roughly at center of the text block manually since we don't have exact click coordinates relative to root easily without pointer input
+                                    // A safe bet is vertically centered on the text, horizontally centered (0.5f)
+                                    
+                                    val pivotY = if (rootHeight > 0) {
+                                        ((textPosition?.y ?: 0f) + textHeight / 2) / rootHeight
+                                    } else 0.5f
+                                    
+                                    navController.navigate(MarketplaceScreen(pivotX = 0.5f, pivotY = pivotY))
+                                }
+                        }
                     )
                 }
             }

@@ -24,6 +24,8 @@ import java.time.DayOfWeek
 import java.time.format.TextStyle
 import java.util.Locale
 
+import `in`.jyotirmoy.attendx.core.presentation.util.bounceClick
+
 @Composable
 fun DaySelector(
     selectedDay: Int,
@@ -59,7 +61,7 @@ fun DayItem(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
             .clip(RoundedCornerShape(8.dp))
-            .clickable(onClick = onClick)
+            .bounceClick(onClick = onClick)
             .padding(4.dp)
     ) {
         Text(

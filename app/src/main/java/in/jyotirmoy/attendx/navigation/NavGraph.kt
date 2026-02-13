@@ -15,6 +15,14 @@ import `in`.jyotirmoy.attendx.settings.presentation.page.lookandfeel.screens.Loo
 import `in`.jyotirmoy.attendx.settings.presentation.page.mainscreen.screen.SettingsScreen
 import `in`.jyotirmoy.attendx.settings.presentation.page.notification.screens.NotificationScreen
 import `in`.jyotirmoy.attendx.main.presentation.MainScreen
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.ui.graphics.TransformOrigin
+import androidx.navigation.toRoute
 import kotlinx.serialization.Serializable
 
 @Composable
@@ -107,7 +115,49 @@ fun Navigation() {
                 popEnterTransition = { slideFadeInFromLeft() },
                 popExitTransition = { slideFadeOutToRight() }
             ) {
-                `in`.jyotirmoy.attendx.timetable.presentation.screens.TimeTableScreen()
+                `in`.jyotirmoy.attendx.timetable.presentation.screens.TimeTableScreen(
+                    onNavigateToUpload = { navController.navigate(UploadTemplateScreen) },
+                    onNavigateToMarketplace = { navController.navigate(MarketplaceScreen()) }
+                )
+            }
+
+            composable<UploadTemplateScreen>(
+                enterTransition = { slideFadeInFromRight() },
+                popExitTransition = { slideFadeOutToRight() }
+            ) {
+                `in`.jyotirmoy.attendx.timetable.presentation.screens.template.UploadTemplateScreen(
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
+
+            composable<MarketplaceScreen>(
+                enterTransition = { 
+                    val args = targetState.toRoute<MarketplaceScreen>()
+                    scaleIn(
+                        animationSpec = tween(durationMillis = 400, easing = FastOutSlowInEasing),
+                        transformOrigin = TransformOrigin(args.pivotX, args.pivotY)
+                    ) + fadeIn(animationSpec = tween(durationMillis = 400))
+                },
+                popExitTransition = { 
+                    val args = initialState.toRoute<MarketplaceScreen>()
+                    scaleOut(
+                        animationSpec = tween(durationMillis = 400, easing = FastOutSlowInEasing),
+                        transformOrigin = TransformOrigin(args.pivotX, args.pivotY)
+                    ) + fadeOut(animationSpec = tween(durationMillis = 400))
+                }
+            ) {
+                `in`.jyotirmoy.attendx.timetable.presentation.screens.template.MarketplaceScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onTemplateClick = { template -> 
+                        navController.navigate(TemplatePreviewScreen(template.id))
+                    }
+                )
+            }
+
+            composable<TemplatePreviewScreen> {
+                `in`.jyotirmoy.attendx.timetable.presentation.screens.template.preview.TemplatePreviewScreen(
+                    onNavigateBack = { navController.popBackStack() }
+                )
             }
         }
     }
@@ -149,3 +199,15 @@ object NotificationScreen
 
 @Serializable
 object TimeTableScreen
+
+@Serializable
+object UploadTemplateScreen
+
+@Serializable
+data class MarketplaceScreen(
+    val pivotX: Float = 0.5f,
+    val pivotY: Float = 0.5f
+)
+
+@Serializable
+data class TemplatePreviewScreen(val templateId: String)

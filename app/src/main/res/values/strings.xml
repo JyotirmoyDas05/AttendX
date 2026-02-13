@@ -26,6 +26,7 @@
     <string name="calendar">Calendar</string>
     <string name="cancel">Cancel</string>
     <string name="changelogs">Changelogs</string>
+    <string name="changelogs_v2_4_2">Update Features!\n Adding new Import and Export System for Community templates to share your timetable and classes with friends from the same institute using the app ! \n Added Subject-Only export option for sharing subjects without timetable entries.\n Added Ripple Animation to Import Template link for better visual feedback.\n Fixed import logic to handle subjects correctly. \n Fixed SavedScroll position in the app for viewing List items.</string>
     <string name="changelogs_v2_4_1">Update Features!\n• Changelogs are now displayed directly in the Update Sheet before downloading.\n• Improved update flow and transparency.</string>
     <string name="changelogs_v2_4_0">Major Timetable &amp; UI Update!\n• Revamped Timetable with Google Calendar-style Grid View (Synchronized Scrolling).\n• Replaced legacy Add Subject button with Material 3 Expressive FAB.\n• Added Undo option for class deletions.\n• Fixed duplicate notifications and zombie alarms.</string>
     <string name="changelogs_v2_3_3">Hotfix Update!\n• Fixed OTA update system: app now correctly checks for updates on startup.\n• Fixed "View Release" button linking to wrong URL.\n• Added detailed logs for update troubleshooting.</string>
@@ -125,7 +126,8 @@
     <string name="next_month">Next month</string>
     <string name="no_attendance_yet">No attendance yet. Add some to view progress</string>
     <string name="no_changelog_found">No changelog found for this version</string>
-    <string name="no_subject_yet">Click on the + button to add a subject</string>"
+    <string name="no_subject_yet">Click on the + button to add a subject or</string>
+    <string name="import_template">Import Template</string>"
     <string name="notifications">Notifications</string>
     <string name="notify_missed_attendance">Notify missed attendance</string>
     <string name="notify_update_available">Notify when update available</string>
