@@ -25,3 +25,6 @@
 -keep class org.slf4j.** { *; }
 -dontwarn org.slf4j.**
 
+# keep Firebase/Firestore model classes
+-keep class in.jyotirmoy.attendx.timetable.data.model.community.** { *; }
+-keep class in.jyotirmoy.attendx.settings.domain.model.** { *; }

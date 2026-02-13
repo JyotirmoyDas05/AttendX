@@ -1,7 +1,9 @@
 package `in`.jyotirmoy.attendx.timetable.data.model.community
 
+import androidx.annotation.Keep
 import com.google.firebase.Timestamp
 
+@Keep
 data class CommunityTemplate(
     val id: String = "",
     val name: String = "",
@@ -19,6 +21,7 @@ data class CommunityTemplate(
     val createdAt: Timestamp = Timestamp.now()
 )
 
+@Keep
 data class TemplateClassEntry(
     val dayOfWeek: Int = 1,
     val startTime: Long = 0,
@@ -28,6 +31,7 @@ data class TemplateClassEntry(
     val type: String = "Lecture"
 )
 
+@Keep
 data class TemplateSubjectEntry(
     val name: String = "",
     val code: String? = null,

@@ -1,0 +1,4 @@
+Critical Fix!
+- Fixed Import/Export crash in production builds caused by R8 code obfuscation
+- Added ProGuard rules to preserve Firebase model field names
+- Templates exported from production builds now store correctly in Firebase
