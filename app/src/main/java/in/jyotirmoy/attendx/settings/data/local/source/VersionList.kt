@@ -1,6 +1,7 @@
 package `in`.jyotirmoy.attendx.settings.data.local.source
 
 val versionList = listOf(
+    "v2.4.3",
     "v2.4.2",
     "v2.4.1",
     "v2.4.0",

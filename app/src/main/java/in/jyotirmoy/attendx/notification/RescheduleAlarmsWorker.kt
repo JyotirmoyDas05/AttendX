@@ -1,14 +1,12 @@
 package `in`.jyotirmoy.attendx.notification
 
 import android.content.Context
-import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
 import dagger.hilt.components.SingletonComponent
-import `in`.jyotirmoy.attendx.core.domain.model.toDomain
 import `in`.jyotirmoy.attendx.core.domain.repository.ClassScheduleRepository
 import `in`.jyotirmoy.attendx.core.domain.repository.SubjectRepository
 import kotlinx.coroutines.flow.first
@@ -31,19 +29,28 @@ class RescheduleAlarmsWorker(
             val subjectRepository = entryPoint.subjectRepository()
             val classScheduleRepository = entryPoint.classScheduleRepository()
 
+            // Cleanup stale legacy channel
+            deleteLegacyChannel(applicationContext)
+
             val subjects = subjectRepository.getAllSubjects().first()
-            
+
             subjects.forEach { subject ->
-                val schedules = classScheduleRepository.getSchedulesForSubject(subject.id).first().map { it.toDomain() }
-                
-                if (schedules.isNotEmpty()) {
-                    // This method handles canceling old and scheduling new for the subject
-                    ClassNotificationScheduler.scheduleAllClassNotifications(
-                        context = applicationContext,
-                        subjectId = subject.id,
-                        subjectName = subject.subject,
-                        schedules = schedules
-                    )
+                val schedules = classScheduleRepository.getSchedulesForSubject(subject.id).first()
+
+                schedules.forEach { schedule ->
+                    if (schedule.isEnabled) {
+                        // Use the new unified scheduler
+                        TimetableAlarmScheduler.scheduleClassAlarms(
+                            context = applicationContext,
+                            scheduleId = schedule.id,
+                            subjectId = schedule.subjectId,
+                            subjectName = subject.subject,
+                            dayOfWeek = schedule.dayOfWeek,
+                            startTime = schedule.startTime,
+                            endTime = schedule.endTime,
+                            location = schedule.location
+                        )
+                    }
                 }
             }
             return Result.success()
@@ -51,5 +58,11 @@ class RescheduleAlarmsWorker(
             e.printStackTrace()
             return Result.retry()
         }
+    }
+
+    // Remove old channel created by ClassAlarmReceiver
+    private fun deleteLegacyChannel(context: Context) {
+        val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
+        nm.deleteNotificationChannel("class_timetable_alarms")
     }
 }

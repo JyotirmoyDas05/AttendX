@@ -35,6 +35,10 @@ class BootCompletedReceiver : BroadcastReceiver() {
             Log.d(TAG, "🔄 Device boot/permission change detected - rescheduling alarms")
             Log.d(TAG, "   Action: ${intent.action}")
 
+            // Cleanup stale legacy notification channel
+            val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
+            nm.deleteNotificationChannel("class_timetable_alarms")
+
             // Use goAsync() for long-running work in receiver
             val pendingResult = goAsync()
             

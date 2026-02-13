@@ -16,6 +16,7 @@ fun GitHubReleaseDto.toDomain(): GitHubRelease {
         }
     return GitHubRelease(
         tagName = tagName,
+        releaseNotes = body.orEmpty(),
         assets = apkAssets
     )
 }

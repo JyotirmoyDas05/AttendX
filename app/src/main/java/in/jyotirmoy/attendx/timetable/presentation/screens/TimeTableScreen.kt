@@ -59,6 +59,7 @@ import `in`.jyotirmoy.attendx.timetable.presentation.components.SwipeableClassCa
 import `in`.jyotirmoy.attendx.timetable.presentation.components.DaySelector
 import `in`.jyotirmoy.attendx.timetable.presentation.components.NextUpCard
 import `in`.jyotirmoy.attendx.timetable.presentation.components.TimetableCalendarView
+import `in`.jyotirmoy.attendx.timetable.presentation.components.TodayCalendarIcon
 import `in`.jyotirmoy.attendx.timetable.presentation.viewmodel.TimeTableViewModel
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.runtime.setValue
@@ -84,6 +85,7 @@ fun TimeTableScreen(
     val editingSchedule by viewModel.editingSchedule.collectAsState()
     val selectedIds by viewModel.selectedIds.collectAsState()
     val isCalendarView by viewModel.isCalendarView.collectAsState()
+    var snapToNow by remember { androidx.compose.runtime.mutableStateOf(false) }
     
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -191,6 +193,15 @@ fun TimeTableScreen(
                         modifier = Modifier.weight(1f)
                     )
                     
+                    // Snap to now button (only in calendar view)
+                    if (isCalendarView) {
+                        IconButton(onClick = { snapToNow = true }) {
+                            TodayCalendarIcon(
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
+
                     // View toggle button
                     IconButton(onClick = { viewModel.toggleViewMode() }) {
                         Icon(
@@ -232,6 +243,8 @@ fun TimeTableScreen(
                         onClassClick = { schedule ->
                             viewModel.showEditSheet(schedule)
                         },
+                        snapToNow = snapToNow,
+                        onSnapConsumed = { snapToNow = false },
                         modifier = Modifier.padding(horizontal = 8.dp)
                     )
                 } else {

@@ -1,0 +1,6 @@
+Update Features!
+Fixed duplicate notifications for class timetable
+New: 12-hour time picker (AM/PM) for easier class scheduling
+Security: Removed legacy API keys
+Fix: Addressed template upload issues
+Improvement: Native Material 3 Time Picker styling

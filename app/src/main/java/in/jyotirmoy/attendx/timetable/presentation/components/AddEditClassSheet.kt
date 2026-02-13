@@ -1,6 +1,9 @@
 package `in`.jyotirmoy.attendx.timetable.presentation.components
 
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -9,32 +12,33 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.horizontalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TimePicker
+import androidx.compose.material3.TimePickerDialog
 import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import `in`.jyotirmoy.attendx.core.data.model.SubjectEntity
 import `in`.jyotirmoy.attendx.timetable.data.model.TimeTableScheduleEntity
@@ -42,14 +46,6 @@ import `in`.jyotirmoy.attendx.timetable.data.model.TimeTableScheduleWithSubject
 import java.time.DayOfWeek
 import java.time.format.TextStyle
 import java.util.Locale
-import android.app.TimePickerDialog
-import androidx.compose.ui.platform.LocalContext
-import java.util.Calendar
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Box
-import androidx.compose.material3.Icon
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Edit
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -63,11 +59,11 @@ fun AddEditClassSheet(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val isEditing = initialSchedule != null
 
-    // form states - use initialDay when adding new class
+    // form states
     var selectedSubjectId by remember { mutableIntStateOf(initialSchedule?.schedule?.subjectId ?: (subjects.firstOrNull()?.id ?: 0)) }
     var selectedDay by remember { mutableIntStateOf(initialSchedule?.schedule?.dayOfWeek ?: initialDay) }
-    var startTimeText by remember { mutableStateOf(initialSchedule?.let { formatTimeInput(it.schedule.startTime) } ?: "09:00") }
-    var endTimeText by remember { mutableStateOf(initialSchedule?.let { formatTimeInput(it.schedule.endTime) } ?: "10:00") }
+    var startTime24 by remember { mutableStateOf(initialSchedule?.let { formatTimeInput(it.schedule.startTime) } ?: "09:00") }
+    var endTime24 by remember { mutableStateOf(initialSchedule?.let { formatTimeInput(it.schedule.endTime) } ?: "10:00") }
     var room by remember { mutableStateOf(initialSchedule?.schedule?.room ?: "") }
     var professor by remember { mutableStateOf(initialSchedule?.schedule?.professor ?: "") }
     var classType by remember { mutableStateOf(initialSchedule?.schedule?.classType ?: "Lecture") }
@@ -75,6 +71,63 @@ fun AddEditClassSheet(
     var notes by remember { mutableStateOf(initialSchedule?.schedule?.notes ?: "") }
 
     var subjectDropdownExpanded by remember { mutableStateOf(false) }
+
+    // M3 TimePicker dialog visibility
+    var showStartTimePicker by remember { mutableStateOf(false) }
+    var showEndTimePicker by remember { mutableStateOf(false) }
+
+    // M3 TimePickerState
+    val startParts = startTime24.split(":")
+    val startTimePickerState = rememberTimePickerState(
+        initialHour = startParts.getOrElse(0) { "9" }.toIntOrNull() ?: 9,
+        initialMinute = startParts.getOrElse(1) { "0" }.toIntOrNull() ?: 0,
+        is24Hour = false
+    )
+
+    val endParts = endTime24.split(":")
+    val endTimePickerState = rememberTimePickerState(
+        initialHour = endParts.getOrElse(0) { "10" }.toIntOrNull() ?: 10,
+        initialMinute = endParts.getOrElse(1) { "0" }.toIntOrNull() ?: 0,
+        is24Hour = false
+    )
+
+    // Start Time Picker Dialog
+    if (showStartTimePicker) {
+        TimePickerDialog(
+            onDismissRequest = { showStartTimePicker = false },
+            title = { Text("Select Start Time") },
+            confirmButton = {
+                TextButton(onClick = {
+                    startTime24 = String.format("%02d:%02d", startTimePickerState.hour, startTimePickerState.minute)
+                    showStartTimePicker = false
+                }) { Text("OK") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showStartTimePicker = false }) { Text("Cancel") }
+            }
+        ) {
+            TimePicker(state = startTimePickerState)
+        }
+    }
+
+    // End Time Picker Dialog
+    if (showEndTimePicker) {
+        TimePickerDialog(
+            onDismissRequest = { showEndTimePicker = false },
+            title = { Text("Select End Time") },
+            confirmButton = {
+                TextButton(onClick = {
+                    endTime24 = String.format("%02d:%02d", endTimePickerState.hour, endTimePickerState.minute)
+                    showEndTimePicker = false
+                }) { Text("OK") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showEndTimePicker = false }) { Text("Cancel") }
+            }
+        ) {
+            TimePicker(state = endTimePickerState)
+        }
+    }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -145,12 +198,7 @@ fun AddEditClassSheet(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-
-
-            // Time Inputs
-            val context = LocalContext.current
-            val calendar = Calendar.getInstance()
-
+            // Time Inputs - click to open M3 TimePicker
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -158,7 +206,7 @@ fun AddEditClassSheet(
                 // Start Time
                 Box(modifier = Modifier.weight(1f)) {
                     OutlinedTextField(
-                        value = startTimeText,
+                        value = format24To12Display(startTime24),
                         onValueChange = {},
                         label = { Text("Start") },
                         readOnly = true,
@@ -168,28 +216,14 @@ fun AddEditClassSheet(
                     Box(
                         modifier = Modifier
                             .matchParentSize()
-                            .clickable {
-                                val currentParts = startTimeText.split(":")
-                                val hour = currentParts.getOrElse(0) { "9" }.toIntOrNull() ?: 9
-                                val minute = currentParts.getOrElse(1) { "0" }.toIntOrNull() ?: 0
-                                
-                                TimePickerDialog(
-                                    context,
-                                    { _, h, m ->
-                                        startTimeText = String.format("%02d:%02d", h, m)
-                                    },
-                                    hour,
-                                    minute,
-                                    true // 24 hour view
-                                ).show()
-                            }
+                            .clickable { showStartTimePicker = true }
                     )
                 }
 
                 // End Time
                 Box(modifier = Modifier.weight(1f)) {
                     OutlinedTextField(
-                        value = endTimeText,
+                        value = format24To12Display(endTime24),
                         onValueChange = {},
                         label = { Text("End") },
                         readOnly = true,
@@ -199,21 +233,7 @@ fun AddEditClassSheet(
                     Box(
                         modifier = Modifier
                             .matchParentSize()
-                            .clickable {
-                                val currentParts = endTimeText.split(":")
-                                val hour = currentParts.getOrElse(0) { "10" }.toIntOrNull() ?: 10
-                                val minute = currentParts.getOrElse(1) { "0" }.toIntOrNull() ?: 0
-
-                                TimePickerDialog(
-                                    context,
-                                    { _, h, m ->
-                                        endTimeText = String.format("%02d:%02d", h, m)
-                                    },
-                                    hour,
-                                    minute,
-                                    true // 24 hour view
-                                ).show()
-                            }
+                            .clickable { showEndTimePicker = true }
                     )
                 }
             }
@@ -287,8 +307,8 @@ fun AddEditClassSheet(
                 Spacer(modifier = Modifier.width(8.dp))
                 Button(
                     onClick = {
-                        val startMinutes = parseTimeToMinutes(startTimeText)
-                        val endMinutes = parseTimeToMinutes(endTimeText)
+                        val startMinutes = parseTimeToMinutes(startTime24)
+                        val endMinutes = parseTimeToMinutes(endTime24)
                         if (startMinutes != null && endMinutes != null && startMinutes < endMinutes) {
                             onSave(
                                 TimeTableScheduleEntity(
@@ -317,12 +337,14 @@ fun AddEditClassSheet(
     }
 }
 
+// minutes → "HH:mm"
 private fun formatTimeInput(minutes: Long): String {
     val h = minutes / 60
     val m = minutes % 60
     return String.format("%02d:%02d", h, m)
 }
 
+// "HH:mm" → total minutes
 private fun parseTimeToMinutes(input: String): Long? {
     return try {
         val parts = input.split(":")
@@ -331,5 +353,23 @@ private fun parseTimeToMinutes(input: String): Long? {
         h * 60 + m
     } catch (e: Exception) {
         null
+    }
+}
+
+// "14:30" → "2:30 PM"
+private fun format24To12Display(time24: String): String {
+    return try {
+        val parts = time24.split(":")
+        val h = parts[0].toInt()
+        val m = parts.getOrElse(1) { "0" }.toInt()
+        val amPm = if (h < 12) "AM" else "PM"
+        val h12 = when {
+            h == 0 -> 12
+            h > 12 -> h - 12
+            else -> h
+        }
+        String.format("%d:%02d %s", h12, m, amPm)
+    } catch (e: Exception) {
+        time24
     }
 }
