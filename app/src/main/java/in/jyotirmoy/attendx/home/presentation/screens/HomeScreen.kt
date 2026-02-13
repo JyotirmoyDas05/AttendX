@@ -267,7 +267,7 @@ fun HomeScreen(
 
                     // Persistent update button - visible when update available
                     AnimatedVisibility(
-                        visible = isUpdateAvailable && apkUrl.isNotEmpty(),
+                        visible = isUpdateAvailable,
                         enter = fadeIn() + slideInVertically(initialOffsetY = { -it }),
                         exit = fadeOut() + slideOutVertically(targetOffsetY = { -it })
                     ) {
@@ -291,7 +291,7 @@ fun HomeScreen(
                         }
                     }
 
-                    if (isUpdateAvailable && apkUrl.isNotEmpty()) {
+                    if (isUpdateAvailable) {
                         Spacer(modifier = Modifier.width(8.dp))
                     }
 

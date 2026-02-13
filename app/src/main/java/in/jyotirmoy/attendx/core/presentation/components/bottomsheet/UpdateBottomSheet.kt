@@ -2,6 +2,8 @@
 
 package `in`.jyotirmoy.attendx.core.presentation.components.bottomsheet
 
+import androidx.compose.foundation.border
+
 import android.app.Activity
 import android.content.Intent
 import android.provider.Settings
@@ -11,12 +13,16 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
@@ -209,17 +215,48 @@ fun UpdateBottomSheet(
                 fontWeight = FontWeight.Bold
             )
 
+            // parse markdown lines into clean bullet items
+            val parsedLines = remember(releaseNotes) {
+                releaseNotes.lines()
+                    .map { it.trim() }
+                    .filter { it.isNotBlank() }
+                    .map { line ->
+                        line.removePrefix("- ")
+                            .removePrefix("* ")
+                            .removePrefix("• ")
+                            .replace(Regex("^#+\\s*"), "")
+                            .replace(Regex("\\*\\*(.+?)\\*\\*"), "$1")
+                            .trim()
+                    }
+                    .filter { it.isNotBlank() }
+            }
+
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .heightIn(max = 200.dp)
                     .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 20.dp)
+                    .padding(horizontal = 20.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Text(
-                    text = releaseNotes,
-                    style = MaterialTheme.typography.bodyMedium
-                )
+                parsedLines.forEach { item ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(8.dp)
+                                .border(2.dp, MaterialTheme.colorScheme.primary, CircleShape)
+                        )
+                        Text(
+                            text = item,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                }
             }
         }
 

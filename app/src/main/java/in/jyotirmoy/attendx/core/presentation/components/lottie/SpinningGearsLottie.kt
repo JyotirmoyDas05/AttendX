@@ -32,7 +32,8 @@ fun SpinningGearsLottie(modifier: Modifier = Modifier) {
 
     val lottie = rememberLottieAnimatable()
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(composition) {
+        composition ?: return@LaunchedEffect
         lottie.animate(
             composition = composition,
             iterations = LottieConstants.IterateForever

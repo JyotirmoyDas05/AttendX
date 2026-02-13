@@ -26,6 +26,7 @@
     <string name="calendar">Calendar</string>
     <string name="cancel">Cancel</string>
     <string name="changelogs">Changelogs</string>
+    <string name="changelogs_v2_4_4">Bug Fixes &amp; Improvements!\n Fixed Import/Export crash caused by missing Google Services plugin\n Fixed Settings gear animation not loading on first visit\n Improved Update Sheet to show formatted release notes instead of raw markdown\n Fixed persistent update button not appearing after dismissing the update sheet</string>
     <string name="changelogs_v2_4_3">Update Features!\n Fixed duplicate notifications for class timetable\n New: 12-hour time picker (AM/PM) for easier class scheduling\n Security: Removed legacy API keys\n Fix: Addressed template upload issues\n Improvement: Native Material 3 Time Picker styling</string>
     <string name="changelogs_v2_4_2">Update Features!\n Adding new Import and Export System for Community templates to share your timetable and classes with friends from the same institute using the app ! \n Added Subject-Only export option for sharing subjects without timetable entries.\n Added Ripple Animation to Import Template link for better visual feedback.\n Fixed import logic to handle subjects correctly. \n Fixed SavedScroll position in the app for viewing List items.</string>
     <string name="changelogs_v2_4_1">Update Features!\n Changelogs are now displayed directly in the Update Sheet before downloading.\n Improved update flow and transparency.</string>

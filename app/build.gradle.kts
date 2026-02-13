@@ -6,6 +6,7 @@ plugins {
     alias(libs.plugins.ksp)
     alias(libs.plugins.kapt)
     alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.google.services)
 }
 
 android {
@@ -16,8 +17,8 @@ android {
         applicationId = "in.jyotirmoy.attendx"
         minSdk = 26
         targetSdk = 36
-        versionCode = 27
-        versionName = "2.4.3"
+        versionCode = 28
+        versionName = "2.4.4"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

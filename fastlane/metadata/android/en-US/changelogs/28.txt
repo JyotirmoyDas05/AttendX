@@ -1,0 +1,5 @@
+Bug Fixes & Improvements!
+- Fixed Import/Export crash caused by missing Google Services plugin
+- Fixed Settings gear animation not loading on first visit
+- Improved Update Sheet to show formatted release notes instead of raw markdown
+- Fixed persistent update button not appearing after dismissing the update sheet
