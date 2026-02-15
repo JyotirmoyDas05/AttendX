@@ -4,6 +4,8 @@ import `in`.jyotirmoy.attendx.core.data.database.SubjectDao
 import `in`.jyotirmoy.attendx.core.data.model.SubjectEntity
 import `in`.jyotirmoy.attendx.timetable.data.dao.TimeTableDao
 import `in`.jyotirmoy.attendx.timetable.data.model.TimeTableScheduleEntity
+import `in`.jyotirmoy.attendx.timetable.data.model.community.TemplateClassEntry
+import `in`.jyotirmoy.attendx.timetable.data.model.community.TemplateSubjectEntry
 import `in`.jyotirmoy.attendx.timetable.domain.repository.TemplateRepository
 import javax.inject.Inject
 
@@ -12,13 +14,14 @@ class ImportTemplateUseCase @Inject constructor(
     private val timeTableDao: TimeTableDao,
     private val subjectDao: SubjectDao
 ) {
-    suspend operator fun invoke(templateId: String): Result<Unit> {
+    suspend operator fun invoke(
+        templateId: String,
+        subjectsToImport: List<TemplateSubjectEntry>,
+        classesToImport: List<TemplateClassEntry>
+    ): Result<Unit> {
         return try {
-            // 1. Fetch Template Details
-            val template = repository.getTemplateDetails(templateId).getOrThrow()
-            
-            // 2. Process Subjects (Metadata)
-            template.subjects.forEach { subjectEntry ->
+            // 1. Process Subjects (Metadata)
+            subjectsToImport.forEach { subjectEntry ->
                 if (subjectDao.getSubjectIdByName(subjectEntry.name) == null) {
                     val newSubject = SubjectEntity(
                         subject = subjectEntry.name,
@@ -30,8 +33,8 @@ class ImportTemplateUseCase @Inject constructor(
                 }
             }
             
-            // 3. Process each class
-            template.classes.forEach { classEntry ->
+            // 2. Process each class
+            classesToImport.forEach { classEntry ->
                 
                 // 3. Find or Create Subject
                 // Check if subject exists by name (case-insensitive)

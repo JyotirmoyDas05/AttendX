@@ -1,9 +1,11 @@
 package `in`.jyotirmoy.attendx.timetable.presentation.screens.template.preview
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.ui.draw.clip
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Info
@@ -107,8 +109,16 @@ fun TemplatePreviewScreen(
                     
                     // Content
                     when (selectedTab) {
-                        0 -> SubjectsList(template = state.template!!)
-                        1 -> TimetableWeeklyView(template = state.template!!)
+                        0 -> SubjectsList(
+                            template = state.template!!,
+                            selectedSubjects = state.selectedSubjects,
+                            onToggle = viewModel::toggleSubject
+                        )
+                        1 -> TimetableWeeklyView(
+                            template = state.template!!,
+                            selectedClasses = state.selectedClasses,
+                            onToggle = viewModel::toggleClass
+                        )
                     }
                 }
             }
@@ -149,7 +159,11 @@ fun TemplateHeader(template: CommunityTemplate) {
 }
 
 @Composable
-fun SubjectsList(template: CommunityTemplate) {
+fun SubjectsList(
+    template: CommunityTemplate,
+    selectedSubjects: List<TemplateSubjectEntry>,
+    onToggle: (TemplateSubjectEntry) -> Unit
+) {
     val subjects = remember(template) {
         if (template.subjects.isNotEmpty()) {
             template.subjects.sortedBy { it.name }
@@ -163,7 +177,6 @@ fun SubjectsList(template: CommunityTemplate) {
     
     LazyColumn(
         contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
         modifier = Modifier.fillMaxSize()
     ) {
         if (subjects.isEmpty()) {
@@ -171,29 +184,34 @@ fun SubjectsList(template: CommunityTemplate) {
                 Text(
                     "No subjects found in this template.",
                     style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().padding(16.dp),
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         } else {
             items(subjects) { subject ->
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                    )
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
+                val isSelected = selectedSubjects.contains(subject)
+                val containerColor = if (isSelected) 
+                    MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f) 
+                else 
+                    MaterialTheme.colorScheme.surfaceContainer
+                
+                ListItem(
+                    headlineContent = { 
+                        Text(
+                            text = subject.name,
+                            fontWeight = FontWeight.Medium
+                        )
+                    },
+                    supportingContent = if (!subject.code.isNullOrBlank()) {
+                        { Text(text = subject.code) }
+                    } else null,
+                    leadingContent = {
                         Box(
                             modifier = Modifier
                                 .size(40.dp)
                                 .background(
-                                    MaterialTheme.colorScheme.primaryContainer,
+                                    if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.primaryContainer,
                                     shape = MaterialTheme.shapes.small
                                 ),
                             contentAlignment = Alignment.Center
@@ -201,33 +219,33 @@ fun SubjectsList(template: CommunityTemplate) {
                             Text(
                                 text = subject.name.take(1).uppercase(),
                                 style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                                color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onPrimaryContainer
                             )
                         }
-                        Spacer(modifier = Modifier.width(16.dp))
-                        Column {
-                            Text(
-                                text = subject.name,
-                                style = MaterialTheme.typography.bodyLarge,
-                                fontWeight = FontWeight.Medium
-                            )
-                            if (!subject.code.isNullOrBlank()) {
-                                Text(
-                                    text = subject.code,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-                    }
-                }
+                    },
+                    trailingContent = {
+                        Checkbox(
+                            checked = isSelected,
+                            onCheckedChange = { onToggle(subject) }
+                        )
+                    },
+                    colors = ListItemDefaults.colors(containerColor = containerColor),
+                    modifier = Modifier
+                        .padding(horizontal = 16.dp, vertical = 4.dp)
+                        .clip(MaterialTheme.shapes.medium)
+                        .clickable { onToggle(subject) }
+                )
             }
         }
     }
 }
 
 @Composable
-fun TimetableWeeklyView(template: CommunityTemplate) {
+fun TimetableWeeklyView(
+    template: CommunityTemplate,
+    selectedClasses: List<TemplateClassEntry>,
+    onToggle: (TemplateClassEntry) -> Unit
+) {
     val weekDays = listOf("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
     
     LazyColumn(
@@ -258,7 +276,11 @@ fun TimetableWeeklyView(template: CommunityTemplate) {
                         Spacer(modifier = Modifier.height(8.dp))
                         
                         classesForDay.forEach { classEntry ->
-                            ClassItemRow(classEntry)
+                            ClassItemRow(
+                                classEntry = classEntry,
+                                isSelected = selectedClasses.contains(classEntry),
+                                onToggle = { onToggle(classEntry) }
+                            )
                             if (classEntry != classesForDay.last()) {
                                 HorizontalDivider(
                                     modifier = Modifier.padding(vertical = 8.dp),
@@ -282,46 +304,51 @@ fun TimetableWeeklyView(template: CommunityTemplate) {
 }
 
 @Composable
-fun ClassItemRow(classEntry: TemplateClassEntry) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Column(modifier = Modifier.width(60.dp)) {
-            Text(
-                text = formatTime(classEntry.startTime),
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.Bold
-            )
-            Text(
-                text = formatTime(classEntry.endTime),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.outline
-            )
-        }
-        
-        Spacer(modifier = Modifier.width(8.dp))
-        
-        Column(modifier = Modifier.weight(1f)) {
+fun ClassItemRow(
+    classEntry: TemplateClassEntry,
+    isSelected: Boolean,
+    onToggle: () -> Unit
+) {
+    val containerColor = if (isSelected) 
+        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f) 
+    else 
+        MaterialTheme.colorScheme.surface
+
+    ListItem(
+        headlineContent = {
             Text(
                 text = classEntry.subject,
-                style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.SemiBold
             )
-            if (!classEntry.room.isNullOrBlank()) {
+        },
+        supportingContent = {
+            Column {
+                if (!classEntry.room.isNullOrBlank()) {
+                    Text(
+                        text = classEntry.room,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
                 Text(
-                    text = classEntry.room,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    text = "${classEntry.type} • ${formatTime(classEntry.startTime)} - ${formatTime(classEntry.endTime)}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.secondary
                 )
             }
-            Text(
-                text = classEntry.type,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.secondary
+        },
+        trailingContent = {
+            Checkbox(
+                checked = isSelected,
+                onCheckedChange = { onToggle() }
             )
-        }
-    }
+        },
+        colors = ListItemDefaults.colors(containerColor = containerColor),
+        modifier = Modifier
+            .padding(vertical = 4.dp)
+            .clip(MaterialTheme.shapes.medium)
+            .clickable { onToggle() }
+    )
 }
 
 private fun formatTime(minutes: Long): String {

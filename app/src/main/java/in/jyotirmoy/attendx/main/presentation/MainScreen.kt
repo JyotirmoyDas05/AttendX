@@ -5,6 +5,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.DateRange
 import androidx.compose.material.icons.rounded.Home
+import androidx.compose.material.icons.rounded.HourglassBottom
+import androidx.compose.material.icons.outlined.HourglassEmpty
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -47,6 +49,12 @@ fun MainScreen() {
             screen = { HomeScreen() }
         ),
         BottomNavItem(
+            label = "Tools",
+            selectedIcon = Icons.Rounded.HourglassBottom,
+            unselectedIcon = Icons.Outlined.HourglassEmpty,
+            screen = { `in`.jyotirmoy.attendx.tools.presentation.pomodoro.PomodoroScreen() }
+        ),
+        BottomNavItem(
             label = "Timetable",
             selectedIcon = Icons.Rounded.DateRange,
             unselectedIcon = Icons.Outlined.DateRange,
@@ -85,7 +93,8 @@ fun MainScreen() {
         ) {
             when (selectedTab) {
                 0 -> HomeScreen()
-                1 -> TimeTableScreen(
+                1 -> `in`.jyotirmoy.attendx.tools.presentation.pomodoro.PomodoroScreen()
+                2 -> TimeTableScreen(
                     onNavigateToUpload = { navController.navigate(UploadTemplateScreen) },
                     onNavigateToMarketplace = { navController.navigate(MarketplaceScreen()) }
                 )

@@ -159,6 +159,15 @@ fun Navigation() {
                     onNavigateBack = { navController.popBackStack() }
                 )
             }
+
+            composable<ToolsScreen>(
+                enterTransition = { slideFadeInFromRight() },
+                exitTransition = { slideFadeOutToLeft() },
+                popEnterTransition = { slideFadeInFromLeft() },
+                popExitTransition = { slideFadeOutToRight() }
+            ) {
+                `in`.jyotirmoy.attendx.tools.presentation.pomodoro.PomodoroScreen()
+            }
         }
     }
 }
@@ -211,3 +220,6 @@ data class MarketplaceScreen(
 
 @Serializable
 data class TemplatePreviewScreen(val templateId: String)
+
+@Serializable
+object ToolsScreen

@@ -1,0 +1,6 @@
+Major Update: Pomodoro Timer & Selective Export!
+- New: Add a new Pomodoro based Focus Timer with Wavy Progress & Expressive UI
+- New: Physics-based button interactions for a lively feel
+- New: Choose specific subjects and classes when importing or exporting templates
+- Added 'Reset' option to timer notification for convenience
+- Fixed issue where exported templates had missing names (now auto-generated)
