@@ -22,6 +22,13 @@
     <img src="https://img.shields.io/badge/Kotlin-100%25-purple?style=for-the-badge&logo=kotlin" alt="Kotlin">
 </p>
 
+<!-- DeepWiki Badge -->
+<p align="center">
+  <a href="https://deepwiki.com/JyotirmoyDas05/AttendX">
+    <img alt="Ask DeepWiki" src="https://deepwiki.com/badge.svg" height="40" />
+  </a>
+</p>
+
 ---
 
 **AttendX** is a comprehensive, privacy-focused academic tracking tool designed for effortless attendance management. Built with modern Android technologies, it revolutionizes how students manage their class attendance by moving beyond simple counters to a **calendar-first approach**.
@@ -30,14 +37,13 @@ Unlike traditional apps that only show percentages, AttendX provides an intuitiv
 
 ---
 
-## 🚀 New in v2.3.1: Multi-Architecture APK Support
+## 🚀 Major Update: Pomodoro Timer & Selective Export!
 
-Android 15+ requires 64-bit apps. This update ensures compatibility across all devices.
-
-- **Multi-Architecture Builds**: APKs for arm64-v8a, armeabi-v7a, x86_64, and universal.
-- **Smart OTA Updates**: Auto-detects your device architecture and downloads the best APK.
-- **Android 15+ Ready**: 64-bit devices automatically get the arm64-v8a build.
-- **GitHub Releases**: All architecture variants included in each release.
+- **Focus Timer**: New Pomodoro-based timer with wavy progress and expressive UI.
+- **Interactive UI**: Physics-based button interactions for a lively feel.
+- **Template Management**: Choose specific subjects and classes when importing or exporting templates.
+- **Timer Notification**: Added 'Reset' option for better control.
+- **Bug Fixes**: Automatically generate names for exported templates to prevent missing data.
 
 ---
 
