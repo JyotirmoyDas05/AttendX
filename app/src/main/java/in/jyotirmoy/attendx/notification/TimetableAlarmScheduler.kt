@@ -22,6 +22,7 @@ object TimetableAlarmScheduler {
 
     private const val TAG = "TimetableAlarmScheduler"
     private const val END_ALARM_OFFSET = 1_000_000
+    private const val UPCOMING_ALARM_OFFSET = 2_000_000
 
     /**
      * Convert timetable day + time to exact epoch milliseconds.
@@ -78,13 +79,27 @@ object TimetableAlarmScheduler {
         startTime: String,
         endTime: String,
         location: String?,
-        type: String // "START" or "END"
+        type: String // "START", "END", or "UPCOMING"
     ): Boolean {
         // 1. Use Application Context
         val appContext = context.applicationContext
 
-        val timeToUse = if (type == "START") startTime else endTime
-        val triggerAtMillis = timetableToMillis(dayOfWeek, timeToUse)
+        val timeToUse = if (type == "START" || type == "UPCOMING") startTime else endTime
+        var triggerAtMillis = timetableToMillis(dayOfWeek, timeToUse)
+        
+        if (type == "UPCOMING") {
+            // Subtract 5 minutes for upcoming notification
+            triggerAtMillis -= (5 * 60 * 1000)
+            
+            // If the upcoming time is already passed for "today's" class, 
+            // the main timetableToMillis wouldn't catch it if the actual start time is in the future but < 5 mins away.
+            // If it's already in the past, skip scheduling the upcoming alarm for this week.
+            if (triggerAtMillis <= System.currentTimeMillis()) {
+                Log.d(TAG, "⏰ Upcoming time for $subjectName is in the past, skipping upcoming alarm for this week.")
+                return false
+            }
+        }
+        
         val now = System.currentTimeMillis()
 
         Log.d(TAG, "📅 Scheduling $type alarm for $subjectName at ${java.util.Date(triggerAtMillis)}")
@@ -116,7 +131,11 @@ object TimetableAlarmScheduler {
             putExtra("triggerTime", triggerAtMillis)
         }
 
-        val requestCode = if (type == "END") scheduleId + END_ALARM_OFFSET else scheduleId
+        val requestCode = when (type) {
+            "END" -> scheduleId + END_ALARM_OFFSET
+            "UPCOMING" -> scheduleId + UPCOMING_ALARM_OFFSET
+            else -> scheduleId
+        }
 
         val pendingIntent = PendingIntent.getBroadcast(
             appContext,
@@ -149,7 +168,19 @@ object TimetableAlarmScheduler {
         endTime: String,
         location: String?
     ): Boolean {
-        return scheduleAlarm(
+        val upcomingScheduled = scheduleAlarm(
+            context = context.applicationContext,
+            scheduleId = scheduleId,
+            subjectId = subjectId,
+            subjectName = subjectName,
+            dayOfWeek = dayOfWeek,
+            startTime = startTime,
+            endTime = endTime,
+            location = location,
+            type = "UPCOMING"
+        )
+        
+        val startScheduled = scheduleAlarm(
             context = context.applicationContext,
             scheduleId = scheduleId,
             subjectId = subjectId,
@@ -160,6 +191,8 @@ object TimetableAlarmScheduler {
             location = location,
             type = "START"
         )
+        
+        return startScheduled
     }
 
     fun cancelClassAlarms(context: Context, scheduleId: Int) {
@@ -178,6 +211,17 @@ object TimetableAlarmScheduler {
         if (startPendingIntent != null) {
             alarmManager.cancel(startPendingIntent)
             startPendingIntent.cancel()
+        }
+        
+        val upcomingPendingIntent = PendingIntent.getBroadcast(
+            appContext,
+            scheduleId + UPCOMING_ALARM_OFFSET,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_NO_CREATE
+        )
+        if (upcomingPendingIntent != null) {
+            alarmManager.cancel(upcomingPendingIntent)
+            upcomingPendingIntent.cancel()
         }
 
         val endPendingIntent = PendingIntent.getBroadcast(

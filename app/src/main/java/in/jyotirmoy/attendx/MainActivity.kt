@@ -25,6 +25,9 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        // Eagerly initialize SettingsViewModel to start background workers
+        settingsViewModel.refreshNotificationPermissionState()
 
         enableEdgeToEdge()
         setContent {

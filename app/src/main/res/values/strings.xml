@@ -26,6 +26,7 @@
     <string name="calendar">Calendar</string>
     <string name="cancel">Cancel</string>
     <string name="changelogs">Changelogs</string>
+    <string name="changelogs_v2_4_7">Quickfix Update!\n Fixed a critical issue where Attendance and Timetable notifications completely stopped showing up.\n Restored \"Upcoming Class\" notifications to alert you 5 minutes before a class starts.\n Improved reliability of alarm scheduling using DataStore instead of SharedPreferences.</string>
     <string name="changelogs_v2_4_6">Feature Update!\n New: Select specific subjects and classes to Import/Export\n Fixed issue where exported templates had missing names\n Improved Native Material 3 UI</string>
     <string name="changelogs_v2_4_5">Critical Fix!\n Fixed Import/Export crash in production builds caused by R8 code obfuscation\n Added ProGuard rules to preserve Firebase model field names\n Templates exported from production builds now store correctly in Firebase</string>
     <string name="changelogs_v2_4_4">Bug Fixes &amp; Improvements!\n Fixed Import/Export crash caused by missing Google Services plugin\n Fixed Settings gear animation not loading on first visit\n Improved Update Sheet to show formatted release notes instead of raw markdown\n Fixed persistent update button not appearing after dismissing the update sheet</string>

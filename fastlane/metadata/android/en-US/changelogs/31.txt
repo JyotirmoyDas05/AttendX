@@ -1,0 +1,4 @@
+Quickfix Update:
+- Fixed a critical issue where Attendance and Timetable notifications completely stopped showing up.
+- Restored "Upcoming Class" notifications to alert you 5 minutes before a class starts.
+- Improved reliability of alarm scheduling using DataStore instead of SharedPreferences.

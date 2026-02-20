@@ -9,6 +9,11 @@ import android.os.Build
 import android.util.Log
 import androidx.core.app.ActivityCompat
 import `in`.jyotirmoy.attendx.R
+import `in`.jyotirmoy.attendx.settings.data.local.provider.settingsDataStore
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 
 /**
  * BroadcastReceiver that fires at the exact scheduled time.
@@ -41,16 +46,6 @@ class TimetableAlarmReceiver : BroadcastReceiver() {
             return
         }
 
-        // Check settings
-        val sharedPrefs = appContext.getSharedPreferences("attendx_settings", Context.MODE_PRIVATE)
-        val notificationsEnabled = sharedPrefs.getBoolean("enable_timetable_notifications", true)
-        
-        if (!notificationsEnabled) {
-            Log.d(TAG, "⚠️ Notifications disabled by user.")
-            rescheduleForNextWeek(appContext, intent)
-            return
-        }
-
         // 2. Runtime Permission Check (Android 13+)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ActivityCompat.checkSelfPermission(appContext, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
@@ -60,17 +55,35 @@ class TimetableAlarmReceiver : BroadcastReceiver() {
             }
         }
 
-        // 3. Show Notification
-        if (type == "START") {
-            try {
-                showNotification(appContext, subjectId, subjectName, startTime, endTime, location, scheduleId)
-            } catch (e: Exception) {
-                Log.e(TAG, "❌ Error showing notification", e)
+        // Check settings and show notification in Coroutine
+        kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+            val settings = appContext.settingsDataStore.data.first()
+            val notificationsEnabled = settings[androidx.datastore.preferences.core.booleanPreferencesKey(`in`.jyotirmoy.attendx.settings.data.local.SettingsKeys.ENABLE_TIMETABLE_NOTIFICATIONS.name)] ?: true
+            
+            if (!notificationsEnabled) {
+                Log.d(TAG, "⚠️ Notifications disabled by user.")
+                rescheduleForNextWeek(appContext, intent)
+                return@launch
             }
-        }
 
-        // 4. Reschedule
-        rescheduleForNextWeek(appContext, intent)
+            // 3. Show Notification
+            if (type == "START") {
+                try {
+                    showNotification(appContext, subjectId, subjectName, startTime, endTime, location, scheduleId)
+                } catch (e: Exception) {
+                    Log.e(TAG, "❌ Error showing notification", e)
+                }
+            } else if (type == "UPCOMING") {
+                try {
+                    showUpcomingNotification(appContext, subjectId, subjectName, startTime, location, scheduleId)
+                } catch (e: Exception) {
+                    Log.e(TAG, "❌ Error showing upcoming notification", e)
+                }
+            }
+
+            // 4. Reschedule
+            rescheduleForNextWeek(appContext, intent)
+        }
     }
 
     private fun showNotification(
@@ -109,6 +122,40 @@ class TimetableAlarmReceiver : BroadcastReceiver() {
             smallIconResId = iconRes,
             subjectId = subjectId,
             scheduleId = scheduleId
+        )
+    }
+
+    private fun showUpcomingNotification(
+        context: Context,
+        subjectId: Int,
+        subjectName: String,
+        startTime: String,
+        location: String?,
+        scheduleId: Int
+    ) {
+        val formattedStart = `in`.jyotirmoy.attendx.core.utils.TimeUtils.format24To12Hour(startTime)
+        
+        val message = buildString {
+            append("$subjectName Class will be starting in 5 minutes.")
+            if (!location.isNullOrBlank()) {
+                append("\n📍 Go to $location")
+            } else {
+                append("\nGo to your assigned room.")
+            }
+        }
+
+        // Use valid app icon
+        val iconRes = R.drawable.ic_notifications
+
+        `in`.jyotirmoy.attendx.notification.helper.NotificationHelper.showNotification(
+            context = context,
+            channelId = NotificationSetup.TIMETABLE_CHANNEL_ID,
+            channelName = "Class Timetable",
+            channelDescription = "Notifications for scheduled classes",
+            notificationId = scheduleId + 2_000_000, // Use unique ID for upcoming
+            title = "Upcoming Class: $subjectName",
+            message = message,
+            smallIconResId = iconRes
         )
     }
 
