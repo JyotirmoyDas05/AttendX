@@ -73,7 +73,7 @@ object NotificationSetup {
         val message = buildString {
             append("$formattedStart - $formattedEnd ($duration)")
             if (!location.isNullOrBlank()) {
-                append("\n📍 $location")
+                append("\nLocation: $location")
             }
         }
 

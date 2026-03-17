@@ -2,6 +2,7 @@ package `in`.jyotirmoy.attendx.notification
 
 import android.app.AlarmManager
 import android.app.PendingIntent
+import android.app.AlarmManager.AlarmClockInfo
 import android.content.Context
 import android.content.Intent
 import android.os.Build
@@ -17,6 +18,7 @@ import java.time.temporal.TemporalAdjusters
 /**
  * AlarmManager-based scheduler for timetable notifications.
  * Uses setExactAndAllowWhileIdle() to ensure notifications fire at exact times.
+ * Falls back to setAndAllowWhileIdle() if exact alarms are not permitted.
  */
 object TimetableAlarmScheduler {
 
@@ -42,10 +44,12 @@ object TimetableAlarmScheduler {
         if (!targetDateTime.isAfter(now)) {
             targetDate = today.with(TemporalAdjusters.next(targetDayOfWeek))
             targetDateTime = ZonedDateTime.of(targetDate, localTime, ZoneId.systemDefault())
-            Log.d(TAG, "⏰ Time was in past/now, scheduling for next week: $targetDate $localTime")
+            Log.d(TAG, "⏰ Time was in past/now (${targetDateTime.isBefore(now)}), scheduling for next week: $targetDate $localTime")
         }
 
-        return targetDateTime.toInstant().toEpochMilli()
+        val result = targetDateTime.toInstant().toEpochMilli()
+        Log.d(TAG, "📅 Calculated trigger time: ${java.util.Date(result)} (day $dayOfWeek, time $time)")
+        return result
     }
 
     fun canScheduleExactAlarms(context: Context): Boolean {
@@ -66,6 +70,25 @@ object TimetableAlarmScheduler {
                 context.startActivity(intent)
             } catch (e: Exception) {
                 Log.e(TAG, "❌ Failed to open exact alarm settings", e)
+            }
+        }
+    }
+
+    /**
+     * Request exact alarm permission by showing system dialog
+     */
+    fun requestExactAlarmPermission(context: Context) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+            if (!alarmManager.canScheduleExactAlarms()) {
+                try {
+                    val intent = Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM).apply {
+                        flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                    }
+                    context.startActivity(intent)
+                } catch (e: Exception) {
+                    Log.e(TAG, "❌ Failed to request exact alarm permission", e)
+                }
             }
         }
     }
@@ -110,10 +133,10 @@ object TimetableAlarmScheduler {
             return false
         }
 
-        // 3. Check exact alarm permission
-        if (!canScheduleExactAlarms(appContext)) {
-            Log.e(TAG, "❌ Cannot schedule exact alarms - permission missing")
-            return false
+        // 3. Check exact alarm permission and request if needed
+        val canScheduleExact = canScheduleExactAlarms(appContext)
+        if (!canScheduleExact) {
+            Log.w(TAG, "⚠️ Cannot schedule exact alarms - will attempt inexact alarm")
         }
 
         val alarmManager = appContext.getSystemService(Context.ALARM_SERVICE) as AlarmManager
@@ -145,13 +168,47 @@ object TimetableAlarmScheduler {
         )
 
         return try {
-            alarmManager.setExactAndAllowWhileIdle(
-                AlarmManager.RTC_WAKEUP,
-                triggerAtMillis,
-                pendingIntent
-            )
-            Log.d(TAG, "✅ Alarm set successfully! ReqCode: $requestCode")
+            // Try exact alarm first, fallback to inexact
+            if (canScheduleExact) {
+                // Use setAlarmClock for highest reliability on Android 15+
+                // This shows a visual indicator to the user
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    val clockInfo = AlarmClockInfo(triggerAtMillis, pendingIntent)
+                    alarmManager.setAlarmClock(clockInfo, pendingIntent)
+                    Log.d(TAG, "✅ Alarm set with setAlarmClock (exact)! ReqCode: $requestCode")
+                } else {
+                    alarmManager.setExactAndAllowWhileIdle(
+                        AlarmManager.RTC_WAKEUP,
+                        triggerAtMillis,
+                        pendingIntent
+                    )
+                    Log.d(TAG, "✅ Alarm set with setExactAndAllowWhileIdle! ReqCode: $requestCode")
+                }
+            } else {
+                // Fallback to inexact alarm - less precise but works without permission
+                alarmManager.setAndAllowWhileIdle(
+                    AlarmManager.RTC_WAKEUP,
+                    triggerAtMillis,
+                    pendingIntent
+                )
+                Log.d(TAG, "⚠️ Alarm set with setAndAllowWhileIdle (inexact)! ReqCode: $requestCode")
+            }
             true
+        } catch (e: SecurityException) {
+            Log.e(TAG, "❌ SecurityException when scheduling alarm", e)
+            // Try inexact as last resort
+            try {
+                alarmManager.setAndAllowWhileIdle(
+                    AlarmManager.RTC_WAKEUP,
+                    triggerAtMillis,
+                    pendingIntent
+                )
+                Log.d(TAG, "✅ Fallback to inexact alarm succeeded! ReqCode: $requestCode")
+                true
+            } catch (e2: Exception) {
+                Log.e(TAG, "❌ Even fallback alarm failed", e2)
+                false
+            }
         } catch (e: Exception) {
             Log.e(TAG, "❌ Failed to schedule alarm", e)
             false
@@ -168,6 +225,8 @@ object TimetableAlarmScheduler {
         endTime: String,
         location: String?
     ): Boolean {
+        Log.d(TAG, "📚 Scheduling alarms for $subjectName (Day $dayOfWeek, $startTime-$endTime)")
+        
         val upcomingScheduled = scheduleAlarm(
             context = context.applicationContext,
             scheduleId = scheduleId,
@@ -192,6 +251,7 @@ object TimetableAlarmScheduler {
             type = "START"
         )
         
+        Log.d(TAG, "📊 Scheduling complete: upcoming=$upcomingScheduled, start=$startScheduled")
         return startScheduled
     }
 

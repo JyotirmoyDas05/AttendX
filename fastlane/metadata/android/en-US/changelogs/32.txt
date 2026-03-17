@@ -1,0 +1,7 @@
+Notification Fix Update:
+- Fixed critical issue where Timetable notifications were not showing up.
+- Restored "Upcoming Class" notifications (5 minutes before class).
+- Improved Android 15+ reliability with exact alarm scheduling.
+- Added WorkManager backup (checks every 5 minutes) for reliable notifications.
+- Fixed missing ClassAlarmReceiver in app manifest.
+- Removed emojis from notifications for better compatibility.

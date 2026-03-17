@@ -101,7 +101,7 @@ object WorkScheduler {
         // Uses the same proven WorkManager pattern as general notifications
         
         val request = PeriodicWorkRequestBuilder<TimetableNotificationWorker>(
-            15, TimeUnit.MINUTES // Check every 15 minutes
+            5, TimeUnit.MINUTES // Check every 5 minutes to catch upcoming classes
         )
             .addTag(NotificationTags.TIMETABLE_NOTIFICATIONS)
             .build()

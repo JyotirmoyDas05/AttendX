@@ -2,6 +2,7 @@ package `in`.jyotirmoy.attendx.home.presentation.viewmodel
 
 import android.content.Context
 import android.os.Build
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -19,6 +20,7 @@ import `in`.jyotirmoy.attendx.timetable.domain.repository.TimeTableRepository
 import `in`.jyotirmoy.attendx.notification.createAppNotificationSettingsIntent
 import `in`.jyotirmoy.attendx.notification.ClassNotificationScheduler
 import `in`.jyotirmoy.attendx.notification.TimetableAlarmScheduler
+import `in`.jyotirmoy.attendx.notification.scheduler.WorkScheduler
 import `in`.jyotirmoy.attendx.settings.presentation.event.SettingsUiEvent
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -40,6 +42,10 @@ class HomeViewModel @Inject constructor(
     private val attendanceRepository: AttendanceRepository,
     private val timetableRepository: TimeTableRepository
 ) : ViewModel() {
+
+    companion object {
+        private const val TAG = "HomeViewModel"
+    }
 
     private val _uiEvent = MutableSharedFlow<SettingsUiEvent>()
     val uiEvent = _uiEvent.asSharedFlow()
@@ -276,10 +282,9 @@ class HomeViewModel @Inject constructor(
                 
                 // Check Exact Alarm Permission
                 if (!TimetableAlarmScheduler.canScheduleExactAlarms(context)) {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                        val intent = android.content.Intent(android.provider.Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM)
-                        _uiEvent.emit(SettingsUiEvent.LaunchIntent(intent))
-                    }
+                    Log.w(TAG, "Exact alarm permission not granted, will use inexact alarms")
+                    // Don't block - we'll use inexact alarms as fallback
+                    // If user wants exact alarms, they need to grant permission manually
                 }
                 
                 // Fetch the updated list to get generated IDs for new items
@@ -298,6 +303,9 @@ class HomeViewModel @Inject constructor(
                         location = schedule.location
                     )
                 }
+                
+                // Also trigger immediate WorkManager check as backup
+                WorkScheduler.runTimetableCheckNow(context)
             }
         }
     }

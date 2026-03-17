@@ -28,6 +28,9 @@ class TimetableAlarmReceiver : BroadcastReceiver() {
         // 1. Mandatory Debug Log
         Log.e("ALARM_DEBUG", "🔥 Timetable alarm RECEIVED 🔥")
         Log.d(TAG, "Action: ${intent.action}")
+        Log.d(TAG, "Subject: ${intent.getStringExtra("subjectName")}")
+        Log.d(TAG, "Type: ${intent.getStringExtra("type")}")
+        Log.d(TAG, "Schedule ID: ${intent.getIntExtra("scheduleId", -1)}")
 
         val appContext = context.applicationContext
         
@@ -56,33 +59,45 @@ class TimetableAlarmReceiver : BroadcastReceiver() {
         }
 
         // Check settings and show notification in Coroutine
-        kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
-            val settings = appContext.settingsDataStore.data.first()
-            val notificationsEnabled = settings[androidx.datastore.preferences.core.booleanPreferencesKey(`in`.jyotirmoy.attendx.settings.data.local.SettingsKeys.ENABLE_TIMETABLE_NOTIFICATIONS.name)] ?: true
-            
-            if (!notificationsEnabled) {
-                Log.d(TAG, "⚠️ Notifications disabled by user.")
-                rescheduleForNextWeek(appContext, intent)
-                return@launch
-            }
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val settings = appContext.settingsDataStore.data.first()
+                val notificationsEnabled = settings[androidx.datastore.preferences.core.booleanPreferencesKey(`in`.jyotirmoy.attendx.settings.data.local.SettingsKeys.ENABLE_TIMETABLE_NOTIFICATIONS.name)] ?: true
+                
+                Log.d(TAG, "Timetable notifications enabled in settings: $notificationsEnabled")
+                
+                if (!notificationsEnabled) {
+                    Log.d(TAG, "⚠️ Notifications disabled by user.")
+                    rescheduleForNextWeek(appContext, intent)
+                    return@launch
+                }
 
-            // 3. Show Notification
-            if (type == "START") {
-                try {
-                    showNotification(appContext, subjectId, subjectName, startTime, endTime, location, scheduleId)
-                } catch (e: Exception) {
-                    Log.e(TAG, "❌ Error showing notification", e)
+                // 3. Show Notification
+                if (type == "START") {
+                    try {
+                        Log.d(TAG, "Showing START notification for $subjectName")
+                        showNotification(appContext, subjectId, subjectName, startTime, endTime, location, scheduleId)
+                    } catch (e: Exception) {
+                        Log.e(TAG, "❌ Error showing notification", e)
+                    }
+                } else if (type == "UPCOMING") {
+                    try {
+                        Log.d(TAG, "Showing UPCOMING notification for $subjectName")
+                        showUpcomingNotification(appContext, subjectId, subjectName, startTime, location, scheduleId)
+                    } catch (e: Exception) {
+                        Log.e(TAG, "❌ Error showing upcoming notification", e)
+                    }
                 }
-            } else if (type == "UPCOMING") {
-                try {
-                    showUpcomingNotification(appContext, subjectId, subjectName, startTime, location, scheduleId)
-                } catch (e: Exception) {
-                    Log.e(TAG, "❌ Error showing upcoming notification", e)
-                }
+            } catch (e: Exception) {
+                Log.e(TAG, "❌ Error accessing settings", e)
             }
 
             // 4. Reschedule
-            rescheduleForNextWeek(appContext, intent)
+            try {
+                rescheduleForNextWeek(appContext, intent)
+            } catch (e: Exception) {
+                Log.e(TAG, "❌ Error rescheduling", e)
+            }
         }
     }
 
@@ -104,7 +119,7 @@ class TimetableAlarmReceiver : BroadcastReceiver() {
         val message = buildString {
             append("$formattedStart - $formattedEnd ($duration)")
             if (!location.isNullOrBlank()) {
-                append("\n📍 $location")
+                append("\nLocation: $location")
             }
         }
 
@@ -138,7 +153,7 @@ class TimetableAlarmReceiver : BroadcastReceiver() {
         val message = buildString {
             append("$subjectName Class will be starting in 5 minutes.")
             if (!location.isNullOrBlank()) {
-                append("\n📍 Go to $location")
+                append("\nGo to: $location")
             } else {
                 append("\nGo to your assigned room.")
             }

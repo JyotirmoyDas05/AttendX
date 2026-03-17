@@ -81,6 +81,12 @@
             </intent-filter>
         </receiver>
 
+        <!-- Legacy Class Alarm Receiver - needed for backwards compatibility -->
+        <receiver
+            android:name=".notification.ClassAlarmReceiver"
+            android:enabled="true"
+            android:exported="false" />
+
     </application>
 
 </manifest>

@@ -197,18 +197,18 @@ class PomodoroService : Service() {
             val pauseAction = if (_timerState.value.isPaused) ACTION_RESUME else ACTION_PAUSE
             val pauseIntent = Intent(this, PomodoroService::class.java).apply { action = pauseAction }
             val pausePendingIntent = PendingIntent.getService(this, 1, pauseIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-            val pauseText = if (_timerState.value.isPaused) "▶ Resume" else "⏸ Pause"
+            val pauseText = if (_timerState.value.isPaused) "Resume" else "Pause"
             builder.addAction(0, pauseText, pausePendingIntent)
 
             // Reset action
             val resetIntent = Intent(this, PomodoroService::class.java).apply { action = ACTION_RESET }
             val resetPendingIntent = PendingIntent.getService(this, 3, resetIntent, PendingIntent.FLAG_IMMUTABLE)
-            builder.addAction(0, "↺ Reset", resetPendingIntent)
+            builder.addAction(0, "Reset", resetPendingIntent)
 
             // Exit action
             val stopIntent = Intent(this, PomodoroService::class.java).apply { action = ACTION_STOP }
             val stopPendingIntent = PendingIntent.getService(this, 2, stopIntent, PendingIntent.FLAG_IMMUTABLE)
-            builder.addAction(0, "✕ Exit", stopPendingIntent)
+            builder.addAction(0, "Exit", stopPendingIntent)
         }
 
         return builder.build()
