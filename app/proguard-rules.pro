@@ -28,3 +28,5 @@
 # keep Firebase/Firestore model classes
 -keep class in.jyotirmoy.attendx.timetable.data.model.community.** { *; }
 -keep class in.jyotirmoy.attendx.settings.domain.model.** { *; }
+-keep class in.jyotirmoy.attendx.peer.data.model.** { *; }
+-keep class in.jyotirmoy.attendx.peer.data.local.** { *; }

@@ -1,0 +1,3 @@
+Quickfix:
+- Fixed crash on Home Screen in production builds caused by R8/ProGuard obfuscation.
+- Added ProGuard keep rules for Peer Comparison data model classes.
