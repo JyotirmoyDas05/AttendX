@@ -12,6 +12,7 @@ import androidx.compose.material.icons.rounded.DateRange
 import androidx.compose.material.icons.rounded.Downloading
 import androidx.compose.material.icons.rounded.EventAvailable
 import androidx.compose.material.icons.rounded.Language
+import androidx.compose.material.icons.rounded.QueryStats
 import androidx.compose.material.icons.rounded.SentimentNeutral
 import androidx.compose.material.icons.rounded.SettingsBackupRestore
 import androidx.compose.material.icons.rounded.Tune
@@ -60,6 +61,12 @@ object SettingsProvider {
                 titleResId = R.string.backup_and_restore,
                 descriptionResId = R.string.des_backup_and_restore,
                 iconVector = Icons.Rounded.SettingsBackupRestore
+            ),
+            nullPreferenceItem(
+                key = SettingsKeys.PEER_COMPARISON_ENABLED,
+                titleString = "Peer Comparison",
+                descriptionString = "Compare your attendance anonymously with peers",
+                iconVector = Icons.Rounded.QueryStats
             ),
             nullPreferenceItem(
                 key = SettingsKeys.ABOUT,

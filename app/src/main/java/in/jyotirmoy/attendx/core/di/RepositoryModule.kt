@@ -54,5 +54,11 @@ abstract class RepositoryModule {
     abstract fun bindTemplateRepository(
         templateRepositoryImpl: `in`.jyotirmoy.attendx.timetable.data.repository.TemplateRepositoryImpl
     ): `in`.jyotirmoy.attendx.timetable.domain.repository.TemplateRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindPeerGroupRepository(
+        impl: `in`.jyotirmoy.attendx.peer.data.repository.PeerGroupRepositoryImpl
+    ): `in`.jyotirmoy.attendx.peer.domain.repository.PeerGroupRepository
 }
 

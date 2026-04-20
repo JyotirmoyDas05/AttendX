@@ -7,6 +7,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import `in`.jyotirmoy.attendx.calender.presentation.screens.CalendarScreen
 import `in`.jyotirmoy.attendx.home.presentation.screens.HomeScreen
+import `in`.jyotirmoy.attendx.peer.presentation.PeerInsightsScreen
 import `in`.jyotirmoy.attendx.settings.presentation.page.about.screens.AboutScreen
 import `in`.jyotirmoy.attendx.settings.presentation.page.backup.screens.BackupAndRestoreScreen
 import `in`.jyotirmoy.attendx.settings.presentation.page.behavior.screens.BehaviorScreen
@@ -168,6 +169,15 @@ fun Navigation() {
             ) {
                 `in`.jyotirmoy.attendx.tools.presentation.pomodoro.PomodoroScreen()
             }
+
+            composable<PeerInsightsRoute>(
+                enterTransition = { slideFadeInFromRight() },
+                popExitTransition = { slideFadeOutToRight() }
+            ) {
+                PeerInsightsScreen(
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
         }
     }
 }
@@ -223,3 +233,6 @@ data class TemplatePreviewScreen(val templateId: String)
 
 @Serializable
 object ToolsScreen
+
+@Serializable
+object PeerInsightsRoute

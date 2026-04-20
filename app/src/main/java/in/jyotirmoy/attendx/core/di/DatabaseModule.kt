@@ -16,8 +16,10 @@ import `in`.jyotirmoy.attendx.core.data.database.MIGRATION_5_6
 import `in`.jyotirmoy.attendx.core.data.database.MIGRATION_6_7
 import `in`.jyotirmoy.attendx.core.data.database.MIGRATION_7_8
 import `in`.jyotirmoy.attendx.core.data.database.MIGRATION_8_9
+import `in`.jyotirmoy.attendx.core.data.database.MIGRATION_9_10
 import `in`.jyotirmoy.attendx.core.data.database.SubjectDao
 import `in`.jyotirmoy.attendx.core.data.database.SubjectDatabase
+import `in`.jyotirmoy.attendx.peer.data.local.PeerComparisonCacheDao
 import `in`.jyotirmoy.attendx.timetable.data.dao.TimeTableDao
 import javax.inject.Singleton
 
@@ -33,7 +35,7 @@ object DatabaseModule {
             SubjectDatabase::class.java,
             "attendance_app_db"
         )
-            .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9)
+            .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10)
             .build()
 
     @Provides
@@ -47,5 +49,8 @@ object DatabaseModule {
 
     @Provides
     fun provideTimeTableDao(db: SubjectDatabase): TimeTableDao = db.timeTableDao()
+
+    @Provides
+    fun providePeerComparisonCacheDao(db: SubjectDatabase): PeerComparisonCacheDao = db.peerComparisonCacheDao()
 }
 

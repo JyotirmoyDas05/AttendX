@@ -101,9 +101,12 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import `in`.jyotirmoy.attendx.navigation.MarketplaceScreen
+import `in`.jyotirmoy.attendx.navigation.PeerInsightsRoute
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
+import `in`.jyotirmoy.attendx.peer.presentation.PeerComparisonViewModel
+import `in`.jyotirmoy.attendx.peer.presentation.PeerComparisonNudgeCard
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @SuppressLint("DefaultLocale")
@@ -112,7 +115,8 @@ fun HomeScreen(
     modifier: Modifier = Modifier,
     viewModel: HomeViewModel = hiltViewModel(),
     settingsViewModel: SettingsViewModel = hiltViewModel(),
-    autoUpdateViewModel: AutoUpdateViewModel = hiltViewModel()
+    autoUpdateViewModel: AutoUpdateViewModel = hiltViewModel(),
+    peerViewModel: PeerComparisonViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
     val weakHaptic = LocalWeakHaptic.current
@@ -407,6 +411,19 @@ fun HomeScreen(
                         }
                     )
                 }
+
+                item {
+                    val peerState by peerViewModel.state.collectAsState()
+                    LaunchedEffect(totalProgress) {
+                        peerViewModel.setUserAttendance(totalProgress * 100f)
+                    }
+                    PeerComparisonNudgeCard(
+                        state = peerState,
+                        onClick = { navController.navigate(PeerInsightsRoute) },
+                        modifier = Modifier.padding(horizontal = 15.dp, vertical = 10.dp)
+                    )
+                }
+
             }
 
             items(subjects.size, key = { index -> subjects[index].id }) { index ->

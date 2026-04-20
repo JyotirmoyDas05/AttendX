@@ -20,3 +20,7 @@ temp_*.svg
 convert_svg.py
 build_log.txt
 app/google-services.json
+app/google-services.json.bak
+
+#PLAN files
+PLAN.md

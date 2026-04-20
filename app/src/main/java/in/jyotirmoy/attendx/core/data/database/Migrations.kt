@@ -75,3 +75,19 @@ val MIGRATION_8_9 = object : Migration(8, 9) {
     }
 }
 
+val MIGRATION_9_10 = object : Migration(9, 10) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("""
+            CREATE TABLE IF NOT EXISTS peer_comparison_cache (
+                groupKey TEXT NOT NULL PRIMARY KEY,
+                averageAttendance REAL NOT NULL,
+                stdDev REAL NOT NULL,
+                sampleSize INTEGER NOT NULL,
+                userPercentile REAL NOT NULL,
+                fetchedAt INTEGER NOT NULL
+            )
+        """.trimIndent())
+    }
+}
+
+

@@ -1,0 +1,6 @@
+Peer Insights Update:
+- Major: Added Anonymous Peer Comparison system.
+- Search for your college and department groups to compare attendance results.
+- Canonical Firestore-backed group search to prevent pool fragmentation.
+- Privacy-first architecture: individual data is never uploaded, only aggregates.
+- Fixed various Firestore-related crashes and permission issues.

@@ -34,7 +34,6 @@ class TemplateRepositoryImpl @Inject constructor(
         department: String?,
         semester: Int?
     ): Flow<List<CommunityTemplate>> = callbackFlow {
-        // Basic query implementation - can be enhanced with Algolia later if searching needs to be more robust
         var firebaseQuery: Query = templatesCollection.orderBy("likes", Query.Direction.DESCENDING)
 
         if (department != null) {
@@ -44,25 +43,20 @@ class TemplateRepositoryImpl @Inject constructor(
             firebaseQuery = firebaseQuery.whereEqualTo("semester", semester)
         }
 
-        // Note: Firestore text search is limited. 
-        // For free tier, we'll rely on client-side filtering for the name query if the dataset is small,
-        // or just basic equality checks if we want to be strict.
-        // For now, let's fetch top 50 and filter locally for search query to save reads.
-        
         firebaseQuery = firebaseQuery.limit(50)
 
         val subscription = firebaseQuery.addSnapshotListener { snapshot, error ->
             if (error != null) {
-                close(error)
+                // Don't crash — emit empty list; UI can show retry
+                trySend(emptyList())
                 return@addSnapshotListener
             }
-
             if (snapshot != null) {
                 val templates = snapshot.toObjects(CommunityTemplate::class.java)
                 val filtered = if (query.isNotBlank()) {
-                    templates.filter { 
-                        it.name.contains(query, ignoreCase = true) || 
-                        it.college.contains(query, ignoreCase = true) 
+                    templates.filter {
+                        it.name.contains(query, ignoreCase = true) ||
+                        it.college.contains(query, ignoreCase = true)
                     }
                 } else {
                     templates
@@ -87,14 +81,13 @@ class TemplateRepositoryImpl @Inject constructor(
             Result.failure(e)
         }
     }
-    
+
     override suspend fun incrementDownloads(templateId: String) {
         try {
-             templatesCollection.document(templateId)
-                 .update("downloads", com.google.firebase.firestore.FieldValue.increment(1))
-                 .await()
+            templatesCollection.document(templateId)
+                .update("downloads", com.google.firebase.firestore.FieldValue.increment(1))
+                .await()
         } catch (e: Exception) {
-            // Log error but don't crash
             e.printStackTrace()
         }
     }

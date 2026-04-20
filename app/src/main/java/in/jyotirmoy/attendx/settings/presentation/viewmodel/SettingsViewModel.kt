@@ -21,6 +21,7 @@ import `in`.jyotirmoy.attendx.navigation.BehaviorScreen
 import `in`.jyotirmoy.attendx.navigation.DarkThemeScreen
 import `in`.jyotirmoy.attendx.navigation.LookAndFeelScreen
 import `in`.jyotirmoy.attendx.navigation.NotificationScreen
+import `in`.jyotirmoy.attendx.navigation.PeerInsightsRoute
 import `in`.jyotirmoy.attendx.notification.createAppNotificationSettingsIntent
 import `in`.jyotirmoy.attendx.notification.isNotificationPermissionGranted
 import `in`.jyotirmoy.attendx.notification.scheduler.WorkScheduler
@@ -168,6 +169,10 @@ class SettingsViewModel @Inject constructor(
 
                 SettingsKeys.BACKUP_AND_RESTORE -> _uiEvent.emit(
                     SettingsUiEvent.Navigate(BackupAndRestoreScreen)
+                )
+
+                SettingsKeys.PEER_COMPARISON_ENABLED -> _uiEvent.emit(
+                    SettingsUiEvent.Navigate(PeerInsightsRoute)
                 )
 
                 SettingsKeys.ABOUT -> _uiEvent.emit(

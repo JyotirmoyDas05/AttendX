@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import `in`.jyotirmoy.attendx.core.data.service.AnonymousAuthService
 import `in`.jyotirmoy.attendx.timetable.domain.usecase.GetExportableDataUseCase
 import `in`.jyotirmoy.attendx.timetable.domain.usecase.UploadTemplateUseCase
 import `in`.jyotirmoy.attendx.timetable.data.model.community.TemplateClassEntry
@@ -42,7 +43,8 @@ sealed class UploadEvent {
 @HiltViewModel
 class UploadTemplateViewModel @Inject constructor(
     private val uploadTemplateUseCase: UploadTemplateUseCase,
-    private val getExportableDataUseCase: GetExportableDataUseCase
+    private val getExportableDataUseCase: GetExportableDataUseCase,
+    private val anonymousAuthService: AnonymousAuthService
 ) : ViewModel() {
 
     private val _state = mutableStateOf(UploadState())
@@ -128,8 +130,8 @@ class UploadTemplateViewModel @Inject constructor(
                 semester = semInt,
                 section = _state.value.section,
                 academicYear = _state.value.academicYear,
-                authorId = "user_id_placeholder", // TODO: Function to get or generate user ID
-                authorName = "Anonymous Student", // TODO: Let user pick a name
+                authorId = anonymousAuthService.getOrCreateUid(),
+                authorName = "Anonymous Student",
                 classes = _state.value.selectedClasses,
                 subjects = _state.value.selectedSubjects
             )
