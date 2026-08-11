@@ -70,11 +70,11 @@
   ```powershell
   [Convert]::ToBase64String([IO.File]::ReadAllBytes("app/google-services.json")) | clip
   ```
-* **Git Commit, Tag & Push Release:**
+* **Git Commit, Tag & Push Release (Replace `vX.Y.Z` and message with actual version/summary):**
   ```powershell
   git add .
-  git commit -m "feat: release summary"
+  git commit -m "feat: release summary"  # Example message
   git push
-  git tag v2.5.1
-  git push origin v2.5.1
+  git tag vX.Y.Z                        # Example tag (e.g. v2.5.1)
+  git push origin vX.Y.Z
   ```
