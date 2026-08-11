@@ -19,6 +19,10 @@
 - Maintain package name consistency (`in.jyotirmoy.attendx`).
 - Ensure both **Release SHA-1** and **Debug SHA-1** (`E6:7B:05:FB:91:23:A3:B9:50:DB:47:6C:29:88:62:DC:58:76:8C:2D`) are added under the `in.jyotirmoy.attendx` app in Firebase Console and Google Cloud Console API key restrictions.
 
+### D. Git Commit & Release Rule
+- **Rule**: **NEVER** automatically commit, tag, or push release changes without explicit user approval after testing.
+- Pushing tags (`v*`) triggers the GitHub Actions Release build pipeline. Regular `git push` to `main` does NOT trigger release builds.
+
 ---
 
 ## 2. Commonly Used Commands Cheatsheet
