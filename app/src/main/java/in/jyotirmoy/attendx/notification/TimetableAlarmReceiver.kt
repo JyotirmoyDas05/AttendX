@@ -136,7 +136,8 @@ class TimetableAlarmReceiver : BroadcastReceiver() {
             message = message,
             smallIconResId = iconRes,
             subjectId = subjectId,
-            scheduleId = scheduleId
+            scheduleId = scheduleId,
+            subjectName = subjectName
         )
     }
 
@@ -170,7 +171,9 @@ class TimetableAlarmReceiver : BroadcastReceiver() {
             notificationId = scheduleId + 2_000_000, // Use unique ID for upcoming
             title = "Upcoming Class: $subjectName",
             message = message,
-            smallIconResId = iconRes
+            smallIconResId = iconRes,
+            subjectId = subjectId,
+            subjectName = subjectName
         )
     }
 

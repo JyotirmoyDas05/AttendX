@@ -10,6 +10,9 @@ interface PeerComparisonCacheDao {
     @Query("SELECT * FROM peer_comparison_cache WHERE groupKey = :key")
     fun observeCache(key: String): Flow<PeerComparisonCacheEntity?>
 
+    @Query("SELECT * FROM peer_comparison_cache WHERE groupKey = :key")
+    suspend fun getCache(key: String): PeerComparisonCacheEntity?
+
     @Upsert
     suspend fun upsert(entity: PeerComparisonCacheEntity)
 

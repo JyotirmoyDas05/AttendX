@@ -6,11 +6,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.geometry.RoundRect
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -33,7 +30,7 @@ fun TodayCalendarIcon(
     val today = remember { LocalDate.now().dayOfMonth.toString() }
     val textMeasurer = rememberTextMeasurer()
     val textStyle = TextStyle(
-        fontSize = 12.sp,
+        fontSize = 11.sp,
         fontWeight = FontWeight.Bold,
         color = tint
     )
@@ -44,10 +41,10 @@ fun TodayCalendarIcon(
     Canvas(modifier = modifier.size(24.dp)) {
         val w = size.width
         val h = size.height
-        val stroke = 1.5.dp.toPx()
+        val stroke = 1.6.dp.toPx()
         val r = 3.dp.toPx() // corner radius
         val headerH = h * 0.28f // top bar height
-        val foldSize = w * 0.22f // crease fold size
+        val foldSize = w * 0.26f // crease fold size
 
         // Calendar body with fold cut at bottom-right
         val bodyPath = Path().apply {
@@ -58,7 +55,7 @@ fun TodayCalendarIcon(
             // Top-right corner
             arcTo(Rect(w - 2 * r, 0f, w, 2 * r), -90f, 90f, false)
             // Right edge down to fold
-            lineTo(w, h - foldSize - r)
+            lineTo(w, h - foldSize)
             // Fold diagonal
             lineTo(w - foldSize, h)
             // Bottom edge
@@ -82,13 +79,13 @@ fun TodayCalendarIcon(
             strokeWidth = stroke
         )
 
-        // Fold crease line (diagonal from corner inward)
+        // Fold crease lines (meeting exactly at right and bottom edges)
         val foldPath = Path().apply {
-            moveTo(w - foldSize, h)
+            moveTo(w, h - foldSize)
             lineTo(w - foldSize, h - foldSize)
-            lineTo(w, h - foldSize)
+            lineTo(w - foldSize, h)
         }
-        drawPath(foldPath, color = tint, style = Stroke(width = stroke * 0.8f))
+        drawPath(foldPath, color = tint, style = Stroke(width = stroke))
 
         // Date number centered in body area below header
         val bodyTop = headerH

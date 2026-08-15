@@ -17,12 +17,15 @@ import `in`.jyotirmoy.attendx.navigation.Navigation
 import `in`.jyotirmoy.attendx.settings.data.local.SettingsKeys
 import `in`.jyotirmoy.attendx.settings.domain.model.UpdateResult
 import `in`.jyotirmoy.attendx.core.utils.DeviceArchitecture
+import android.content.Intent
 import `in`.jyotirmoy.attendx.settings.presentation.page.autoupdate.viewmodel.AutoUpdateViewModel
 import `in`.jyotirmoy.attendx.settings.presentation.viewmodel.SettingsViewModel
 import kotlinx.coroutines.flow.collectLatest
 
 @Composable
 fun AppEntry(
+    notificationIntent: Intent? = null,
+    onNotificationIntentHandled: () -> Unit = {},
     autoUpdateViewModel: AutoUpdateViewModel = hiltViewModel(),
     settingsViewModel: SettingsViewModel = hiltViewModel()
 ) {
@@ -60,7 +63,10 @@ fun AppEntry(
     }
 
     Surface {
-        Navigation()
+        Navigation(
+            notificationIntent = notificationIntent,
+            onNotificationIntentHandled = onNotificationIntentHandled
+        )
 
         if (showUpdateSheet) {
             UpdateBottomSheet(

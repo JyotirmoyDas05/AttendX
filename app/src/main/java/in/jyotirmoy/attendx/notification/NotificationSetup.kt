@@ -1,14 +1,66 @@
 package `in`.jyotirmoy.attendx.notification
 
 import android.Manifest
+import android.app.NotificationChannel
+import android.app.NotificationChannelGroup
+import android.app.NotificationManager
 import android.content.Context
+import android.os.Build
 import androidx.annotation.RequiresPermission
 import `in`.jyotirmoy.attendx.R
 import `in`.jyotirmoy.attendx.notification.helper.NotificationHelper
 
 object NotificationSetup {
+    const val GROUP_ID = "attendx_notifications_group"
     const val ATTENDANCE_CHANNEL_ID = "attendance_channel"
     const val UPDATE_CHANNEL_ID = "update_channel"
+    const val TIMETABLE_CHANNEL_ID = "timetable_channel"
+
+    fun initNotificationChannels(context: Context) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val notificationManager =
+                context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
+            val group = NotificationChannelGroup(GROUP_ID, "AttendX Notifications")
+            notificationManager.createNotificationChannelGroup(group)
+
+            val channels = listOf(
+                NotificationChannel(
+                    TIMETABLE_CHANNEL_ID,
+                    "Class Timetable",
+                    NotificationManager.IMPORTANCE_HIGH
+                ).apply {
+                    description = "Notifications for scheduled classes"
+                    this.group = GROUP_ID
+                },
+                NotificationChannel(
+                    ATTENDANCE_CHANNEL_ID,
+                    context.getString(R.string.attendance),
+                    NotificationManager.IMPORTANCE_HIGH
+                ).apply {
+                    description = context.getString(R.string.daily_reminder_to_mark_attendance)
+                    this.group = GROUP_ID
+                },
+                NotificationChannel(
+                    UPDATE_CHANNEL_ID,
+                    context.getString(R.string.updates),
+                    NotificationManager.IMPORTANCE_DEFAULT
+                ).apply {
+                    description = context.getString(R.string.des_notify_update_available)
+                    this.group = GROUP_ID
+                },
+                NotificationChannel(
+                    "pomodoro_timer_channel",
+                    "Pomodoro Timer",
+                    NotificationManager.IMPORTANCE_LOW
+                ).apply {
+                    description = "Active timer notification"
+                    this.group = GROUP_ID
+                }
+            )
+            notificationManager.createNotificationChannels(channels)
+        }
+    }
 
     @RequiresPermission(Manifest.permission.POST_NOTIFICATIONS)
     fun showAttendanceReminderNotification(context: Context) {
@@ -52,8 +104,6 @@ object NotificationSetup {
         )
     }
 
-    const val TIMETABLE_CHANNEL_ID = "timetable_channel"
-
     @RequiresPermission(Manifest.permission.POST_NOTIFICATIONS)
     fun showTimetableNotification(
         context: Context,
@@ -87,7 +137,8 @@ object NotificationSetup {
             message = message,
             smallIconResId = android.R.drawable.ic_dialog_info,
             subjectId = subjectId,
-            scheduleId = scheduleId
+            scheduleId = scheduleId,
+            subjectName = subjectName
         )
     }
 }

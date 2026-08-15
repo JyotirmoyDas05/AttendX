@@ -53,6 +53,8 @@ fun AddEditClassSheet(
     subjects: List<SubjectEntity>,
     initialSchedule: TimeTableScheduleWithSubject?,
     initialDay: Int = 1,
+    initialStartTime: Long? = null,
+    initialEndTime: Long? = null,
     onDismiss: () -> Unit,
     onSave: (TimeTableScheduleEntity) -> Unit
 ) {
@@ -62,8 +64,20 @@ fun AddEditClassSheet(
     // form states
     var selectedSubjectId by remember { mutableIntStateOf(initialSchedule?.schedule?.subjectId ?: (subjects.firstOrNull()?.id ?: 0)) }
     var selectedDay by remember { mutableIntStateOf(initialSchedule?.schedule?.dayOfWeek ?: initialDay) }
-    var startTime24 by remember { mutableStateOf(initialSchedule?.let { formatTimeInput(it.schedule.startTime) } ?: "09:00") }
-    var endTime24 by remember { mutableStateOf(initialSchedule?.let { formatTimeInput(it.schedule.endTime) } ?: "10:00") }
+    var startTime24 by remember { 
+        mutableStateOf(
+            initialSchedule?.let { formatTimeInput(it.schedule.startTime) }
+                ?: initialStartTime?.let { formatTimeInput(it) }
+                ?: "09:00"
+        ) 
+    }
+    var endTime24 by remember { 
+        mutableStateOf(
+            initialSchedule?.let { formatTimeInput(it.schedule.endTime) }
+                ?: initialEndTime?.let { formatTimeInput(it) }
+                ?: "10:00"
+        ) 
+    }
     var room by remember { mutableStateOf(initialSchedule?.schedule?.room ?: "") }
     var professor by remember { mutableStateOf(initialSchedule?.schedule?.professor ?: "") }
     var classType by remember { mutableStateOf(initialSchedule?.schedule?.classType ?: "Lecture") }

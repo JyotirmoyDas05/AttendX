@@ -1,13 +1,25 @@
 package `in`.jyotirmoy.attendx.timetable.presentation.screens
 
+import android.app.Activity
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionLayout
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -15,60 +27,64 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.List
-import androidx.compose.material.icons.rounded.Publish
-import androidx.compose.material.icons.rounded.Download
-import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.core.view.WindowCompat
 import androidx.hilt.navigation.compose.hiltViewModel
+import `in`.jyotirmoy.attendx.core.presentation.components.dialog.ConfirmDeleteDialog
+import `in`.jyotirmoy.attendx.timetable.data.model.TimeTableScheduleEntity
 import `in`.jyotirmoy.attendx.timetable.presentation.components.AddEditClassSheet
-import `in`.jyotirmoy.attendx.timetable.presentation.components.SwipeableClassCard
 import `in`.jyotirmoy.attendx.timetable.presentation.components.DaySelector
 import `in`.jyotirmoy.attendx.timetable.presentation.components.NextUpCard
+import `in`.jyotirmoy.attendx.timetable.presentation.components.SelectableClassCard
 import `in`.jyotirmoy.attendx.timetable.presentation.components.TimetableCalendarView
 import `in`.jyotirmoy.attendx.timetable.presentation.components.TodayCalendarIcon
 import `in`.jyotirmoy.attendx.timetable.presentation.viewmodel.TimeTableViewModel
-import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.graphics.graphicsLayer
-import `in`.jyotirmoy.attendx.core.presentation.util.bounceClick
-import `in`.jyotirmoy.attendx.timetable.presentation.components.ExpressiveFabMenu
+import `in`.jyotirmoy.attendx.timetable.presentation.viewmodel.TimetableViewMode
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class)
 @Composable
 fun TimeTableScreen(
     viewModel: TimeTableViewModel = hiltViewModel(),
@@ -76,100 +92,81 @@ fun TimeTableScreen(
     onNavigateToMarketplace: () -> Unit = {}
 ) {
     val subjects by viewModel.subjects.collectAsState()
+    val selectedDay by viewModel.selectedDay.collectAsState()
     val dailySchedule by viewModel.dailySchedule.collectAsState()
-    val weeklySchedule by viewModel.weeklySchedule.collectAsState()
     val nextClass by viewModel.nextClass.collectAsState()
     val currentClass by viewModel.currentClass.collectAsState()
-    val selectedDay by viewModel.selectedDay.collectAsState()
-    val showSheet by viewModel.showAddEditSheet.collectAsState()
+    val viewMode by viewModel.viewMode.collectAsState()
+    val threeDayStartDay by viewModel.threeDayStartDay.collectAsState()
+    val weeklySchedule by viewModel.weeklySchedule.collectAsState()
+
+    val showAddEditSheet by viewModel.showAddEditSheet.collectAsState()
     val editingSchedule by viewModel.editingSchedule.collectAsState()
-    val selectedIds by viewModel.selectedIds.collectAsState()
-    val isCalendarView by viewModel.isCalendarView.collectAsState()
-    var snapToNow by remember { androidx.compose.runtime.mutableStateOf(false) }
-    
+    val initialSlotTime by viewModel.initialSlotTime.collectAsState()
+
+    val isSelectionMode by viewModel.isSelectionMode.collectAsState()
+    val selectedClassIds by viewModel.selectedClassIds.collectAsState()
+    val showDeleteConfirmDialog by viewModel.showDeleteConfirmDialog.collectAsState()
+
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
-    
-    val isSelectionMode = selectedIds.isNotEmpty()
+    var deletedScheduleBackup by remember { mutableStateOf<TimeTableScheduleEntity?>(null) }
+    var snapToNow by remember { mutableStateOf(false) }
+
+    // Update status bar icon contrast
+    val view = LocalView.current
+    val isDarkTheme = MaterialTheme.colorScheme.background.toArgb() == Color.Black.toArgb()
+    if (!view.isInEditMode) {
+        LaunchedEffect(isDarkTheme) {
+            val window = (view.context as Activity).window
+            val insetsController = WindowCompat.getInsetsController(window, view)
+            insetsController.isAppearanceLightStatusBars = !isDarkTheme
+        }
+    }
+
+    // Handle back button for selection mode
+    BackHandler(enabled = isSelectionMode) {
+        viewModel.deselectAllClasses()
+    }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
-            AnimatedVisibility(
-                visible = isSelectionMode,
-                enter = slideInVertically { -it } + fadeIn(),
-                exit = slideOutVertically { -it } + fadeOut()
-            ) {
+            if (isSelectionMode) {
                 TopAppBar(
-                    title = { 
-                        Text("${selectedIds.size} selected")
+                    title = {
+                        Text("${selectedClassIds.size} selected")
                     },
                     navigationIcon = {
-                        IconButton(onClick = { viewModel.clearSelection() }) {
-                            Icon(Icons.Default.Close, "Clear selection")
+                        IconButton(onClick = { viewModel.deselectAllClasses() }) {
+                            Icon(Icons.Default.Close, contentDescription = "Close selection")
                         }
                     },
                     actions = {
-                        IconButton(
-                                onClick = {
-                                val count = selectedIds.size
-                                viewModel.deleteSelected()
-                                scope.launch {
-                                    val result = snackbarHostState.showSnackbar(
-                                        message = "$count class${if (count > 1) "es" else ""} deleted",
-                                        actionLabel = "Undo",
-                                        duration = SnackbarDuration.Short
-                                    )
-                                    if (result == SnackbarResult.ActionPerformed) {
-                                        viewModel.restoreDeletedClasses()
-                                    }
-                                }
-                            }
-                        ) {
-                            Icon(Icons.Default.Delete, "Delete selected")
+                        IconButton(onClick = { viewModel.selectAllClasses() }) {
+                            Icon(Icons.Default.Check, contentDescription = "Select all")
                         }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer,
-                        titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
-                )
-            }
-        },
-        snackbarHost = {
-            SnackbarHost(snackbarHostState) { data ->
-                Snackbar(
-                    snackbarData = data,
-                    containerColor = MaterialTheme.colorScheme.inverseSurface,
-                    contentColor = MaterialTheme.colorScheme.inverseOnSurface,
-                    actionColor = MaterialTheme.colorScheme.inversePrimary
+                        IconButton(
+                            onClick = { viewModel.showDeleteConfirmation() },
+                            enabled = selectedClassIds.isNotEmpty()
+                        ) {
+                            Icon(Icons.Default.Delete, contentDescription = "Delete selected")
+                        }
+                    }
                 )
             }
         },
         floatingActionButton = {
-            AnimatedVisibility(
-                visible = !isSelectionMode,
-                enter = fadeIn() + slideInVertically { it },
-                exit = fadeOut() + slideOutVertically { it }
-            ) {
-                var isFabExpanded by remember { androidx.compose.runtime.mutableStateOf(false) }
-                
-                ExpressiveFabMenu(
-                    isExpanded = isFabExpanded,
-                    onToggle = { isFabExpanded = !isFabExpanded },
-                    onNavigateToUpload = { 
-                        isFabExpanded = false
-                        onNavigateToUpload() 
-                    },
-                        onNavigateToMarketplace = { 
-                        isFabExpanded = false
-                        onNavigateToMarketplace()
-                    },
-                    onManualAdd = { 
-                        isFabExpanded = false
-                        viewModel.showAddSheet() 
-                    },
+            if (!isSelectionMode) {
+                FloatingActionButton(
+                    onClick = { viewModel.showAddSheet() },
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    shape = CircleShape,
                     modifier = Modifier.offset(y = 30.dp)
-                )
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = "Add Class")
+                }
             }
         }
     ) { padding ->
@@ -178,12 +175,12 @@ fun TimeTableScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            // Header with view toggle
+            // Header with view switcher
             AnimatedVisibility(visible = !isSelectionMode) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(start = 16.dp, end = 8.dp, top = 16.dp, bottom = 8.dp),
+                        .padding(start = 16.dp, end = 12.dp, top = 16.dp, bottom = 8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
@@ -192,35 +189,69 @@ fun TimeTableScreen(
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.weight(1f)
                     )
-                    
-                    // Snap to now button (only in calendar view)
-                    if (isCalendarView) {
-                        IconButton(onClick = { snapToNow = true }) {
-                            TodayCalendarIcon(
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                    }
 
-                    // View toggle button
-                    IconButton(onClick = { viewModel.toggleViewMode() }) {
-                        Icon(
-                            imageVector = if (isCalendarView) Icons.Default.List else Icons.Default.CalendarMonth,
-                            contentDescription = if (isCalendarView) "Switch to List" else "Switch to Calendar",
+                    // Jump to today / snap to now button (available across Schedule, Day, 3-Day, and Week views)
+                    IconButton(onClick = { 
+                        snapToNow = true
+                        viewModel.snapToToday()
+                    }) {
+                        TodayCalendarIcon(
                             tint = MaterialTheme.colorScheme.primary
                         )
+                    }
+                    Spacer(modifier = Modifier.width(4.dp))
+
+                    // M3 Expressive 4-Way Segmented View Switcher (Schedule | Day | 3-Day | Week)
+                    Row(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                            .padding(2.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        for (mode in TimetableViewMode.entries) {
+                            val isSelected = viewMode == mode
+                            val label = when (mode) {
+                                TimetableViewMode.SCHEDULE -> "Schedule"
+                                TimetableViewMode.DAY -> "Day"
+                                TimetableViewMode.THREE_DAY -> "3-Day"
+                                TimetableViewMode.WEEK -> "Week"
+                            }
+
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(
+                                        if (isSelected) MaterialTheme.colorScheme.primary
+                                        else Color.Transparent
+                                    )
+                                    .clickable { viewModel.setViewMode(mode) }
+                                    .padding(horizontal = 8.dp, vertical = 6.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = label,
+                                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                    color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
                     }
                 }
             }
             
             // Priority Dashboard
-            // Priority Dashboard
-            var showNextUp by remember { androidx.compose.runtime.mutableStateOf(false) }
+            var showNextUp by remember { mutableStateOf(false) }
             LaunchedEffect(Unit) { showNextUp = true }
             
+            val configuration = androidx.compose.ui.platform.LocalConfiguration.current
+            val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
+
             AnimatedVisibility(
-                visible = showNextUp,
-                enter = slideInVertically { -it } + fadeIn()
+                visible = showNextUp && !isLandscape,
+                enter = slideInVertically { -it } + fadeIn(),
+                exit = slideOutVertically { -it } + fadeOut()
             ) {
                 NextUpCard(
                     nextClass = nextClass,
@@ -228,94 +259,73 @@ fun TimeTableScreen(
                 )
             }
             
-            // AnimatedContent for view switching
-            AnimatedContent(
-                targetState = isCalendarView,
-                transitionSpec = {
-                    fadeIn() togetherWith fadeOut()
-                },
-                label = "viewToggle"
-            ) { showCalendar ->
-                if (showCalendar) {
-                    // Calendar Grid View
-                    TimetableCalendarView(
-                        weeklySchedule = weeklySchedule,
-                        onClassClick = { schedule ->
-                            viewModel.showEditSheet(schedule)
-                        },
-                        snapToNow = snapToNow,
-                        onSnapConsumed = { snapToNow = false },
-                        modifier = Modifier.padding(horizontal = 8.dp)
-                    )
-                } else {
-                    // List View
-                    Column {
-                        // Day Selector
-                        DaySelector(
-                            selectedDay = selectedDay,
-                            onDaySelected = viewModel::onDaySelected
+            // SharedTransitionLayout for view switching with morphing transitions
+            SharedTransitionLayout(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+            ) {
+                AnimatedContent(
+                    targetState = viewMode,
+                    transitionSpec = {
+                        (scaleIn(
+                            animationSpec = spring(
+                                dampingRatio = Spring.DampingRatioLowBouncy,
+                                stiffness = Spring.StiffnessMediumLow
+                            ),
+                            initialScale = 0.94f
+                        ) + fadeIn(animationSpec = tween(200)))
+                        .togetherWith(
+                            scaleOut(
+                                animationSpec = spring(
+                                    dampingRatio = Spring.DampingRatioLowBouncy,
+                                    stiffness = Spring.StiffnessMediumLow
+                                ),
+                                targetScale = 0.94f
+                            ) + fadeOut(animationSpec = tween(160))
                         )
-                        
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        // Class List
-                        LazyColumn(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(horizontal = 16.dp),
-                            contentPadding = PaddingValues(bottom = 80.dp)
-                        ) {
-                            item {
-                                Text(
-                                    text = "Schedule",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    modifier = Modifier.padding(bottom = 8.dp)
+                    },
+                    label = "viewModeTransition",
+                    modifier = Modifier.fillMaxSize()
+                ) { currentViewMode ->
+                    when (currentViewMode) {
+                        TimetableViewMode.SCHEDULE -> {
+                            // Schedule / Agenda List View
+                            Column(
+                                modifier = Modifier.fillMaxSize()
+                            ) {
+                                // Day Selector
+                                DaySelector(
+                                    selectedDay = selectedDay,
+                                    onDaySelected = viewModel::onDaySelected
                                 )
-                            }
-                            
-                            if (dailySchedule.isEmpty()) {
-                                item {
-                                    `in`.jyotirmoy.attendx.timetable.presentation.components.image.UndrawTask()
-                                    Text(
-                                        text = "No classes scheduled for this day.",
-                                        style = MaterialTheme.typography.titleMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(top = 16.dp),
-                                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                                    )
-                                }
-                            } else {
-                                itemsIndexed(dailySchedule, key = { _, item -> item.schedule.id }) { index, schedule ->
-                                    // Staggered Entrance Animation
-                                    val visibleState = remember { androidx.compose.animation.core.MutableTransitionState(false).apply { targetState = true } }
-                                    
-                                    AnimatedVisibility(
-                                        visibleState = visibleState,
-                                        enter = slideInVertically(
-                                            animationSpec = androidx.compose.animation.core.tween(
-                                                durationMillis = 300,
-                                                delayMillis = index * 50 // Stagger by 50ms
-                                            )
-                                        ) { 50 } + fadeIn(
-                                            animationSpec = androidx.compose.animation.core.tween(
-                                                durationMillis = 300,
-                                                delayMillis = index * 50
-                                            )
-                                        ),
-                                        modifier = Modifier.fillMaxWidth()
-                                    ) {
-                                        `in`.jyotirmoy.attendx.timetable.presentation.components.SelectableClassCard(
-                                            scheduleWithSubject = schedule,
-                                            isSelected = selectedIds.contains(schedule.schedule.id),
-                                            onLongPress = { viewModel.toggleSelection(schedule.schedule.id) },
+                                
+                                Spacer(modifier = Modifier.height(16.dp))
+
+                                // Class List
+                                LazyColumn(
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    items(
+                                        items = dailySchedule,
+                                        key = { it.schedule.id }
+                                    ) { scheduleWithSubject ->
+                                        SelectableClassCard(
+                                            scheduleWithSubject = scheduleWithSubject,
+                                            isSelected = selectedClassIds.contains(scheduleWithSubject.schedule.id),
+                                            onLongPress = {
+                                                if (!isSelectionMode) {
+                                                    viewModel.toggleSelectionMode()
+                                                }
+                                                viewModel.toggleClassSelection(scheduleWithSubject.schedule.id)
+                                            },
                                             onClick = {
-                                                if (selectedIds.isNotEmpty()) {
-                                                    viewModel.toggleSelection(schedule.schedule.id)
+                                                if (isSelectionMode) {
+                                                    viewModel.toggleClassSelection(scheduleWithSubject.schedule.id)
                                                 } else {
-                                                    viewModel.showEditSheet(schedule)
+                                                    viewModel.showEditSheet(scheduleWithSubject)
                                                 }
                                             }
                                         )
@@ -323,20 +333,88 @@ fun TimeTableScreen(
                                 }
                             }
                         }
+                        TimetableViewMode.DAY -> {
+                            // 1-Day Timeline Grid View
+                            TimetableCalendarView(
+                                weeklySchedule = weeklySchedule,
+                                onClassClick = { schedule ->
+                                    viewModel.showEditSheet(schedule)
+                                },
+                                onEmptySlotClick = { day, time ->
+                                    viewModel.showAddSheetForSlot(day, time)
+                                },
+                                onShiftDays = { delta -> viewModel.shiftStartDay(delta) },
+                                numDays = 1,
+                                startDay = selectedDay,
+                                currentClassId = currentClass?.schedule?.id,
+                                snapToNow = snapToNow,
+                                onSnapConsumed = { snapToNow = false },
+                                modifier = Modifier.padding(horizontal = 4.dp)
+                            )
+                        }
+                        TimetableViewMode.THREE_DAY -> {
+                            // 3-Day Shiftable Timeline Grid View
+                            TimetableCalendarView(
+                                weeklySchedule = weeklySchedule,
+                                onClassClick = { schedule ->
+                                    viewModel.showEditSheet(schedule)
+                                },
+                                onEmptySlotClick = { day, time ->
+                                    viewModel.showAddSheetForSlot(day, time)
+                                },
+                                onShiftDays = { delta -> viewModel.shiftStartDay(delta) },
+                                numDays = 3,
+                                startDay = threeDayStartDay,
+                                currentClassId = currentClass?.schedule?.id,
+                                snapToNow = snapToNow,
+                                onSnapConsumed = { snapToNow = false },
+                                modifier = Modifier.padding(horizontal = 4.dp)
+                            )
+                        }
+                        TimetableViewMode.WEEK -> {
+                            // 7-Day Full Week Timeline Grid View
+                            TimetableCalendarView(
+                                weeklySchedule = weeklySchedule,
+                                onClassClick = { schedule ->
+                                    viewModel.showEditSheet(schedule)
+                                },
+                                onEmptySlotClick = { day, time ->
+                                    viewModel.showAddSheetForSlot(day, time)
+                                },
+                                onShiftDays = { /* Week fits full screen */ },
+                                numDays = 7,
+                                currentClassId = currentClass?.schedule?.id,
+                                snapToNow = snapToNow,
+                                onSnapConsumed = { snapToNow = false },
+                                modifier = Modifier.padding(horizontal = 4.dp)
+                            )
+                        }
                     }
                 }
             }
         }
     }
 
-    // Add/Edit Sheet
-    if (showSheet) {
+    // Add/Edit Bottom Sheet
+    if (showAddEditSheet) {
         AddEditClassSheet(
             subjects = subjects,
             initialSchedule = editingSchedule,
             initialDay = selectedDay,
-            onDismiss = { viewModel.dismissSheet() },
-            onSave = { schedule -> viewModel.saveClass(schedule) }
+            initialStartTime = initialSlotTime?.first,
+            initialEndTime = initialSlotTime?.second,
+            onDismiss = { viewModel.hideAddEditSheet() },
+            onSave = { schedule ->
+                viewModel.saveSchedule(schedule)
+            }
+        )
+    }
+
+    // Confirmation Dialog for Bulk Delete
+    if (showDeleteConfirmDialog) {
+        ConfirmDeleteDialog(
+            onConfirm = { viewModel.deleteSelectedClasses() },
+            onDismiss = { viewModel.hideDeleteConfirmation() }
         )
     }
 }

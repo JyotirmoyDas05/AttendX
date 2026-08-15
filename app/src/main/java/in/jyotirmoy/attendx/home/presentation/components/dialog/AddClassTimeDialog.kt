@@ -14,6 +14,9 @@ import `in`.jyotirmoy.attendx.core.presentation.theme.Shape
 import `in`.jyotirmoy.attendx.core.utils.TimeUtils
 import `in`.jyotirmoy.attendx.home.presentation.components.TimePickerField
 
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+
 @Composable
 fun AddClassTimeDialog(
     dayOfWeek: Int,
@@ -34,6 +37,7 @@ fun AddClassTimeDialog(
                 .fillMaxWidth()
                 .clip(Shape.cardCornerLarge)
                 .background(MaterialTheme.colorScheme.surfaceContainer)
+                .verticalScroll(rememberScrollState())
                 .padding(24.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {

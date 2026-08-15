@@ -17,6 +17,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.rounded.LocationOn
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -31,8 +32,9 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import `in`.jyotirmoy.attendx.timetable.data.model.TimeTableScheduleWithSubject
+import androidx.compose.ui.unit.sp
 import `in`.jyotirmoy.attendx.core.presentation.util.bounceClick
+import `in`.jyotirmoy.attendx.timetable.data.model.TimeTableScheduleWithSubject
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -46,27 +48,32 @@ fun SelectableClassCard(
     val schedule = scheduleWithSubject.schedule
     val subject = scheduleWithSubject.subject
 
-    val containerColor = if (isSelected) {
+    val subjectColor = getSubjectThemeColor(subject.subject)
+    val cardBackground = if (isSelected) {
         MaterialTheme.colorScheme.primaryContainer
     } else {
-        MaterialTheme.colorScheme.surfaceContainerLow
+        subjectColor.copy(alpha = 0.20f)
     }
 
-    val borderModifier = if (isSelected) {
+    val cardBorder = if (isSelected) {
         Modifier.border(
-            width = 3.dp,
+            width = 2.dp,
             color = MaterialTheme.colorScheme.primary,
-            shape = RoundedCornerShape(16.dp)
+            shape = RoundedCornerShape(12.dp)
         )
     } else {
-        Modifier
+        Modifier.border(
+            width = 0.8.dp,
+            color = subjectColor.copy(alpha = 0.45f),
+            shape = RoundedCornerShape(12.dp)
+        )
     }
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp)
-            .then(borderModifier)
+            .padding(vertical = 3.dp)
+            .then(cardBorder)
             .bounceClick(onClick = onClick)
             .combinedClickable(
                 onClick = onClick,
@@ -75,99 +82,66 @@ fun SelectableClassCard(
                     onLongPress()
                 }
             ),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = containerColor
-        )
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = cardBackground),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
-        Box {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Time column
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        text = formatTime(schedule.startTime),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = formatTime(schedule.endTime),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-
-                Spacer(modifier = Modifier.width(16.dp))
-
-                // Color indicator
-                val subjectColor = generateSubjectColor(subject.subject)
-                Box(
-                    modifier = Modifier
-                        .width(4.dp)
-                        .height(40.dp)
-                        .clip(RoundedCornerShape(2.dp))
-                        .background(subjectColor)
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp, vertical = 10.dp)
+        ) {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    text = subject.subject,
+                    style = MaterialTheme.typography.titleMedium.copy(fontSize = 15.sp),
+                    fontWeight = FontWeight.Bold,
+                    color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else Color(0xFF1E293B)
                 )
 
-                Spacer(modifier = Modifier.width(16.dp))
+                Spacer(modifier = Modifier.height(3.dp))
 
-                // Details
-                Column(modifier = Modifier.weight(1f)) {
+                val startTimeStr = formatTime(schedule.startTime)
+                val endTimeStr = formatTime(schedule.endTime)
+                Text(
+                    text = "$startTimeStr – $endTimeStr",
+                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
+                    color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f) else Color(0xFF475569)
+                )
+
+                val details = buildList {
+                    if (!schedule.room.isNullOrBlank()) add("📍 ${schedule.room}")
+                    if (schedule.classType != "Lecture") add(schedule.classType)
+                }
+
+                if (details.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = subject.subject,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold
+                        text = details.joinToString(" • "),
+                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.5.sp),
+                        color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.75f) else Color(0xFF64748B)
                     )
-                    if (schedule.room != null) {
-                        Text(
-                            text = schedule.room,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    if (schedule.classType != "Lecture") {
-                        Text(
-                            text = schedule.classType,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.tertiary
-                        )
-                    }
                 }
             }
 
-            // CheckCircle overlay
+            // CheckCircle overlay when selected
             if (isSelected) {
                 Box(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
-                        .padding(8.dp)
-                        .size(24.dp)
+                        .size(22.dp)
                         .clip(CircleShape)
                         .background(MaterialTheme.colorScheme.primary),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        Icons.Default.CheckCircle,
+                        imageVector = Icons.Default.CheckCircle,
                         contentDescription = "Selected",
                         tint = MaterialTheme.colorScheme.onPrimary,
-                        modifier = Modifier.size(20.dp)
+                        modifier = Modifier.size(18.dp)
                     )
                 }
             }
         }
     }
-}
-
-private fun generateSubjectColor(subjectName: String): Color {
-    val colors = listOf(
-        Color(0xFF6200EE), Color(0xFF03DAC5), Color(0xFFFF5722),
-        Color(0xFF2196F3), Color(0xFF4CAF50), Color(0xFFE91E63),
-        Color(0xFFFF9800), Color(0xFF9C27B0), Color(0xFF00BCD4),
-        Color(0xFF795548)
-    )
-    return colors[kotlin.math.abs(subjectName.hashCode()) % colors.size]
 }

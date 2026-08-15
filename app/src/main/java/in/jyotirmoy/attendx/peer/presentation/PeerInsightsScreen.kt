@@ -47,6 +47,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -73,6 +74,10 @@ fun PeerInsightsScreen(
     viewModel: PeerComparisonViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
+
+    LaunchedEffect(Unit) {
+        viewModel.loadPeerData()
+    }
 
     Scaffold(
         topBar = {
@@ -443,7 +448,10 @@ private fun CreateGroupDialog(
         onDismissRequest = onDismiss,
         title = { Text("Create New Group") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
                 Text(
                     text = "Use the official name of your college so others can find it. This becomes your group's permanent label.",
                     style = MaterialTheme.typography.bodySmall,

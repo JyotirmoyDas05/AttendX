@@ -2,7 +2,12 @@ package `in`.jyotirmoy.attendx.timetable.domain.usecase
 
 import `in`.jyotirmoy.attendx.timetable.data.model.TimeTableScheduleWithSubject
 import `in`.jyotirmoy.attendx.timetable.domain.repository.TimeTableRepository
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -12,18 +17,26 @@ import javax.inject.Inject
 class GetCurrentClassUseCase @Inject constructor(
     private val repository: TimeTableRepository
 ) {
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     operator fun invoke(): Flow<TimeTableScheduleWithSubject?> {
-        val now = LocalDateTime.now()
-        val currentDay = now.dayOfWeek.value
-        val currentMinutes = now.hour * 60 + now.minute
-        val currentWeekType = getCurrentWeekType()
+        val ticker = flow {
+            while (true) {
+                emit(LocalDateTime.now())
+                delay(10_000L) // Realtime 10-second tick
+            }
+        }
+        val dayFlow = ticker.map { it.dayOfWeek.value }.distinctUntilChanged()
 
-        return repository.getClassesForDayWithSubject(currentDay).map { classes ->
-            classes
-                .filter { matchesWeekPattern(it.schedule.weekPattern, currentWeekType) }
-                .firstOrNull { 
-                    currentMinutes >= it.schedule.startTime && currentMinutes < it.schedule.endTime 
-                }
+        return dayFlow.flatMapLatest { day ->
+            combine(repository.getClassesForDayWithSubject(day), ticker) { classes, now ->
+                val currentMinutes = now.hour * 60 + now.minute
+                val currentWeekType = getCurrentWeekType(now.toLocalDate())
+                classes
+                    .filter { matchesWeekPattern(it.schedule.weekPattern, currentWeekType) }
+                    .firstOrNull { 
+                        currentMinutes >= it.schedule.startTime && currentMinutes < it.schedule.endTime 
+                    }
+            }
         }
     }
 
@@ -35,8 +48,8 @@ class GetCurrentClassUseCase @Inject constructor(
         }
     }
 
-    private fun getCurrentWeekType(): String {
-        val weekOfYear = LocalDate.now().get(ChronoField.ALIGNED_WEEK_OF_YEAR)
+    private fun getCurrentWeekType(date: LocalDate): String {
+        val weekOfYear = date.get(ChronoField.ALIGNED_WEEK_OF_YEAR)
         return if (weekOfYear % 2 == 1) "odd" else "even"
     }
 }

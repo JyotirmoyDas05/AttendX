@@ -215,48 +215,15 @@ fun UpdateBottomSheet(
                 fontWeight = FontWeight.Bold
             )
 
-            // parse markdown lines into clean bullet items
-            val parsedLines = remember(releaseNotes) {
-                releaseNotes.lines()
-                    .map { it.trim() }
-                    .filter { it.isNotBlank() }
-                    .map { line ->
-                        line.removePrefix("- ")
-                            .removePrefix("* ")
-                            .removePrefix("• ")
-                            .replace(Regex("^#+\\s*"), "")
-                            .replace(Regex("\\*\\*(.+?)\\*\\*"), "$1")
-                            .trim()
-                    }
-                    .filter { it.isNotBlank() }
-            }
-
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn(max = 200.dp)
+                    .heightIn(max = 240.dp)
                     .verticalScroll(rememberScrollState())
                     .padding(horizontal = 20.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                parsedLines.forEach { item ->
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(8.dp)
-                                .border(2.dp, MaterialTheme.colorScheme.primary, CircleShape)
-                        )
-                        Text(
-                            text = item,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-                }
+                `in`.jyotirmoy.attendx.core.presentation.components.markdown.MarkdownText(text = releaseNotes)
             }
         }
 

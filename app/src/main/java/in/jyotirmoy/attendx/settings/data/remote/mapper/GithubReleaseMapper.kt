@@ -16,7 +16,10 @@ fun GitHubReleaseDto.toDomain(): GitHubRelease {
         }
     return GitHubRelease(
         tagName = tagName,
+        versionName = name.takeUnless { it.isNullOrBlank() } ?: tagName,
         releaseNotes = body.orEmpty(),
+        releaseDate = publishedAt.orEmpty(),
+        htmlUrl = htmlUrl.orEmpty(),
         assets = apkAssets
     )
 }

@@ -1,26 +1,25 @@
 package `in`.jyotirmoy.attendx.timetable.presentation.components
 
-import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import `in`.jyotirmoy.attendx.core.presentation.util.bounceClick
 import `in`.jyotirmoy.attendx.timetable.data.model.TimeTableScheduleWithSubject
 
 @Composable
@@ -30,97 +29,62 @@ fun ClassCard(
 ) {
     val schedule = scheduleWithSubject.schedule
     val subject = scheduleWithSubject.subject
+    val subjectColor = getSubjectThemeColor(subject.subject)
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp),
-        shape = RoundedCornerShape(16.dp),
+            .padding(vertical = 3.dp)
+            .border(
+                width = 0.8.dp,
+                color = subjectColor.copy(alpha = 0.45f),
+                shape = RoundedCornerShape(12.dp)
+            )
+            .bounceClick(onClick = onClick)
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+            containerColor = subjectColor.copy(alpha = 0.20f)
         ),
-        onClick = onClick
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
-        Row(
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .padding(horizontal = 14.dp, vertical = 10.dp)
         ) {
-            // Time Column
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
-                    text = formatTime(schedule.startTime),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = formatTime(schedule.endTime),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-
-            Spacer(modifier = Modifier.width(16.dp))
-
-            // Color Indicator Line - Use subject name to generate color
-            val subjectColor = generateSubjectColor(subject.subject)
-            Box(
-                modifier = Modifier
-                    .width(4.dp)
-                    .height(40.dp)
-                    .clip(RoundedCornerShape(2.dp))
-                    .background(subjectColor)
-            )
-
-            Spacer(modifier = Modifier.width(16.dp))
-
-            // Details Column
-            Column(
-                modifier = Modifier.weight(1f)
-            ) {
+            Column(modifier = Modifier.fillMaxWidth()) {
                 Text(
                     text = subject.subject,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
+                    style = MaterialTheme.typography.titleMedium.copy(fontSize = 15.sp),
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF1E293B)
                 )
-                if (schedule.room != null) {
-                    Text(
-                        text = schedule.room,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+
+                Spacer(modifier = Modifier.height(3.dp))
+
+                val startTimeStr = formatTime(schedule.startTime)
+                val endTimeStr = formatTime(schedule.endTime)
+                Text(
+                    text = "$startTimeStr – $endTimeStr",
+                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
+                    color = Color(0xFF475569)
+                )
+
+                val details = buildList {
+                    if (!schedule.room.isNullOrBlank()) add("📍 ${schedule.room}")
+                    if (schedule.classType != "Lecture") add(schedule.classType)
                 }
-                if (schedule.classType != "Lecture") {
+
+                if (details.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = schedule.classType,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.tertiary
+                        text = details.joinToString(" • "),
+                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.5.sp),
+                        color = Color(0xFF64748B)
                     )
                 }
             }
         }
     }
-}
-
-/**
- * Generates a consistent color for a subject based on its name hash.
- */
-private fun generateSubjectColor(subjectName: String): Color {
-    val colors = listOf(
-        Color(0xFF6200EE), // Purple
-        Color(0xFF03DAC5), // Teal
-        Color(0xFFFF5722), // Deep Orange
-        Color(0xFF2196F3), // Blue
-        Color(0xFF4CAF50), // Green
-        Color(0xFFE91E63), // Pink
-        Color(0xFFFF9800), // Orange
-        Color(0xFF9C27B0), // Deep Purple
-        Color(0xFF00BCD4), // Cyan
-        Color(0xFF795548)  // Brown
-    )
-    val index = kotlin.math.abs(subjectName.hashCode()) % colors.size
-    return colors[index]
 }

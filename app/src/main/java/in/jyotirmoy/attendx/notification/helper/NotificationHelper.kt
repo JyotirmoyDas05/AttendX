@@ -2,6 +2,7 @@ package `in`.jyotirmoy.attendx.notification.helper
 
 import android.Manifest
 import android.app.NotificationChannel
+import android.app.NotificationChannelGroup
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
@@ -25,7 +26,9 @@ object NotificationHelper {
         title: String,
         message: String,
         @DrawableRes smallIconResId: Int,
-        priority: Int = NotificationCompat.PRIORITY_DEFAULT
+        priority: Int = NotificationCompat.PRIORITY_DEFAULT,
+        subjectId: Int = -1,
+        subjectName: String? = null
     ) {
         createNotificationChannel(context, channelId, channelName, channelDescription)
 
@@ -33,7 +36,12 @@ object NotificationHelper {
             if (smallIconResId == 0) R.drawable.ic_check_circle else smallIconResId
 
         val intent = Intent(context, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            if (subjectId != -1) {
+                putExtra("EXTRA_NAVIGATE_TO", "CALENDAR")
+                putExtra("EXTRA_SUBJECT_ID", subjectId)
+                putExtra("EXTRA_SUBJECT_NAME", subjectName ?: "")
+            }
         }
 
         val pendingIntent = PendingIntent.getActivity(
@@ -67,6 +75,7 @@ object NotificationHelper {
         @DrawableRes smallIconResId: Int,
         subjectId: Int,
         scheduleId: Int,
+        subjectName: String? = null,
         priority: Int = NotificationCompat.PRIORITY_HIGH
     ) {
         createNotificationChannel(context, channelId, channelName, channelDescription)
@@ -75,7 +84,12 @@ object NotificationHelper {
             if (smallIconResId == 0) R.drawable.ic_check_circle else smallIconResId
 
         val intent = Intent(context, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            if (subjectId != -1) {
+                putExtra("EXTRA_NAVIGATE_TO", "CALENDAR")
+                putExtra("EXTRA_SUBJECT_ID", subjectId)
+                putExtra("EXTRA_SUBJECT_NAME", subjectName ?: "")
+            }
         }
 
         val pendingIntent = PendingIntent.getActivity(
@@ -132,12 +146,16 @@ object NotificationHelper {
         name: String,
         descriptionText: String
     ) {
+        val notificationManager =
+            context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val group = NotificationChannelGroup("attendx_notifications_group", "AttendX Notifications")
+        notificationManager.createNotificationChannelGroup(group)
+
         val importance = NotificationManager.IMPORTANCE_HIGH
         val channel = NotificationChannel(channelId, name, importance).apply {
             description = descriptionText
+            this.group = "attendx_notifications_group"
         }
-        val notificationManager =
-            context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         notificationManager.createNotificationChannel(channel)
     }
 }

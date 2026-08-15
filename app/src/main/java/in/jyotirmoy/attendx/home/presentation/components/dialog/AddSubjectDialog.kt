@@ -49,6 +49,9 @@ import `in`.jyotirmoy.attendx.home.presentation.viewmodel.HomeViewModel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+
 @Composable
 fun AddSubjectDialog(
     modifier: Modifier = Modifier,
@@ -77,6 +80,7 @@ fun AddSubjectDialog(
                     .fillMaxWidth()
                     .clip(Shape.cardCornerLarge)
                     .background(MaterialTheme.colorScheme.surfaceContainer)
+                    .verticalScroll(rememberScrollState())
                     .padding(25.dp),
                 verticalArrangement = Arrangement.spacedBy(20.dp),
                 horizontalAlignment = Alignment.CenterHorizontally

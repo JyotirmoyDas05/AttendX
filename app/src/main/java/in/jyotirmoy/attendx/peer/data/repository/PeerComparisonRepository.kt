@@ -107,7 +107,21 @@ class PeerComparisonRepository @Inject constructor(
 
             result
         } catch (e: Exception) {
-            null
+            val cached = cacheDao.getCache(groupId)
+            if (cached != null && cached.sampleSize >= K_ANONYMITY_FLOOR) {
+                val z = if (cached.stdDev > 0) (userAttendancePercentage - cached.averageAttendance) / cached.stdDev else 0f
+                val percentile = normalCdfApprox(z) * 100f
+                PeerComparisonData(
+                    averageAttendance = cached.averageAttendance,
+                    stdDev = cached.stdDev,
+                    sampleSize = cached.sampleSize,
+                    userPercentile = percentile,
+                    isStale = true,
+                    fetchedAt = cached.fetchedAt
+                )
+            } else {
+                null
+            }
         }
     }
 

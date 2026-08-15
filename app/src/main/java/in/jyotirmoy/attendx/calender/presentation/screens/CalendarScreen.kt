@@ -18,6 +18,8 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.basicMarquee
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -226,7 +228,7 @@ fun CalendarScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .basicMarquee(),
-                        text = subject,
+                        text = if (!subjectEntity.value?.subject.isNullOrEmpty()) subjectEntity.value!!.subject else subject,
                         style = MaterialTheme.typography.titleLarge.copy(
                             fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
                         ),
@@ -269,8 +271,9 @@ fun CalendarScreen(
         Column(
             modifier = Modifier
                 .padding(it)
-                .fillMaxSize(),
-            verticalArrangement = Arrangement.spacedBy(20.dp)
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             AnimatedContent(
                 targetState = monthYear,
@@ -306,9 +309,6 @@ fun CalendarScreen(
                 )
             }
 
-            // Add spacing between calendar and buttons
-            Spacer(modifier = Modifier.height(10.dp))
-
             Column(
                 modifier = Modifier.fillMaxWidth()
             ) {
@@ -320,70 +320,70 @@ fun CalendarScreen(
                     onClick = {
                         weakHaptic()
                         isMonthlyMode = false
-                            showSubjectAttendanceDataBottomSheet = true
-                        },
-                        shape = RoundedCornerShape(40.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary,
-                            contentColor = MaterialTheme.colorScheme.onPrimary
-                        )
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 8.dp),
-                            horizontalArrangement = Arrangement.Center,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            AutoResizeableText(
-                                text = stringResource(R.string.attendance_overview),
-                                style = MaterialTheme.typography.titleMedium
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Rounded.ArrowForward,
-                                contentDescription = null
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(5.dp))
-
-                    // Monthly Attendance Button
-                    Button(
+                        showSubjectAttendanceDataBottomSheet = true
+                    },
+                    shape = RoundedCornerShape(40.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary
+                    )
+                ) {
+                    Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 15.dp),
-                        onClick = {
-                            weakHaptic()
-                            isMonthlyMode = true
-                            showSubjectAttendanceDataBottomSheet = true
-                        },
-                        shape = RoundedCornerShape(40.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary,
-                            contentColor = MaterialTheme.colorScheme.onPrimary
-                        )
+                            .padding(vertical = 8.dp),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 8.dp),
-                            horizontalArrangement = Arrangement.Center,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            AutoResizeableText(
-                                text = "Monthly Attendance",
-                                style = MaterialTheme.typography.titleMedium
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Rounded.ArrowForward,
-                                contentDescription = null
-                            )
-                        }
+                        AutoResizeableText(
+                            text = stringResource(R.string.attendance_overview),
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Rounded.ArrowForward,
+                            contentDescription = null
+                        )
                     }
                 }
+
+                Spacer(modifier = Modifier.height(5.dp))
+
+                // Monthly Attendance Button
+                Button(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 15.dp),
+                    onClick = {
+                        weakHaptic()
+                        isMonthlyMode = true
+                        showSubjectAttendanceDataBottomSheet = true
+                    },
+                    shape = RoundedCornerShape(40.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary
+                    )
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        AutoResizeableText(
+                            text = "Monthly Attendance",
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Rounded.ArrowForward,
+                            contentDescription = null
+                        )
+                    }
+                }
+            }
 
             // Insight Card
             Card(
@@ -430,7 +430,7 @@ fun CalendarScreen(
                 }
             }
 
-
+            Spacer(modifier = Modifier.height(24.dp))
         }
         
         // Bottom Sheets OUTSIDE LazyColumn

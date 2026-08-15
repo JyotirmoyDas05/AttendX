@@ -14,10 +14,14 @@ class GitHubApi @Inject constructor(
 
     suspend fun fetchLatestRelease(includePrerelease: Boolean): GitHubReleaseDto {
         return if (includePrerelease) {
-            val allReleases: List<GitHubReleaseDto> = client.get(releasesUrl).body()
+            val allReleases: List<GitHubReleaseDto> = client.get("$releasesUrl?per_page=10").body()
             allReleases.first()
         } else {
             client.get(latestReleaseUrl).body()
         }
+    }
+
+    suspend fun fetchAllReleases(page: Int = 1, perPage: Int = 30): List<GitHubReleaseDto> {
+        return client.get("$releasesUrl?page=$page&per_page=$perPage").body()
     }
 }

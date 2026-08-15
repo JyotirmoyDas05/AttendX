@@ -3,6 +3,8 @@ package `in`.jyotirmoy.attendx.timetable.presentation.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import `in`.jyotirmoy.attendx.settings.data.local.SettingsKeys
+import `in`.jyotirmoy.attendx.settings.domain.repository.SettingsRepository
 import `in`.jyotirmoy.attendx.timetable.data.model.TimeTableScheduleEntity
 import `in`.jyotirmoy.attendx.timetable.data.model.TimeTableScheduleWithSubject
 import `in`.jyotirmoy.attendx.timetable.domain.usecase.TimeTableUseCases
@@ -17,10 +19,18 @@ import kotlinx.coroutines.launch
 import java.time.LocalDate
 import javax.inject.Inject
 
+enum class TimetableViewMode {
+    SCHEDULE,
+    DAY,
+    THREE_DAY,
+    WEEK
+}
+
 @HiltViewModel
 class TimeTableViewModel @Inject constructor(
     private val useCases: TimeTableUseCases,
-    private val subjectRepository: `in`.jyotirmoy.attendx.core.domain.repository.SubjectRepository
+    private val subjectRepository: `in`.jyotirmoy.attendx.core.domain.repository.SubjectRepository,
+    private val settingsRepository: SettingsRepository
 ) : ViewModel() {
 
     val subjects = subjectRepository.getAllSubjects()
@@ -46,15 +56,70 @@ class TimeTableViewModel @Inject constructor(
     val currentClass = useCases.getCurrentClass()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
-    // View mode toggle (list or calendar)
-    private val _isCalendarView = MutableStateFlow(false)
-    val isCalendarView: StateFlow<Boolean> = _isCalendarView.asStateFlow()
+    // View mode (Schedule List, 1-Day Grid, 3-Day Grid, or Full Week Grid)
+    private val _viewMode = MutableStateFlow(TimetableViewMode.DAY)
+    val viewMode: StateFlow<TimetableViewMode> = _viewMode.asStateFlow()
 
-    fun toggleViewMode() {
-        _isCalendarView.value = !_isCalendarView.value
+    init {
+        viewModelScope.launch {
+            settingsRepository.getString(SettingsKeys.TIMETABLE_VIEW_MODE).collect { saved ->
+                if (saved.isNotBlank()) {
+                    try {
+                        _viewMode.value = TimetableViewMode.valueOf(saved)
+                    } catch (_: Exception) {}
+                }
+            }
+        }
     }
 
-    // Weekly schedule for calendar view - combines Mon-Sat schedules
+    // Backwards compatibility for boolean calendar view
+    val isCalendarView: StateFlow<Boolean> = _viewMode
+        .let { flow ->
+            kotlinx.coroutines.flow.flow {
+                flow.collect { emit(it != TimetableViewMode.SCHEDULE) }
+            }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+        }
+
+    fun setViewMode(mode: TimetableViewMode) {
+        _viewMode.value = mode
+        viewModelScope.launch {
+            settingsRepository.setString(SettingsKeys.TIMETABLE_VIEW_MODE, mode.name)
+        }
+    }
+
+    fun toggleViewMode() {
+        val next = when (_viewMode.value) {
+            TimetableViewMode.SCHEDULE -> TimetableViewMode.DAY
+            TimetableViewMode.DAY -> TimetableViewMode.THREE_DAY
+            TimetableViewMode.THREE_DAY -> TimetableViewMode.WEEK
+            TimetableViewMode.WEEK -> TimetableViewMode.SCHEDULE
+        }
+        setViewMode(next)
+    }
+
+    // Starting day of 1-day or 3-day view (defaults to today)
+    private val _threeDayStartDay = MutableStateFlow(LocalDate.now().dayOfWeek.value)
+    val threeDayStartDay: StateFlow<Int> = _threeDayStartDay.asStateFlow()
+
+    fun setThreeDayStartDay(day: Int) {
+        _threeDayStartDay.value = day.coerceIn(1, 7)
+        _selectedDay.value = day.coerceIn(1, 7)
+    }
+
+    fun shiftStartDay(delta: Int) {
+        val current = _threeDayStartDay.value
+        val newDay = ((current - 1 + delta) % 7 + 7) % 7 + 1
+        _threeDayStartDay.value = newDay
+        _selectedDay.value = newDay
+    }
+
+    fun snapToToday() {
+        val today = LocalDate.now().dayOfWeek.value
+        _selectedDay.value = today
+        _threeDayStartDay.value = today
+    }
+
+    // Weekly schedule for calendar view - combines Mon-Sun schedules
     @Suppress("UNCHECKED_CAST")
     val weeklySchedule: StateFlow<Map<Int, List<TimeTableScheduleWithSubject>>> = 
         kotlinx.coroutines.flow.combine(
@@ -64,7 +129,8 @@ class TimeTableViewModel @Inject constructor(
                 useCases.getDailySchedule(3), // Wed
                 useCases.getDailySchedule(4), // Thu
                 useCases.getDailySchedule(5), // Fri
-                useCases.getDailySchedule(6)  // Sat
+                useCases.getDailySchedule(6), // Sat
+                useCases.getDailySchedule(7)  // Sun
             )
         ) { schedules ->
             mapOf(
@@ -73,7 +139,8 @@ class TimeTableViewModel @Inject constructor(
                 3 to (schedules[2] as List<TimeTableScheduleWithSubject>),
                 4 to (schedules[3] as List<TimeTableScheduleWithSubject>),
                 5 to (schedules[4] as List<TimeTableScheduleWithSubject>),
-                6 to (schedules[5] as List<TimeTableScheduleWithSubject>)
+                6 to (schedules[5] as List<TimeTableScheduleWithSubject>),
+                7 to (schedules[6] as List<TimeTableScheduleWithSubject>)
             )
         }.stateIn(
             viewModelScope,
@@ -88,12 +155,25 @@ class TimeTableViewModel @Inject constructor(
     private val _editingSchedule = MutableStateFlow<TimeTableScheduleWithSubject?>(null)
     val editingSchedule: StateFlow<TimeTableScheduleWithSubject?> = _editingSchedule.asStateFlow()
 
+    private val _initialSlotTime = MutableStateFlow<Pair<Long, Long>?>(null)
+    val initialSlotTime: StateFlow<Pair<Long, Long>?> = _initialSlotTime.asStateFlow()
+
     fun onDaySelected(day: Int) {
         _selectedDay.value = day
+        _threeDayStartDay.value = day
     }
 
     fun showAddSheet() {
         _editingSchedule.value = null
+        _initialSlotTime.value = null
+        _showAddEditSheet.value = true
+    }
+
+    fun showAddSheetForSlot(dayOfWeek: Int, startMinutes: Int) {
+        _editingSchedule.value = null
+        _selectedDay.value = dayOfWeek
+        _threeDayStartDay.value = dayOfWeek
+        _initialSlotTime.value = Pair(startMinutes.toLong(), (startMinutes + 60).toLong())
         _showAddEditSheet.value = true
     }
 
@@ -102,82 +182,79 @@ class TimeTableViewModel @Inject constructor(
         _showAddEditSheet.value = true
     }
 
-    fun dismissSheet() {
+    fun hideAddEditSheet() {
         _showAddEditSheet.value = false
         _editingSchedule.value = null
+        _initialSlotTime.value = null
     }
 
-    fun saveClass(schedule: TimeTableScheduleEntity) {
+    fun saveSchedule(schedule: TimeTableScheduleEntity) {
         viewModelScope.launch {
             useCases.addClassSlot(schedule)
-            dismissSheet()
+            hideAddEditSheet()
         }
     }
 
-    // Selection state for multi-select delete
-    private val _selectedIds = MutableStateFlow<Set<Int>>(emptySet())
-    val selectedIds: StateFlow<Set<Int>> = _selectedIds.asStateFlow()
-
-    val isSelectionMode: StateFlow<Boolean> = _selectedIds
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptySet())
-        .let { flow ->
-            kotlinx.coroutines.flow.combine(flow) { it.isNotEmpty() }
-                .stateIn(viewModelScope, SharingStarted.Eagerly, false)
+    fun deleteSchedule(scheduleId: Int) {
+        viewModelScope.launch {
+            useCases.deleteClass(scheduleId)
         }
+    }
 
-    fun toggleSelection(id: Int) {
-        _selectedIds.value = if (id in _selectedIds.value) {
-            _selectedIds.value - id
+    // Selection mode for batch deletion
+    private val _isSelectionMode = MutableStateFlow(false)
+    val isSelectionMode: StateFlow<Boolean> = _isSelectionMode.asStateFlow()
+
+    private val _selectedClassIds = MutableStateFlow<Set<Int>>(emptySet())
+    val selectedClassIds: StateFlow<Set<Int>> = _selectedClassIds.asStateFlow()
+
+    private val _showDeleteConfirmDialog = MutableStateFlow(false)
+    val showDeleteConfirmDialog: StateFlow<Boolean> = _showDeleteConfirmDialog.asStateFlow()
+
+    fun toggleSelectionMode() {
+        _isSelectionMode.value = !_isSelectionMode.value
+        if (!_isSelectionMode.value) {
+            _selectedClassIds.value = emptySet()
+        }
+    }
+
+    fun toggleClassSelection(classId: Int) {
+        _selectedClassIds.value = if (_selectedClassIds.value.contains(classId)) {
+            _selectedClassIds.value - classId
         } else {
-            _selectedIds.value + id
+            _selectedClassIds.value + classId
+        }
+        if (_selectedClassIds.value.isEmpty()) {
+            _isSelectionMode.value = false
         }
     }
 
-    fun clearSelection() {
-        _selectedIds.value = emptySet()
+    fun selectAllClasses() {
+        val currentClasses = dailySchedule.value
+        _selectedClassIds.value = currentClasses.map { it.schedule.id }.toSet()
     }
 
-    // Undo deletion support
-    private var lastDeletedSchedules: List<TimeTableScheduleEntity> = emptyList()
+    fun deselectAllClasses() {
+        _selectedClassIds.value = emptySet()
+        _isSelectionMode.value = false
+    }
 
-    fun deleteClass(id: Int) {
-        val schedule = dailySchedule.value.find { it.schedule.id == id }?.schedule
-        if (schedule != null) {
-            lastDeletedSchedules = listOf(schedule)
+    fun showDeleteConfirmation() {
+        if (_selectedClassIds.value.isNotEmpty()) {
+            _showDeleteConfirmDialog.value = true
         }
+    }
+
+    fun hideDeleteConfirmation() {
+        _showDeleteConfirmDialog.value = false
+    }
+
+    fun deleteSelectedClasses() {
         viewModelScope.launch {
-            useCases.deleteClass(id)
-        }
-    }
-
-    fun deleteSelected() {
-        val selected = _selectedIds.value
-        // Find schedules from the current daily schedule (since selection is only active in list view)
-        // Note: unique IDs are assumed globally or per table.
-        val schedulesToDelete = dailySchedule.value
-            .filter { it.schedule.id in selected }
-            .map { it.schedule }
-        
-        lastDeletedSchedules = schedulesToDelete
-        
-        viewModelScope.launch {
-            // Assuming useCases.deleteClass takes a list of IDs
-            useCases.deleteClass(selected.toList())
-            clearSelection()
-        }
-    }
-
-    fun restoreDeletedClasses() {
-        viewModelScope.launch {
-            lastDeletedSchedules.forEach { schedule ->
-                // Reset ID to 0 to treat as new insert? Or keep ID?
-                // Room usually handles "Insert" with existing ID as "ABORT" or "REPLACE" depending on conflict strategy.
-                // If we want to restore exact same ID, we should keep it.
-                // But if the ID was auto-generated and we deleted it, re-inserting with same ID might be fine if it's not present.
-                // Just passing schedule as is.
-                useCases.addClassSlot(schedule)
-            }
-            lastDeletedSchedules = emptyList()
+            useCases.deleteClass(_selectedClassIds.value.toList())
+            _selectedClassIds.value = emptySet()
+            _isSelectionMode.value = false
+            _showDeleteConfirmDialog.value = false
         }
     }
 }

@@ -26,9 +26,27 @@ import androidx.compose.ui.graphics.TransformOrigin
 import androidx.navigation.toRoute
 import kotlinx.serialization.Serializable
 
+import android.content.Intent
+import androidx.compose.runtime.LaunchedEffect
+
 @Composable
-fun Navigation() {
+fun Navigation(
+    notificationIntent: Intent? = null,
+    onNotificationIntentHandled: () -> Unit = {}
+) {
     val navController = rememberNavController()
+
+    LaunchedEffect(notificationIntent) {
+        if (notificationIntent != null && notificationIntent.getStringExtra("EXTRA_NAVIGATE_TO") == "CALENDAR") {
+            val subjectId = notificationIntent.getIntExtra("EXTRA_SUBJECT_ID", -1)
+            val subjectName = notificationIntent.getStringExtra("EXTRA_SUBJECT_NAME") ?: ""
+            if (subjectId != -1) {
+                navController.navigate(CalendarScreen(subjectId = subjectId, subject = subjectName))
+                onNotificationIntentHandled()
+            }
+        }
+    }
+
     CompositionLocalProvider(LocalNavController provides navController) {
         NavHost(
             navController = navController, startDestination = MainScreenRoute

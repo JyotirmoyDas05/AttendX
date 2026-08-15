@@ -1,8 +1,8 @@
 package `in`.jyotirmoy.attendx.notification
 
 import android.app.AlarmManager
-import android.app.PendingIntent
 import android.app.AlarmManager.AlarmClockInfo
+import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.os.Build
@@ -170,10 +170,8 @@ object TimetableAlarmScheduler {
         return try {
             // Try exact alarm first, fallback to inexact
             if (canScheduleExact) {
-                // Use setAlarmClock for highest reliability on Android 15+
-                // This shows a visual indicator to the user
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                    val clockInfo = AlarmClockInfo(triggerAtMillis, pendingIntent)
+                    val clockInfo = AlarmManager.AlarmClockInfo(triggerAtMillis, pendingIntent)
                     alarmManager.setAlarmClock(clockInfo, pendingIntent)
                     Log.d(TAG, "✅ Alarm set with setAlarmClock (exact)! ReqCode: $requestCode")
                 } else {

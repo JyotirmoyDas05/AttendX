@@ -88,7 +88,12 @@ class ClassAlarmReceiver : BroadcastReceiver() {
         }
 
         // Open App Intent
-        val launchIntent = context.packageManager.getLaunchIntentForPackage(context.packageName)
+        val launchIntent = Intent(context, `in`.jyotirmoy.attendx.MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            putExtra("EXTRA_NAVIGATE_TO", "CALENDAR")
+            putExtra("EXTRA_SUBJECT_ID", subjectId)
+            putExtra("EXTRA_SUBJECT_NAME", subjectName)
+        }
         val pendingIntent = PendingIntent.getActivity(
             context,
             scheduleId, // Unique ID per schedule

@@ -16,6 +16,9 @@ class App : Application() {
         super.onCreate()
         Log.d(TAG, "AttendX Application started")
         
+        // Initialize notification channels under AttendX Notifications group
+        `in`.jyotirmoy.attendx.notification.NotificationSetup.initNotificationChannels(this)
+        
         // Schedule timetable notification worker for background checks
         // This provides a fallback in case exact alarms don't fire
         WorkScheduler.scheduleTimetableNotifications(this)

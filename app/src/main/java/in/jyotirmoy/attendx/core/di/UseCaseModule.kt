@@ -9,6 +9,7 @@ import dagger.hilt.components.SingletonComponent
 import `in`.jyotirmoy.attendx.calender.domain.usecase.GetWeekDayLabelsUseCase
 import `in`.jyotirmoy.attendx.core.domain.repository.DownloadRepository
 import `in`.jyotirmoy.attendx.core.domain.usecase.DownloadApkUseCase
+import `in`.jyotirmoy.attendx.settings.domain.repository.UpdateRepository
 import `in`.jyotirmoy.attendx.settings.domain.usecase.GetAllChangelogsUseCase
 import `in`.jyotirmoy.attendx.timetable.domain.usecase.TimeTableUseCases
 import `in`.jyotirmoy.attendx.timetable.domain.repository.TimeTableRepository
@@ -28,8 +29,8 @@ object UseCaseModule {
         GetWeekDayLabelsUseCase()
 
     @Provides
-    fun provideGetChangelogsUseCase(@ApplicationContext context: Context): GetAllChangelogsUseCase =
-        GetAllChangelogsUseCase(context)
+    fun provideGetChangelogsUseCase(updateRepository: UpdateRepository): GetAllChangelogsUseCase =
+        GetAllChangelogsUseCase(updateRepository)
 
     @Provides
     fun provideDownloadApkUseCase(repo: DownloadRepository): DownloadApkUseCase =

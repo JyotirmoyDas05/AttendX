@@ -89,7 +89,9 @@ fun MainScreen() {
     ) { innerPadding ->
         // Display selected screen with bottom padding for nav bar
         androidx.compose.foundation.layout.Box(
-            modifier = Modifier.padding(bottom = innerPadding.calculateBottomPadding())
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(bottom = innerPadding.calculateBottomPadding())
         ) {
             when (selectedTab) {
                 0 -> HomeScreen()

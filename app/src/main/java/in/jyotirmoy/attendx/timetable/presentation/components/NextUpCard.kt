@@ -110,7 +110,13 @@ fun NextUpCard(
 }
 
 fun formatTime(minutes: Long): String {
-    val h = minutes / 60
+    val hours = minutes / 60
     val m = minutes % 60
-    return String.format("%02d:%02d", h, m)
+    val isPm = hours >= 12
+    val displayHour = when {
+        hours == 0L -> 12L
+        hours > 12L -> hours - 12L
+        else -> hours
+    }
+    return String.format("%d:%02d %s", displayHour, m, if (isPm) "pm" else "am")
 }

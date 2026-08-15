@@ -3,6 +3,7 @@ package `in`.jyotirmoy.attendx.settings.data.remote.repository
 import android.util.Log
 import `in`.jyotirmoy.attendx.settings.data.remote.api.GitHubApi
 import `in`.jyotirmoy.attendx.settings.data.remote.mapper.toDomain
+import `in`.jyotirmoy.attendx.settings.domain.model.GitHubRelease
 import `in`.jyotirmoy.attendx.settings.domain.model.UpdateResult
 import `in`.jyotirmoy.attendx.settings.domain.repository.UpdateRepository
 import io.ktor.client.network.sockets.SocketTimeoutException
@@ -17,7 +18,9 @@ class UpdateRepositoryImpl @Inject constructor(
     private val api: GitHubApi
 ) : UpdateRepository {
 
-    override suspend fun fetchLatestRelease(includePrerelease:Boolean): UpdateResult {
+    private var cachedReleases: List<GitHubRelease> = emptyList()
+
+    override suspend fun fetchLatestRelease(includePrerelease: Boolean): UpdateResult {
         return try {
             Log.d("UpdateRepository", "Fetching latest release from GitHub")
             val response = api.fetchLatestRelease(includePrerelease).toDomain()
@@ -42,4 +45,32 @@ class UpdateRepositoryImpl @Inject constructor(
             UpdateResult.UnknownError
         }
     }
+
+    override suspend fun fetchAllReleases(forceRefresh: Boolean): Result<List<GitHubRelease>> =
+        runCatching {
+            if (cachedReleases.isNotEmpty() && !forceRefresh) {
+                return@runCatching cachedReleases
+            }
+
+            val allReleases = mutableListOf<GitHubRelease>()
+            var page = 1
+            var hasMore = true
+
+            while (hasMore && page <= 5) {
+                val dtoList = api.fetchAllReleases(page = page, perPage = 30)
+                if (dtoList.isEmpty()) {
+                    hasMore = false
+                    break
+                }
+                allReleases.addAll(dtoList.map { it.toDomain() })
+                if (dtoList.size < 30) {
+                    hasMore = false
+                } else {
+                    page++
+                }
+            }
+
+            cachedReleases = allReleases
+            allReleases
+        }
 }

@@ -354,5 +354,11 @@ fun ClassItemRow(
 private fun formatTime(minutes: Long): String {
     val h = minutes / 60
     val m = minutes % 60
-    return String.format(Locale.getDefault(), "%02d:%02d", h, m)
+    val isPm = h >= 12
+    val displayHour = when {
+        h == 0L -> 12L
+        h > 12L -> h - 12L
+        else -> h
+    }
+    return String.format(Locale.getDefault(), "%d:%02d %s", displayHour, m, if (isPm) "pm" else "am")
 }

@@ -104,7 +104,7 @@ fun CalendarCanvas(
                 )
             ),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(20.dp)
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         MonthYearHeader(
             modifier = Modifier

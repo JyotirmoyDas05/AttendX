@@ -3,6 +3,8 @@
 package `in`.jyotirmoy.attendx.settings.presentation.components.dialog
 
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -50,6 +52,7 @@ fun ResetSettingsDialog(
                 modifier = modifier
                     .padding(24.dp)
                     .widthIn(min = 280.dp)
+                    .verticalScroll(rememberScrollState())
             ) {
                 AutoResizeableText(
                     text = stringResource(R.string.reset_app_settings),

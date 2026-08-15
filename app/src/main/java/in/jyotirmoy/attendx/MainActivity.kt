@@ -19,15 +19,22 @@ import `in`.jyotirmoy.attendx.core.presentation.theme.AttendXTheme
 import `in`.jyotirmoy.attendx.settings.presentation.viewmodel.SettingsViewModel
 import kotlinx.coroutines.launch
 
+import android.content.Intent
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     private val settingsViewModel: SettingsViewModel by viewModels()
+    private val notificationIntent = mutableStateOf<Intent?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
         // Eagerly initialize SettingsViewModel to start background workers
         settingsViewModel.refreshNotificationPermissionState()
+
+        notificationIntent.value = intent
 
         enableEdgeToEdge()
         setContent {
@@ -39,11 +46,25 @@ class MainActivity : ComponentActivity() {
                         modifier = Modifier.Companion.fillMaxSize(),
                         color = MaterialTheme.colorScheme.surface
                     ) {
-                        AppEntry()
+                        AppEntry(
+                            notificationIntent = notificationIntent.value,
+                            onNotificationIntentHandled = {
+                                notificationIntent.value = null
+                                intent?.removeExtra("EXTRA_NAVIGATE_TO")
+                                intent?.removeExtra("EXTRA_SUBJECT_ID")
+                                intent?.removeExtra("EXTRA_SUBJECT_NAME")
+                            }
+                        )
                     }
                 }
             }
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        notificationIntent.value = intent
     }
 }
 

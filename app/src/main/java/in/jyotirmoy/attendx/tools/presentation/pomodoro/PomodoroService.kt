@@ -216,12 +216,18 @@ class PomodoroService : Service() {
 
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val manager = getSystemService(NotificationManager::class.java)
+            val group = android.app.NotificationChannelGroup("attendx_notifications_group", "AttendX Notifications")
+            manager.createNotificationChannelGroup(group)
+
             val channel = NotificationChannel(
                 CHANNEL_ID,
                 "Pomodoro Timer",
                 NotificationManager.IMPORTANCE_LOW
-            )
-            val manager = getSystemService(NotificationManager::class.java)
+            ).apply {
+                description = "Active timer notification"
+                this.group = "attendx_notifications_group"
+            }
             manager.createNotificationChannel(channel)
         }
     }
