@@ -36,13 +36,10 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.ExtendedFloatingActionButton
-import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
-import androidx.compose.material3.rememberDrawerState
 import androidx.compose.material3.Text
 import androidx.compose.material3.animateFloatingActionButton
 import androidx.compose.foundation.shape.CircleShape
@@ -78,7 +75,6 @@ import `in`.jyotirmoy.attendx.core.presentation.components.progress.AnimatedHalf
 import `in`.jyotirmoy.attendx.notification.isNotificationPermissionGranted
 import `in`.jyotirmoy.attendx.home.presentation.components.card.SubjectCard
 import `in`.jyotirmoy.attendx.home.presentation.components.dialog.AddSubjectDialog
-import `in`.jyotirmoy.attendx.home.presentation.components.drawer.SmartAttendanceDrawer
 import `in`.jyotirmoy.attendx.home.presentation.components.histogram.AttendanceHistogramCard
 import `in`.jyotirmoy.attendx.home.presentation.components.histogram.SubjectHistogramData
 import `in`.jyotirmoy.attendx.home.presentation.components.image.UndrawRelaxedReading
@@ -113,6 +109,7 @@ import `in`.jyotirmoy.attendx.peer.presentation.PeerComparisonNudgeCard
 @Composable
 fun HomeScreen(
     modifier: Modifier = Modifier,
+    onOpenDrawer: () -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel(),
     settingsViewModel: SettingsViewModel = hiltViewModel(),
     autoUpdateViewModel: AutoUpdateViewModel = hiltViewModel(),
@@ -121,7 +118,6 @@ fun HomeScreen(
     val context = LocalContext.current
     val weakHaptic = LocalWeakHaptic.current
     val navController = LocalNavController.current
-    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     var importTextLayoutCoordinates by remember { mutableStateOf<androidx.compose.ui.layout.LayoutCoordinates?>(null) }
     var rootLayoutCoordinates by remember { mutableStateOf<androidx.compose.ui.layout.LayoutCoordinates?>(null) }
@@ -224,19 +220,7 @@ fun HomeScreen(
 
     BackHandler(enabled = selectedCardsCount > 0) { selectedCardsCount = 0 }
 
-    ModalNavigationDrawer(
-        drawerState = drawerState,
-        drawerContent = {
-            SmartAttendanceDrawer(
-                onSettingsClick = {
-                    scope.launch { drawerState.close() }
-                    navController.navigate(SettingsScreen)
-                    weakHaptic()
-                }
-            )
-        }
-    ) {
-        Scaffold(
+    Scaffold(
         modifier = modifier.fillMaxSize(),
     ) { innerPadding ->
 
@@ -301,7 +285,7 @@ fun HomeScreen(
 
                     Surface(
                         onClick = {
-                            scope.launch { drawerState.open() }
+                            onOpenDrawer()
                             weakHaptic()
                         },
                         shape = CircleShape,
@@ -514,7 +498,7 @@ fun HomeScreen(
             ) + fadeOut(animationSpec = tween(200)),
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .padding(end = 25.dp, bottom = 25.dp)
+                .padding(end = 20.dp, bottom = 82.dp)
         ) {
             
             ExtendedFloatingActionButton(
@@ -586,5 +570,4 @@ fun HomeScreen(
         )
     }
     }
-}
 }

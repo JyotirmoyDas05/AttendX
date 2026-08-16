@@ -1,6 +1,7 @@
 package `in`.jyotirmoy.attendx.timetable.presentation.screens
 
 import android.app.Activity
+import android.content.res.Configuration
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
@@ -46,10 +47,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -65,24 +64,24 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import `in`.jyotirmoy.attendx.core.presentation.components.dialog.ConfirmDeleteDialog
-import `in`.jyotirmoy.attendx.timetable.data.model.TimeTableScheduleEntity
 import `in`.jyotirmoy.attendx.timetable.presentation.components.AddEditClassSheet
 import `in`.jyotirmoy.attendx.timetable.presentation.components.DaySelector
 import `in`.jyotirmoy.attendx.timetable.presentation.components.NextUpCard
 import `in`.jyotirmoy.attendx.timetable.presentation.components.SelectableClassCard
 import `in`.jyotirmoy.attendx.timetable.presentation.components.TimetableCalendarView
 import `in`.jyotirmoy.attendx.timetable.presentation.components.TodayCalendarIcon
+import `in`.jyotirmoy.attendx.timetable.presentation.components.ViewClassSheet
 import `in`.jyotirmoy.attendx.timetable.presentation.viewmodel.TimeTableViewModel
 import `in`.jyotirmoy.attendx.timetable.presentation.viewmodel.TimetableViewMode
-import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class)
 @Composable
@@ -91,6 +90,9 @@ fun TimeTableScreen(
     onNavigateToUpload: () -> Unit = {},
     onNavigateToMarketplace: () -> Unit = {}
 ) {
+    val configuration = LocalConfiguration.current
+    val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+
     val subjects by viewModel.subjects.collectAsState()
     val selectedDay by viewModel.selectedDay.collectAsState()
     val dailySchedule by viewModel.dailySchedule.collectAsState()
@@ -103,14 +105,13 @@ fun TimeTableScreen(
     val showAddEditSheet by viewModel.showAddEditSheet.collectAsState()
     val editingSchedule by viewModel.editingSchedule.collectAsState()
     val initialSlotTime by viewModel.initialSlotTime.collectAsState()
+    val viewingSchedule by viewModel.viewingSchedule.collectAsState()
 
     val isSelectionMode by viewModel.isSelectionMode.collectAsState()
     val selectedClassIds by viewModel.selectedClassIds.collectAsState()
     val showDeleteConfirmDialog by viewModel.showDeleteConfirmDialog.collectAsState()
 
     val snackbarHostState = remember { SnackbarHostState() }
-    val scope = rememberCoroutineScope()
-    var deletedScheduleBackup by remember { mutableStateOf<TimeTableScheduleEntity?>(null) }
     var snapToNow by remember { mutableStateOf(false) }
 
     // Update status bar icon contrast
@@ -163,9 +164,15 @@ fun TimeTableScreen(
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
                     contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                     shape = CircleShape,
-                    modifier = Modifier.offset(y = 30.dp)
+                    modifier = Modifier
+                        .padding(bottom = if (isLandscape) 46.dp else 72.dp)
+                        .size(if (isLandscape) 44.dp else 56.dp)
                 ) {
-                    Icon(Icons.Default.Add, contentDescription = "Add Class")
+                    Icon(
+                        Icons.Default.Add,
+                        contentDescription = "Add Class",
+                        modifier = Modifier.size(if (isLandscape) 20.dp else 24.dp)
+                    )
                 }
             }
         }
@@ -180,21 +187,33 @@ fun TimeTableScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(start = 16.dp, end = 12.dp, top = 16.dp, bottom = 8.dp),
+                        .padding(
+                            start = 14.dp,
+                            end = 12.dp,
+                            top = if (isLandscape) 4.dp else 10.dp,
+                            bottom = if (isLandscape) 2.dp else 6.dp
+                        ),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
                         text = "Timetable",
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.weight(1f)
+                        style = if (isLandscape) MaterialTheme.typography.titleMedium.copy(fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                               else MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+                        maxLines = 1,
+                        softWrap = false,
+                        overflow = TextOverflow.Ellipsis
                     )
 
-                    // Jump to today / snap to now button (available across Schedule, Day, 3-Day, and Week views)
-                    IconButton(onClick = { 
-                        snapToNow = true
-                        viewModel.snapToToday()
-                    }) {
+                    Spacer(modifier = Modifier.weight(1f))
+
+                    // Jump to today / snap to now button
+                    IconButton(
+                        onClick = { 
+                            snapToNow = true
+                            viewModel.snapToToday()
+                        },
+                        modifier = Modifier.size(if (isLandscape) 34.dp else 40.dp)
+                    ) {
                         TodayCalendarIcon(
                             tint = MaterialTheme.colorScheme.primary
                         )
@@ -226,12 +245,17 @@ fun TimeTableScreen(
                                         else Color.Transparent
                                     )
                                     .clickable { viewModel.setViewMode(mode) }
-                                    .padding(horizontal = 8.dp, vertical = 6.dp),
+                                    .padding(
+                                        horizontal = if (isLandscape) 6.dp else 8.dp,
+                                        vertical = if (isLandscape) 3.dp else 5.dp
+                                    ),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(
                                     text = label,
-                                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        fontSize = if (isLandscape) 10.5.sp else 11.sp
+                                    ),
                                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                                     color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -241,12 +265,9 @@ fun TimeTableScreen(
                 }
             }
             
-            // Priority Dashboard
+            // Priority Dashboard (Shown in Portrait only to maximize landscape space)
             var showNextUp by remember { mutableStateOf(false) }
             LaunchedEffect(Unit) { showNextUp = true }
-            
-            val configuration = androidx.compose.ui.platform.LocalConfiguration.current
-            val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
 
             AnimatedVisibility(
                 visible = showNextUp && !isLandscape,
@@ -300,13 +321,13 @@ fun TimeTableScreen(
                                     onDaySelected = viewModel::onDaySelected
                                 )
                                 
-                                Spacer(modifier = Modifier.height(16.dp))
+                                Spacer(modifier = Modifier.height(if (isLandscape) 6.dp else 12.dp))
 
                                 // Class List
                                 LazyColumn(
                                     modifier = Modifier.fillMaxSize(),
-                                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp),
+                                    verticalArrangement = Arrangement.spacedBy(6.dp)
                                 ) {
                                     items(
                                         items = dailySchedule,
@@ -316,16 +337,17 @@ fun TimeTableScreen(
                                             scheduleWithSubject = scheduleWithSubject,
                                             isSelected = selectedClassIds.contains(scheduleWithSubject.schedule.id),
                                             onLongPress = {
-                                                if (!isSelectionMode) {
-                                                    viewModel.toggleSelectionMode()
+                                                if (isSelectionMode) {
+                                                    viewModel.toggleClassSelection(scheduleWithSubject.schedule.id)
+                                                } else {
+                                                    viewModel.showEditSheet(scheduleWithSubject)
                                                 }
-                                                viewModel.toggleClassSelection(scheduleWithSubject.schedule.id)
                                             },
                                             onClick = {
                                                 if (isSelectionMode) {
                                                     viewModel.toggleClassSelection(scheduleWithSubject.schedule.id)
                                                 } else {
-                                                    viewModel.showEditSheet(scheduleWithSubject)
+                                                    viewModel.showViewSheet(scheduleWithSubject)
                                                 }
                                             }
                                         )
@@ -338,6 +360,9 @@ fun TimeTableScreen(
                             TimetableCalendarView(
                                 weeklySchedule = weeklySchedule,
                                 onClassClick = { schedule ->
+                                    viewModel.showViewSheet(schedule)
+                                },
+                                onClassLongClick = { schedule ->
                                     viewModel.showEditSheet(schedule)
                                 },
                                 onEmptySlotClick = { day, time ->
@@ -357,6 +382,9 @@ fun TimeTableScreen(
                             TimetableCalendarView(
                                 weeklySchedule = weeklySchedule,
                                 onClassClick = { schedule ->
+                                    viewModel.showViewSheet(schedule)
+                                },
+                                onClassLongClick = { schedule ->
                                     viewModel.showEditSheet(schedule)
                                 },
                                 onEmptySlotClick = { day, time ->
@@ -376,6 +404,9 @@ fun TimeTableScreen(
                             TimetableCalendarView(
                                 weeklySchedule = weeklySchedule,
                                 onClassClick = { schedule ->
+                                    viewModel.showViewSheet(schedule)
+                                },
+                                onClassLongClick = { schedule ->
                                     viewModel.showEditSheet(schedule)
                                 },
                                 onEmptySlotClick = { day, time ->
@@ -393,6 +424,20 @@ fun TimeTableScreen(
                 }
             }
         }
+    }
+
+    // View Class Details Bottom Sheet (XCalendar style + attendance actions)
+    viewingSchedule?.let { schedule ->
+        ViewClassSheet(
+            scheduleWithSubject = schedule,
+            attendanceListFlow = viewModel.getAttendanceForSubject(schedule.subject.id),
+            attendanceCountsFlow = viewModel.getSubjectAttendanceCounts(schedule.subject.id),
+            onDismiss = { viewModel.hideViewSheet() },
+            onEdit = { viewModel.showEditSheet(it) },
+            onMarkAttendance = { subjectId, date, status ->
+                viewModel.markAttendance(subjectId, date, status)
+            }
+        )
     }
 
     // Add/Edit Bottom Sheet

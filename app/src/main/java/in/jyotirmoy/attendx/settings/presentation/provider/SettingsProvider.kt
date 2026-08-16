@@ -110,6 +110,16 @@ object SettingsProvider {
                 descriptionResId = R.string.des_dynamic_colors,
                 iconVector = Icons.Rounded.Colorize,
                 isLayoutVisible = !isSdkLowerThan12
+            ),
+            boolPreferenceItem(
+                key = SettingsKeys.LIQUID_GLASS_EFFECT,
+                titleString = "Liquid Glass Effect",
+                descriptionString = if (isSdkLowerThan13)
+                    "Requires Android 13+ (API 33). Not available on this device."
+                else
+                    "AGSL glass refraction shader on navigation bar transitions",
+                iconVector = Icons.Rounded.Tune,
+                isLayoutVisible = true
             )
         )
     )

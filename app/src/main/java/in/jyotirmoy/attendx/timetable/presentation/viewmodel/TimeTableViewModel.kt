@@ -3,16 +3,23 @@ package `in`.jyotirmoy.attendx.timetable.presentation.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import `in`.jyotirmoy.attendx.core.data.model.AttendanceEntity
+import `in`.jyotirmoy.attendx.core.domain.model.AttendanceStatus
+import `in`.jyotirmoy.attendx.core.domain.model.SubjectAttendance
+import `in`.jyotirmoy.attendx.core.domain.repository.AttendanceRepository
+import `in`.jyotirmoy.attendx.core.domain.repository.SubjectRepository
 import `in`.jyotirmoy.attendx.settings.data.local.SettingsKeys
 import `in`.jyotirmoy.attendx.settings.domain.repository.SettingsRepository
 import `in`.jyotirmoy.attendx.timetable.data.model.TimeTableScheduleEntity
 import `in`.jyotirmoy.attendx.timetable.data.model.TimeTableScheduleWithSubject
 import `in`.jyotirmoy.attendx.timetable.domain.usecase.TimeTableUseCases
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -29,8 +36,9 @@ enum class TimetableViewMode {
 @HiltViewModel
 class TimeTableViewModel @Inject constructor(
     private val useCases: TimeTableUseCases,
-    private val subjectRepository: `in`.jyotirmoy.attendx.core.domain.repository.SubjectRepository,
-    private val settingsRepository: SettingsRepository
+    private val subjectRepository: SubjectRepository,
+    private val settingsRepository: SettingsRepository,
+    private val attendanceRepository: AttendanceRepository
 ) : ViewModel() {
 
     val subjects = subjectRepository.getAllSubjects()
@@ -148,7 +156,7 @@ class TimeTableViewModel @Inject constructor(
             emptyMap()
         )
 
-    // Sheet state
+    // Add / Edit Sheet state
     private val _showAddEditSheet = MutableStateFlow(false)
     val showAddEditSheet: StateFlow<Boolean> = _showAddEditSheet.asStateFlow()
 
@@ -157,6 +165,46 @@ class TimeTableViewModel @Inject constructor(
 
     private val _initialSlotTime = MutableStateFlow<Pair<Long, Long>?>(null)
     val initialSlotTime: StateFlow<Pair<Long, Long>?> = _initialSlotTime.asStateFlow()
+
+    // View Class Details Sheet state
+    private val _viewingSchedule = MutableStateFlow<TimeTableScheduleWithSubject?>(null)
+    val viewingSchedule: StateFlow<TimeTableScheduleWithSubject?> = _viewingSchedule.asStateFlow()
+
+    fun showViewSheet(schedule: TimeTableScheduleWithSubject) {
+        _viewingSchedule.value = schedule
+    }
+
+    fun hideViewSheet() {
+        _viewingSchedule.value = null
+    }
+
+    fun getAttendanceForSubject(subjectId: Int): Flow<List<AttendanceEntity>> {
+        return attendanceRepository.getAttendanceForSubject(subjectId)
+    }
+
+    fun getSubjectAttendanceCounts(subjectId: Int): Flow<SubjectAttendance> {
+        val presentFlow = attendanceRepository.getCountBySubjectAndStatus(subjectId, AttendanceStatus.PRESENT)
+        val absentFlow = attendanceRepository.getCountBySubjectAndStatus(subjectId, AttendanceStatus.ABSENT)
+        return combine(presentFlow, absentFlow) { p, a ->
+            SubjectAttendance(p, a, p + a)
+        }
+    }
+
+    fun markAttendance(subjectId: Int, date: String, status: AttendanceStatus) {
+        viewModelScope.launch {
+            if (status == AttendanceStatus.UNMARKED) {
+                attendanceRepository.deleteAttendance(subjectId, date)
+            } else {
+                attendanceRepository.insertAttendance(
+                    AttendanceEntity(
+                        subjectId = subjectId,
+                        date = date,
+                        status = status
+                    )
+                )
+            }
+        }
+    }
 
     fun onDaySelected(day: Int) {
         _selectedDay.value = day

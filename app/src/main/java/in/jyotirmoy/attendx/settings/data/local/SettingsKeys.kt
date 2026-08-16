@@ -59,5 +59,6 @@ enum class SettingsKeys(val default: Any?) {
     PEER_COMPARISON_CONSENT_SHOWN(false),
     PEER_COMPARISON_GROUP_ID(""),
     PEER_COMPARISON_GROUP_DISPLAY_NAME(""),
+    LIQUID_GLASS_EFFECT(true),  // AGSL glass shader on nav bar (API 33+ only)
     TIMETABLE_VIEW_MODE("DAY")
 }

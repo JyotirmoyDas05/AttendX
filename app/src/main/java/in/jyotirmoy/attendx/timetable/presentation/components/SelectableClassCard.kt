@@ -4,6 +4,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -17,7 +18,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.rounded.LocationOn
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -47,12 +47,13 @@ fun SelectableClassCard(
     val hapticFeedback = LocalHapticFeedback.current
     val schedule = scheduleWithSubject.schedule
     val subject = scheduleWithSubject.subject
+    val isDark = isSystemInDarkTheme()
 
     val subjectColor = getSubjectThemeColor(subject.subject)
     val cardBackground = if (isSelected) {
         MaterialTheme.colorScheme.primaryContainer
     } else {
-        subjectColor.copy(alpha = 0.20f)
+        subjectColor.copy(alpha = if (isDark) 0.22f else 0.16f)
     }
 
     val cardBorder = if (isSelected) {
@@ -62,11 +63,7 @@ fun SelectableClassCard(
             shape = RoundedCornerShape(12.dp)
         )
     } else {
-        Modifier.border(
-            width = 0.8.dp,
-            color = subjectColor.copy(alpha = 0.45f),
-            shape = RoundedCornerShape(12.dp)
-        )
+        Modifier
     }
 
     Card(
@@ -74,7 +71,7 @@ fun SelectableClassCard(
             .fillMaxWidth()
             .padding(vertical = 3.dp)
             .then(cardBorder)
-            .bounceClick(onClick = onClick)
+            .clip(RoundedCornerShape(12.dp))
             .combinedClickable(
                 onClick = onClick,
                 onLongClick = {
@@ -96,7 +93,11 @@ fun SelectableClassCard(
                     text = subject.subject,
                     style = MaterialTheme.typography.titleMedium.copy(fontSize = 15.sp),
                     fontWeight = FontWeight.Bold,
-                    color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else Color(0xFF1E293B)
+                    color = if (isSelected) {
+                        MaterialTheme.colorScheme.onPrimaryContainer
+                    } else {
+                        MaterialTheme.colorScheme.onSurface
+                    }
                 )
 
                 Spacer(modifier = Modifier.height(3.dp))
@@ -106,7 +107,11 @@ fun SelectableClassCard(
                 Text(
                     text = "$startTimeStr – $endTimeStr",
                     style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
-                    color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f) else Color(0xFF475569)
+                    color = if (isSelected) {
+                        MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f)
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    }
                 )
 
                 val details = buildList {
@@ -119,7 +124,11 @@ fun SelectableClassCard(
                     Text(
                         text = details.joinToString(" • "),
                         style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.5.sp),
-                        color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.75f) else Color(0xFF64748B)
+                        color = if (isSelected) {
+                            MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.75f)
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f)
+                        }
                     )
                 }
             }

@@ -94,6 +94,7 @@ fun calculatePositionedSchedules(schedules: List<TimeTableScheduleWithSubject>):
 fun TimetableCalendarView(
     weeklySchedule: Map<Int, List<TimeTableScheduleWithSubject>>,
     onClassClick: (TimeTableScheduleWithSubject) -> Unit,
+    onClassLongClick: (TimeTableScheduleWithSubject) -> Unit = {},
     onEmptySlotClick: (dayOfWeek: Int, startMinutes: Int) -> Unit = { _, _ -> },
     onShiftDays: (delta: Int) -> Unit = {},
     modifier: Modifier = Modifier,
@@ -171,29 +172,37 @@ fun TimetableCalendarView(
             .background(surfaceColor)
             // Multi-touch pinch-to-zoom for vertical time scale granularity & horizontal swipe to shift days
             .pointerInput(numDays) {
+                val swipeThresholdPx = with(density) { 72.dp.toPx() }
                 awaitEachGesture {
-                    var isMultiTouch = false
+                    var wasMultiTouch = false
                     var totalPanX = 0f
+                    var totalPanY = 0f
 
-                    val firstDown = awaitFirstDown(pass = PointerEventPass.Initial)
+                    awaitFirstDown(pass = PointerEventPass.Initial)
                     do {
                         val event = awaitPointerEvent(pass = PointerEventPass.Initial)
                         if (event.changes.size >= 2) {
-                            isMultiTouch = true
+                            wasMultiTouch = true
                             val zoomChange = event.calculateZoom()
                             hourHeightDp = (hourHeightDp * zoomChange).coerceIn(48f, 150f)
                             event.changes.forEach { it.consume() }
-                        } else if (!isMultiTouch && numDays < 7) {
+                        } else if (!wasMultiTouch && numDays < 7) {
                             val pan = event.calculatePan()
                             totalPanX += pan.x
+                            totalPanY += pan.y
                         }
                     } while (event.changes.any { it.pressed })
 
-                    if (!isMultiTouch && numDays < 7 && abs(totalPanX) > 60f) {
-                        if (totalPanX < 0) {
-                            onShiftDays(if (numDays == 1) 1 else 3)
-                        } else {
-                            onShiftDays(if (numDays == 1) -1 else -3)
+                    // Only trigger day shift if it was purely a horizontal swipe (not multi-touch/zoom and not vertical scroll)
+                    if (!wasMultiTouch && numDays < 7) {
+                        val absX = abs(totalPanX)
+                        val absY = abs(totalPanY)
+                        if (absX >= swipeThresholdPx && absX > absY * 1.8f) {
+                            if (totalPanX < 0) {
+                                onShiftDays(if (numDays == 1) 1 else 3)
+                            } else {
+                                onShiftDays(if (numDays == 1) -1 else -3)
+                            }
                         }
                     }
                 }
@@ -221,7 +230,7 @@ fun TimetableCalendarView(
                 hourHeight = hourHeightDp.dp,
                 width = timeColumnWidth,
                 scrollState = verticalScrollState,
-                modifier = Modifier.padding(top = 4.dp)
+                modifier = Modifier.padding(top = 4.dp, bottom = 56.dp)
             )
 
             // Multi-Day Columns Area
@@ -230,7 +239,7 @@ fun TimetableCalendarView(
                     .weight(1f)
                     .fillMaxHeight()
                     .verticalScroll(verticalScrollState)
-                    .padding(top = 4.dp, end = 4.dp)
+                    .padding(top = 4.dp, end = 4.dp, bottom = 56.dp)
             ) {
                 displayedDays.forEach { dayOfWeek ->
                     val isToday = dayOfWeek == todayDow
@@ -285,6 +294,7 @@ fun TimetableCalendarView(
                                 TimetableClassCard(
                                     classItem = item,
                                     onClick = { onClassClick(it) },
+                                    onLongClick = { onClassLongClick(it) },
                                     isCurrentClass = item.schedule.id == currentClassId,
                                     isOverlapping = posItem.totalSubColumns > 1,
                                     modifier = Modifier.fillMaxSize()

@@ -5,8 +5,10 @@ import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -33,11 +35,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import `in`.jyotirmoy.attendx.core.presentation.util.bounceClick
 import `in`.jyotirmoy.attendx.timetable.data.model.TimeTableScheduleWithSubject
 import kotlin.math.abs
 
@@ -53,14 +56,17 @@ fun getSubjectThemeColor(subjectName: String): Color {
     return Color(r, g, b)
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun TimetableClassCard(
     classItem: TimeTableScheduleWithSubject,
     onClick: (TimeTableScheduleWithSubject) -> Unit,
     modifier: Modifier = Modifier,
+    onLongClick: ((TimeTableScheduleWithSubject) -> Unit)? = null,
     isCurrentClass: Boolean = false,
     isOverlapping: Boolean = false
 ) {
+    val hapticFeedback = LocalHapticFeedback.current
     val baseColor = getSubjectThemeColor(classItem.subject.subject)
     val cardShape = RoundedCornerShape(6.dp)
 
@@ -84,7 +90,15 @@ fun TimetableClassCard(
         modifier = modifier
             .fillMaxSize()
             .clip(cardShape)
-            .bounceClick(onClick = { onClick(classItem) })
+            .combinedClickable(
+                onClick = { onClick(classItem) },
+                onLongClick = onLongClick?.let { callback ->
+                    {
+                        hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                        callback(classItem)
+                    }
+                }
+            )
             .border(
                 width = if (isCurrentClass) 1.5.dp else 0.8.dp,
                 color = if (isCurrentClass) MaterialTheme.colorScheme.primary.copy(alpha = pulseAlpha.value)

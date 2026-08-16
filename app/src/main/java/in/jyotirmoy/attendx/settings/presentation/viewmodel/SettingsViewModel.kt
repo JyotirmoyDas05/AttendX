@@ -249,6 +249,13 @@ class SettingsViewModel @Inject constructor(
                     enabled && permissionGranted
                 }
             }
+            SettingsKeys.LIQUID_GLASS_EFFECT -> {
+                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+                    flowOf(false)
+                } else {
+                    getBoolean(key)
+                }
+            }
 
             else -> getBoolean(key)
         }
@@ -265,6 +272,7 @@ class SettingsViewModel @Inject constructor(
         return when (key) {
             SettingsKeys.REMINDER_MARK_ATTENDANCE -> notificationsEnabled
             SettingsKeys.NOTIFY_MISSED_ATTENDANCE -> notificationsEnabled
+            SettingsKeys.LIQUID_GLASS_EFFECT -> flowOf(Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
 
             else -> flowOf(true)
         }
