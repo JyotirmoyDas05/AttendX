@@ -30,6 +30,7 @@ import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.LocationOn
 import androidx.compose.material.icons.rounded.Remove
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -50,7 +51,9 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -77,10 +80,12 @@ fun ViewClassSheet(
     attendanceCountsFlow: Flow<SubjectAttendance>,
     onDismiss: () -> Unit,
     onEdit: (TimeTableScheduleWithSubject) -> Unit,
+    onDelete: (scheduleId: Int) -> Unit = {},
     onMarkAttendance: (subjectId: Int, date: String, status: AttendanceStatus) -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val weakHaptic = LocalWeakHaptic.current
+    var showDeleteConfirm by remember { mutableStateOf(false) }
 
     val schedule = scheduleWithSubject.schedule
     val subject = scheduleWithSubject.subject
@@ -146,6 +151,24 @@ fun ViewClassSheet(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    IconButton(
+                        onClick = {
+                            weakHaptic()
+                            showDeleteConfirm = true
+                        },
+                        colors = IconButtonDefaults.iconButtonColors(
+                            containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.6f),
+                            contentColor = MaterialTheme.colorScheme.error
+                        ),
+                        modifier = Modifier.size(38.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.Delete,
+                            contentDescription = "Delete Class Slot",
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+
                     FilledTonalButton(
                         onClick = {
                             weakHaptic()
@@ -371,6 +394,48 @@ fun ViewClassSheet(
                 }
             }
         }
+    }
+
+    if (showDeleteConfirm) {
+        val startTimeStr = formatTime(schedule.startTime)
+        val endTimeStr = formatTime(schedule.endTime)
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirm = false },
+            title = {
+                Text(
+                    text = "Delete Class Slot",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Text(
+                    text = "Are you sure you want to remove this ${subject.subject} class from the timetable ($startTimeStr – $endTimeStr)?",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        weakHaptic()
+                        showDeleteConfirm = false
+                        onDismiss()
+                        onDelete(schedule.id)
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error,
+                        contentColor = MaterialTheme.colorScheme.onError
+                    )
+                ) {
+                    Text("Delete")
+                }
+            },
+            dismissButton = {
+                OutlinedButton(onClick = { showDeleteConfirm = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 }
 

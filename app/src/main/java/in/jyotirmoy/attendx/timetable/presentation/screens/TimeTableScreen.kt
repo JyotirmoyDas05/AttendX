@@ -41,6 +41,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -88,7 +89,8 @@ import `in`.jyotirmoy.attendx.timetable.presentation.viewmodel.TimetableViewMode
 fun TimeTableScreen(
     viewModel: TimeTableViewModel = hiltViewModel(),
     onNavigateToUpload: () -> Unit = {},
-    onNavigateToMarketplace: () -> Unit = {}
+    onNavigateToMarketplace: () -> Unit = {},
+    onNavigateToSettings: () -> Unit = {}
 ) {
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
@@ -184,48 +186,148 @@ fun TimeTableScreen(
         ) {
             // Header with view switcher
             AnimatedVisibility(visible = !isSelectionMode) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(
-                            start = 14.dp,
-                            end = 12.dp,
-                            top = if (isLandscape) 4.dp else 10.dp,
-                            bottom = if (isLandscape) 2.dp else 6.dp
-                        ),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Timetable",
-                        style = if (isLandscape) MaterialTheme.typography.titleMedium.copy(fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                               else MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
-                        maxLines = 1,
-                        softWrap = false,
-                        overflow = TextOverflow.Ellipsis
-                    )
-
-                    Spacer(modifier = Modifier.weight(1f))
-
-                    // Jump to today / snap to now button
-                    IconButton(
-                        onClick = { 
-                            snapToNow = true
-                            viewModel.snapToToday()
-                        },
-                        modifier = Modifier.size(if (isLandscape) 34.dp else 40.dp)
-                    ) {
-                        TodayCalendarIcon(
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(4.dp))
-
-                    // M3 Expressive 4-Way Segmented View Switcher (Schedule | Day | 3-Day | Week)
+                if (isLandscape) {
                     Row(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(12.dp))
+                            .fillMaxWidth()
+                            .padding(start = 14.dp, end = 12.dp, top = 4.dp, bottom = 2.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Timetable",
+                            style = MaterialTheme.typography.titleMedium.copy(fontSize = 18.sp, fontWeight = FontWeight.Bold),
+                            maxLines = 1,
+                            softWrap = false,
+                            overflow = TextOverflow.Ellipsis
+                        )
+
+                        Spacer(modifier = Modifier.weight(1f))
+
+                        // Jump to today / snap to now button
+                        IconButton(
+                            onClick = { 
+                                snapToNow = true
+                                viewModel.snapToToday()
+                            },
+                            modifier = Modifier.size(34.dp)
+                        ) {
+                            TodayCalendarIcon(tint = MaterialTheme.colorScheme.primary)
+                        }
+
+                        Spacer(modifier = Modifier.width(2.dp))
+
+                        // Settings button
+                        IconButton(
+                            onClick = onNavigateToSettings,
+                            modifier = Modifier.size(34.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.Settings,
+                                contentDescription = "Settings",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.width(6.dp))
+
+                        // M3 Expressive 4-Way Segmented View Switcher
+                        Row(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                                .padding(2.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            for (mode in TimetableViewMode.entries) {
+                                val isSelected = viewMode == mode
+                                val label = when (mode) {
+                                    TimetableViewMode.SCHEDULE -> "Schedule"
+                                    TimetableViewMode.DAY -> "Day"
+                                    TimetableViewMode.THREE_DAY -> "3-Day"
+                                    TimetableViewMode.WEEK -> "Week"
+                                }
+
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(10.dp))
+                                        .background(
+                                            if (isSelected) MaterialTheme.colorScheme.primary
+                                            else Color.Transparent
+                                        )
+                                        .clickable { viewModel.setViewMode(mode) }
+                                        .padding(horizontal = 8.dp, vertical = 3.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = label,
+                                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.5.sp),
+                                        maxLines = 1,
+                                        softWrap = false,
+                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                        color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 4.dp)
+                    ) {
+                        // Title row with jump-to-today and settings actions
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(start = 16.dp, end = 12.dp, top = 8.dp, bottom = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Timetable",
+                                style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+                                maxLines = 1,
+                                softWrap = false,
+                                overflow = TextOverflow.Ellipsis
+                            )
+
+                            Spacer(modifier = Modifier.weight(1f))
+
+                            // Jump to today / snap to now button
+                            IconButton(
+                                onClick = { 
+                                    snapToNow = true
+                                    viewModel.snapToToday()
+                                },
+                                modifier = Modifier.size(40.dp)
+                            ) {
+                                TodayCalendarIcon(tint = MaterialTheme.colorScheme.primary)
+                            }
+
+                            Spacer(modifier = Modifier.width(4.dp))
+
+                            // Settings button
+                            IconButton(
+                                onClick = onNavigateToSettings,
+                                modifier = Modifier.size(40.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.Settings,
+                                    contentDescription = "Settings",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+
+                    // Adaptive 4-Way Segmented View Switcher (Schedule | Day | 3-Day | Week)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 4.dp)
+                            .clip(RoundedCornerShape(14.dp))
                             .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-                            .padding(2.dp),
+                            .padding(3.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         for (mode in TimetableViewMode.entries) {
@@ -239,23 +341,22 @@ fun TimeTableScreen(
 
                             Box(
                                 modifier = Modifier
-                                    .clip(RoundedCornerShape(10.dp))
+                                    .weight(1f)
+                                    .clip(RoundedCornerShape(11.dp))
                                     .background(
                                         if (isSelected) MaterialTheme.colorScheme.primary
                                         else Color.Transparent
                                     )
                                     .clickable { viewModel.setViewMode(mode) }
-                                    .padding(
-                                        horizontal = if (isLandscape) 6.dp else 8.dp,
-                                        vertical = if (isLandscape) 3.dp else 5.dp
-                                    ),
+                                    .padding(vertical = 7.dp),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(
                                     text = label,
-                                    style = MaterialTheme.typography.labelSmall.copy(
-                                        fontSize = if (isLandscape) 10.5.sp else 11.sp
-                                    ),
+                                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.5.sp),
+                                    maxLines = 1,
+                                    softWrap = false,
+                                    overflow = TextOverflow.Ellipsis,
                                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                                     color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -264,6 +365,7 @@ fun TimeTableScreen(
                     }
                 }
             }
+        }
             
             // Priority Dashboard (Shown in Portrait only to maximize landscape space)
             var showNextUp by remember { mutableStateOf(false) }
@@ -434,6 +536,9 @@ fun TimeTableScreen(
             attendanceCountsFlow = viewModel.getSubjectAttendanceCounts(schedule.subject.id),
             onDismiss = { viewModel.hideViewSheet() },
             onEdit = { viewModel.showEditSheet(it) },
+            onDelete = { scheduleId ->
+                viewModel.deleteSchedule(scheduleId)
+            },
             onMarkAttendance = { subjectId, date, status ->
                 viewModel.markAttendance(subjectId, date, status)
             }

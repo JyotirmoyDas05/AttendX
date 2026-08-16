@@ -4,16 +4,13 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -33,7 +30,6 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import `in`.jyotirmoy.attendx.core.presentation.util.bounceClick
 import `in`.jyotirmoy.attendx.timetable.data.model.TimeTableScheduleWithSubject
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -47,13 +43,12 @@ fun SelectableClassCard(
     val hapticFeedback = LocalHapticFeedback.current
     val schedule = scheduleWithSubject.schedule
     val subject = scheduleWithSubject.subject
-    val isDark = isSystemInDarkTheme()
 
     val subjectColor = getSubjectThemeColor(subject.subject)
     val cardBackground = if (isSelected) {
         MaterialTheme.colorScheme.primaryContainer
     } else {
-        subjectColor.copy(alpha = if (isDark) 0.22f else 0.16f)
+        subjectColor.copy(alpha = 0.92f)
     }
 
     val cardBorder = if (isSelected) {
@@ -63,7 +58,11 @@ fun SelectableClassCard(
             shape = RoundedCornerShape(12.dp)
         )
     } else {
-        Modifier
+        Modifier.border(
+            width = 0.8.dp,
+            color = subjectColor.copy(alpha = 0.8f),
+            shape = RoundedCornerShape(12.dp)
+        )
     }
 
     Card(
@@ -96,7 +95,7 @@ fun SelectableClassCard(
                     color = if (isSelected) {
                         MaterialTheme.colorScheme.onPrimaryContainer
                     } else {
-                        MaterialTheme.colorScheme.onSurface
+                        Color(0xFF1E293B)
                     }
                 )
 
@@ -110,7 +109,7 @@ fun SelectableClassCard(
                     color = if (isSelected) {
                         MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f)
                     } else {
-                        MaterialTheme.colorScheme.onSurfaceVariant
+                        Color(0xFF475569)
                     }
                 )
 
@@ -127,7 +126,7 @@ fun SelectableClassCard(
                         color = if (isSelected) {
                             MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.75f)
                         } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f)
+                            Color(0xFF475569).copy(alpha = 0.9f)
                         }
                     )
                 }

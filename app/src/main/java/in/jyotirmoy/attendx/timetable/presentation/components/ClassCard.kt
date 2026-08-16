@@ -1,6 +1,6 @@
 package `in`.jyotirmoy.attendx.timetable.presentation.components
 
-import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -15,6 +15,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -28,7 +29,6 @@ fun ClassCard(
 ) {
     val schedule = scheduleWithSubject.schedule
     val subject = scheduleWithSubject.subject
-    val isDark = isSystemInDarkTheme()
     val subjectColor = getSubjectThemeColor(subject.subject)
 
     Card(
@@ -36,10 +36,15 @@ fun ClassCard(
             .fillMaxWidth()
             .padding(vertical = 3.dp)
             .clip(RoundedCornerShape(12.dp))
+            .border(
+                width = 0.8.dp,
+                color = subjectColor.copy(alpha = 0.8f),
+                shape = RoundedCornerShape(12.dp)
+            )
             .bounceClick(onClick = onClick),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
-            containerColor = subjectColor.copy(alpha = if (isDark) 0.22f else 0.16f)
+            containerColor = subjectColor.copy(alpha = 0.92f)
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
@@ -53,7 +58,7 @@ fun ClassCard(
                     text = subject.subject,
                     style = MaterialTheme.typography.titleMedium.copy(fontSize = 15.sp),
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = Color(0xFF1E293B)
                 )
 
                 Spacer(modifier = Modifier.height(3.dp))
@@ -63,7 +68,7 @@ fun ClassCard(
                 Text(
                     text = "$startTimeStr – $endTimeStr",
                     style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = Color(0xFF475569)
                 )
 
                 val details = buildList {
@@ -76,7 +81,7 @@ fun ClassCard(
                     Text(
                         text = details.joinToString(" • "),
                         style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.5.sp),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f)
+                        color = Color(0xFF475569).copy(alpha = 0.9f)
                     )
                 }
             }

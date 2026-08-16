@@ -42,7 +42,7 @@ fun DaySelector(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 12.dp),
+            .padding(horizontal = 8.dp),
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         // Mon (1) to Sun (7)
@@ -60,7 +60,8 @@ fun DaySelector(
                 dayOfMonth = dayDate.dayOfMonth,
                 isSelected = isSelected,
                 isToday = isToday,
-                onClick = { onDaySelected(day) }
+                onClick = { onDaySelected(day) },
+                modifier = Modifier.weight(1f)
             )
         }
     }
@@ -73,18 +74,21 @@ private fun DayItem(
     dayOfMonth: Int,
     isSelected: Boolean,
     isToday: Boolean,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier
+        modifier = modifier
             .clip(RoundedCornerShape(10.dp))
             .bounceClick(onClick = onClick)
-            .padding(horizontal = 4.dp, vertical = 4.dp)
+            .padding(horizontal = 2.dp, vertical = 4.dp)
     ) {
         Text(
             text = dayName,
             style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.5.sp),
+            maxLines = 1,
+            softWrap = false,
             color = when {
                 isSelected -> MaterialTheme.colorScheme.primary
                 isToday -> MaterialTheme.colorScheme.primary
@@ -113,6 +117,8 @@ private fun DayItem(
                 text = "$dayOfMonth",
                 style = MaterialTheme.typography.labelMedium.copy(fontSize = 12.sp),
                 fontWeight = if (isSelected || isToday) FontWeight.Bold else FontWeight.Normal,
+                maxLines = 1,
+                softWrap = false,
                 color = when {
                     isSelected -> MaterialTheme.colorScheme.onPrimary
                     isToday -> MaterialTheme.colorScheme.primary

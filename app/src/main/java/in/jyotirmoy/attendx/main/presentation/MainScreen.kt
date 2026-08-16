@@ -355,7 +355,8 @@ fun MainScreen(
                     1 -> `in`.jyotirmoy.attendx.tools.presentation.pomodoro.PomodoroScreen()
                     2 -> TimeTableScreen(
                         onNavigateToUpload = { navController.navigate(UploadTemplateScreen) },
-                        onNavigateToMarketplace = { navController.navigate(MarketplaceScreen()) }
+                        onNavigateToMarketplace = { navController.navigate(MarketplaceScreen()) },
+                        onNavigateToSettings = { navController.navigate(SettingsScreen) }
                     )
                 }
             }
