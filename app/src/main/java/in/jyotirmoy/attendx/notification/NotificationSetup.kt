@@ -135,7 +135,7 @@ object NotificationSetup {
             notificationId = scheduleId,
             title = "Class Started: $subjectName",
             message = message,
-            smallIconResId = android.R.drawable.ic_dialog_info,
+            smallIconResId = R.drawable.ic_launcher_bear_monochrome,
             subjectId = subjectId,
             scheduleId = scheduleId,
             subjectName = subjectName

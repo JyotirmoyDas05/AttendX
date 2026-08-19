@@ -12,8 +12,12 @@ import `in`.jyotirmoy.attendx.core.data.model.SubjectEntity
 import `in`.jyotirmoy.attendx.core.domain.model.AttendanceStatus
 import `in`.jyotirmoy.attendx.core.domain.model.StreakType
 import `in`.jyotirmoy.attendx.core.domain.model.SubjectAttendance
+import `in`.jyotirmoy.attendx.core.domain.model.CourseMaterial
+import `in`.jyotirmoy.attendx.core.domain.model.SubjectTask
 import `in`.jyotirmoy.attendx.core.domain.repository.AttendanceRepository
+import `in`.jyotirmoy.attendx.core.domain.repository.CourseMaterialRepository
 import `in`.jyotirmoy.attendx.core.domain.repository.SubjectRepository
+import `in`.jyotirmoy.attendx.core.domain.repository.TaskRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -28,6 +32,8 @@ import javax.inject.Inject
 class CalendarViewModel @Inject constructor(
     private val attendanceRepository: AttendanceRepository,
     private val subjectRepository: SubjectRepository,
+    private val taskRepository: TaskRepository,
+    private val courseMaterialRepository: CourseMaterialRepository,
     private val getWeekDayLabelsUseCase: GetWeekDayLabelsUseCase,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
@@ -42,6 +48,36 @@ class CalendarViewModel @Inject constructor(
 
     private val _streakMap = MutableStateFlow<Map<LocalDate, StreakType>>(emptyMap())
     val streakMapFlow: StateFlow<Map<LocalDate, StreakType>> = _streakMap
+
+    fun getTasksForSubject(subjectId: Int): Flow<List<SubjectTask>> =
+        taskRepository.getTasksForSubject(subjectId)
+
+    fun getMaterialsForSubject(subjectId: Int): Flow<List<CourseMaterial>> =
+        courseMaterialRepository.getMaterialsForSubject(subjectId)
+
+    fun insertTask(task: SubjectTask) {
+        viewModelScope.launch { taskRepository.insertTask(task) }
+    }
+
+    fun updateTask(task: SubjectTask) {
+        viewModelScope.launch { taskRepository.updateTask(task) }
+    }
+
+    fun updateTaskCompletion(taskId: Int, isCompleted: Boolean) {
+        viewModelScope.launch { taskRepository.updateTaskCompletion(taskId, isCompleted) }
+    }
+
+    fun deleteTask(task: SubjectTask) {
+        viewModelScope.launch { taskRepository.deleteTask(task) }
+    }
+
+    fun insertMaterial(material: CourseMaterial) {
+        viewModelScope.launch { courseMaterialRepository.insertMaterial(material) }
+    }
+
+    fun deleteMaterial(material: CourseMaterial) {
+        viewModelScope.launch { courseMaterialRepository.deleteMaterial(material) }
+    }
 
     init {
         savedStateHandle.get<Int>("subjectId")?.also { id ->

@@ -1,4 +1,8 @@
-# AttendX
+<p align="center">
+  <img src="fastlane/metadata/android/en-US/images/icon.png" width="120" height="120" alt="AttendX Logo" />
+</p>
+
+<h1 align="center">AttendX</h1>
 
 <p align="center">
   <img src="./right%20now/img%201.jpg" width="31%" style="border-radius:26px; margin: 2px;"/>

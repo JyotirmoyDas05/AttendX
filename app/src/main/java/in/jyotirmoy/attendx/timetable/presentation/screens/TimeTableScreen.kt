@@ -73,6 +73,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowCompat
 import androidx.hilt.navigation.compose.hiltViewModel
+import `in`.jyotirmoy.attendx.core.common.LocalFloatingNavBarPadding
 import `in`.jyotirmoy.attendx.core.presentation.components.dialog.ConfirmDeleteDialog
 import `in`.jyotirmoy.attendx.timetable.presentation.components.AddEditClassSheet
 import `in`.jyotirmoy.attendx.timetable.presentation.components.DaySelector
@@ -94,6 +95,8 @@ fun TimeTableScreen(
 ) {
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+    val floatingNavBarPadding = LocalFloatingNavBarPadding.current
+    val bottomContentPadding = if (floatingNavBarPadding > 0.dp) floatingNavBarPadding else if (isLandscape) 72.dp else 104.dp
 
     val subjects by viewModel.subjects.collectAsState()
     val selectedDay by viewModel.selectedDay.collectAsState()
@@ -428,7 +431,12 @@ fun TimeTableScreen(
                                 // Class List
                                 LazyColumn(
                                     modifier = Modifier.fillMaxSize(),
-                                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp),
+                                    contentPadding = PaddingValues(
+                                        start = 16.dp,
+                                        end = 16.dp,
+                                        top = 6.dp,
+                                        bottom = bottomContentPadding
+                                    ),
                                     verticalArrangement = Arrangement.spacedBy(6.dp)
                                 ) {
                                     items(
@@ -476,6 +484,7 @@ fun TimeTableScreen(
                                 currentClassId = currentClass?.schedule?.id,
                                 snapToNow = snapToNow,
                                 onSnapConsumed = { snapToNow = false },
+                                bottomPadding = bottomContentPadding,
                                 modifier = Modifier.padding(horizontal = 4.dp)
                             )
                         }
@@ -498,6 +507,7 @@ fun TimeTableScreen(
                                 currentClassId = currentClass?.schedule?.id,
                                 snapToNow = snapToNow,
                                 onSnapConsumed = { snapToNow = false },
+                                bottomPadding = bottomContentPadding,
                                 modifier = Modifier.padding(horizontal = 4.dp)
                             )
                         }
@@ -519,6 +529,7 @@ fun TimeTableScreen(
                                 currentClassId = currentClass?.schedule?.id,
                                 snapToNow = snapToNow,
                                 onSnapConsumed = { snapToNow = false },
+                                bottomPadding = bottomContentPadding,
                                 modifier = Modifier.padding(horizontal = 4.dp)
                             )
                         }

@@ -272,6 +272,8 @@ class SettingsViewModel @Inject constructor(
         return when (key) {
             SettingsKeys.REMINDER_MARK_ATTENDANCE -> notificationsEnabled
             SettingsKeys.NOTIFY_MISSED_ATTENDANCE -> notificationsEnabled
+            SettingsKeys.ENABLE_TIMETABLE_NOTIFICATIONS -> notificationsEnabled
+            SettingsKeys.PERSISTENT_NOTIFICATIONS -> notificationsEnabled
             SettingsKeys.LIQUID_GLASS_EFFECT -> flowOf(Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
 
             else -> flowOf(true)

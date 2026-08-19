@@ -58,47 +58,75 @@ class BootCompletedReceiver : BroadcastReceiver() {
     private suspend fun rescheduleAllAlarms(context: Context) {
         Log.d(TAG, "📚 Fetching all schedules from database...")
 
-        // Access database directly (we can't use Hilt injection in standard BroadcastReceiver)
         val database = `in`.jyotirmoy.attendx.core.data.database.SubjectDatabase.getDatabase(context)
+        val timeTableDao = database.timeTableDao()
         val classScheduleDao = database.classScheduleDao()
         val subjectDao = database.subjectDao()
-
-        val allSchedules = classScheduleDao.getAllSchedulesOnce()
-        Log.d(TAG, "📋 Found ${allSchedules.size} schedules to reschedule")
 
         var successCount = 0
         var failCount = 0
 
-        for (schedule in allSchedules) {
-            if (!schedule.isEnabled) {
-                continue
-            }
+        // 1. Reschedule Timetable classes (TimeTableScheduleEntity)
+        try {
+            val timetableClasses = timeTableDao.getAllClassesWithSubject().first()
+            Log.d(TAG, "📋 Found ${timetableClasses.size} timetable classes to reschedule")
+            for (item in timetableClasses) {
+                if (!item.schedule.isActive) continue
+                val startH = item.schedule.startTime / 60
+                val startM = item.schedule.startTime % 60
+                val startTimeStr = String.format("%02d:%02d", startH, startM)
 
-            // Get subject name
-            val subject = try {
-                subjectDao.getSubjectById(schedule.subjectId).first()
-            } catch (e: Exception) {
-                Log.e(TAG, "❌ Failed to get subject for schedule ${schedule.id}", e)
-                failCount++
-                continue
-            }
+                val endH = item.schedule.endTime / 60
+                val endM = item.schedule.endTime % 60
+                val endTimeStr = String.format("%02d:%02d", endH, endM)
 
-            val scheduled = TimetableAlarmScheduler.scheduleClassAlarms(
-                context = context,
-                scheduleId = schedule.id,
-                subjectId = schedule.subjectId,
-                subjectName = subject.subject,
-                dayOfWeek = schedule.dayOfWeek,
-                startTime = schedule.startTime,
-                endTime = schedule.endTime,
-                location = schedule.location
-            )
-
-            if (scheduled) {
-                successCount++
-            } else {
-                failCount++
+                val scheduled = TimetableAlarmScheduler.scheduleClassAlarms(
+                    context = context,
+                    scheduleId = item.schedule.id,
+                    subjectId = item.schedule.subjectId,
+                    subjectName = item.subject.subject,
+                    dayOfWeek = item.schedule.dayOfWeek,
+                    startTime = startTimeStr,
+                    endTime = endTimeStr,
+                    location = item.schedule.room
+                )
+                if (scheduled) successCount++ else failCount++
             }
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Failed to reschedule timetable classes", e)
+        }
+
+        // 2. Reschedule legacy classes (ClassScheduleEntity)
+        try {
+            val allSchedules = classScheduleDao.getAllSchedulesOnce()
+            Log.d(TAG, "📋 Found ${allSchedules.size} legacy schedules to reschedule")
+
+            for (schedule in allSchedules) {
+                if (!schedule.isEnabled) continue
+
+                val subject = try {
+                    subjectDao.getSubjectById(schedule.subjectId).first()
+                } catch (e: Exception) {
+                    Log.e(TAG, "❌ Failed to get subject for schedule ${schedule.id}", e)
+                    failCount++
+                    continue
+                }
+
+                val scheduled = TimetableAlarmScheduler.scheduleClassAlarms(
+                    context = context,
+                    scheduleId = schedule.id,
+                    subjectId = schedule.subjectId,
+                    subjectName = subject.subject,
+                    dayOfWeek = schedule.dayOfWeek,
+                    startTime = schedule.startTime,
+                    endTime = schedule.endTime,
+                    location = schedule.location
+                )
+
+                if (scheduled) successCount++ else failCount++
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Failed to reschedule legacy schedules", e)
         }
 
         Log.d(TAG, "📊 Boot/Permission Reschedule Summary: Success=$successCount, Failed=$failCount")

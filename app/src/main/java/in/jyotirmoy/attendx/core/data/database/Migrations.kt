@@ -90,4 +90,54 @@ val MIGRATION_9_10 = object : Migration(9, 10) {
     }
 }
 
+val MIGRATION_10_11 = object : Migration(10, 11) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("""
+            CREATE TABLE IF NOT EXISTS subject_tasks (
+                id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                subjectId INTEGER NOT NULL,
+                title TEXT NOT NULL,
+                description TEXT,
+                isCompleted INTEGER NOT NULL DEFAULT 0,
+                dueDate INTEGER,
+                priority INTEGER NOT NULL DEFAULT 0,
+                isNote INTEGER NOT NULL DEFAULT 0,
+                noteType TEXT,
+                reminderMinutes INTEGER,
+                createdAt INTEGER NOT NULL,
+                FOREIGN KEY(subjectId) REFERENCES subjects(id) ON UPDATE NO ACTION ON DELETE CASCADE
+            )
+        """.trimIndent())
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_subject_tasks_subjectId ON subject_tasks(subjectId)")
+
+        db.execSQL("""
+            CREATE TABLE IF NOT EXISTS course_materials (
+                id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                subjectId INTEGER NOT NULL,
+                title TEXT NOT NULL,
+                type TEXT NOT NULL,
+                uriOrUrl TEXT NOT NULL,
+                mimeType TEXT,
+                addedAt INTEGER NOT NULL,
+                FOREIGN KEY(subjectId) REFERENCES subjects(id) ON UPDATE NO ACTION ON DELETE CASCADE
+            )
+        """.trimIndent())
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_course_materials_subjectId ON course_materials(subjectId)")
+    }
+}
+
+val MIGRATION_11_12 = object : Migration(11, 12) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        try {
+            db.execSQL("ALTER TABLE subject_tasks ADD COLUMN noteType TEXT")
+        } catch (_: Exception) {}
+        try {
+            db.execSQL("ALTER TABLE subject_tasks ADD COLUMN reminderMinutes INTEGER")
+        } catch (_: Exception) {}
+    }
+}
+
+
+
+
 

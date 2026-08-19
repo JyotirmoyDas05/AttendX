@@ -14,6 +14,10 @@ import `in`.jyotirmoy.attendx.settings.data.local.repository.BackupAndRestoreRep
 import `in`.jyotirmoy.attendx.settings.domain.repository.BackupAndRestoreRepository
 import `in`.jyotirmoy.attendx.timetable.data.repository.TimeTableRepositoryImpl
 import `in`.jyotirmoy.attendx.timetable.domain.repository.TimeTableRepository
+import `in`.jyotirmoy.attendx.core.data.repository.CourseMaterialRepositoryImpl
+import `in`.jyotirmoy.attendx.core.data.repository.TaskRepositoryImpl
+import `in`.jyotirmoy.attendx.core.domain.repository.CourseMaterialRepository
+import `in`.jyotirmoy.attendx.core.domain.repository.TaskRepository
 import javax.inject.Singleton
 
 @Module
@@ -60,5 +64,17 @@ abstract class RepositoryModule {
     abstract fun bindPeerGroupRepository(
         impl: `in`.jyotirmoy.attendx.peer.data.repository.PeerGroupRepositoryImpl
     ): `in`.jyotirmoy.attendx.peer.domain.repository.PeerGroupRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindTaskRepository(
+        taskRepositoryImpl: TaskRepositoryImpl
+    ): TaskRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindCourseMaterialRepository(
+        courseMaterialRepositoryImpl: CourseMaterialRepositoryImpl
+    ): CourseMaterialRepository
 }
 

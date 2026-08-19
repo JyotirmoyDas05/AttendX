@@ -66,6 +66,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import `in`.jyotirmoy.attendx.R
+import `in`.jyotirmoy.attendx.core.common.LocalFloatingNavBarPadding
 import `in`.jyotirmoy.attendx.core.common.LocalSettings
 import `in`.jyotirmoy.attendx.core.common.LocalWeakHaptic
 import `in`.jyotirmoy.attendx.core.domain.model.SubjectAttendance
@@ -220,6 +221,9 @@ fun HomeScreen(
 
     BackHandler(enabled = selectedCardsCount > 0) { selectedCardsCount = 0 }
 
+    val floatingNavBarPadding = LocalFloatingNavBarPadding.current
+    val bottomNavPadding = if (floatingNavBarPadding > 0.dp) floatingNavBarPadding else 85.dp
+
     Scaffold(
         modifier = modifier.fillMaxSize(),
     ) { innerPadding ->
@@ -231,7 +235,7 @@ fun HomeScreen(
                 verticalArrangement = Arrangement.spacedBy(5.dp), // Changed from 15.dp to 5.dp for grouped appearance
                 contentPadding = PaddingValues(
                     top = innerPadding.calculateTopPadding(),
-                    bottom = innerPadding.calculateBottomPadding() + 85.dp, // Space for button
+                    bottom = innerPadding.calculateBottomPadding() + bottomNavPadding,
                     start = 0.dp,
                     end = 0.dp
                 ),

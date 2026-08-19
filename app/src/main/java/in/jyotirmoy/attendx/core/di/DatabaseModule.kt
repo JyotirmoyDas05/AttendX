@@ -9,6 +9,9 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import `in`.jyotirmoy.attendx.core.data.database.AttendanceDao
 import `in`.jyotirmoy.attendx.core.data.database.ClassScheduleDao
+import `in`.jyotirmoy.attendx.core.data.database.CourseMaterialDao
+import `in`.jyotirmoy.attendx.core.data.database.MIGRATION_10_11
+import `in`.jyotirmoy.attendx.core.data.database.MIGRATION_11_12
 import `in`.jyotirmoy.attendx.core.data.database.MIGRATION_2_3
 import `in`.jyotirmoy.attendx.core.data.database.MIGRATION_3_4
 import `in`.jyotirmoy.attendx.core.data.database.MIGRATION_4_5
@@ -19,6 +22,7 @@ import `in`.jyotirmoy.attendx.core.data.database.MIGRATION_8_9
 import `in`.jyotirmoy.attendx.core.data.database.MIGRATION_9_10
 import `in`.jyotirmoy.attendx.core.data.database.SubjectDao
 import `in`.jyotirmoy.attendx.core.data.database.SubjectDatabase
+import `in`.jyotirmoy.attendx.core.data.database.SubjectTaskDao
 import `in`.jyotirmoy.attendx.peer.data.local.PeerComparisonCacheDao
 import `in`.jyotirmoy.attendx.timetable.data.dao.TimeTableDao
 import javax.inject.Singleton
@@ -35,7 +39,19 @@ object DatabaseModule {
             SubjectDatabase::class.java,
             "attendance_app_db"
         )
-            .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10)
+            .addMigrations(
+                MIGRATION_2_3,
+                MIGRATION_3_4,
+                MIGRATION_4_5,
+                MIGRATION_5_6,
+                MIGRATION_6_7,
+                MIGRATION_7_8,
+                MIGRATION_8_9,
+                MIGRATION_9_10,
+                MIGRATION_10_11,
+                MIGRATION_11_12
+            )
+            .fallbackToDestructiveMigration()
             .build()
 
     @Provides
@@ -52,5 +68,12 @@ object DatabaseModule {
 
     @Provides
     fun providePeerComparisonCacheDao(db: SubjectDatabase): PeerComparisonCacheDao = db.peerComparisonCacheDao()
+
+    @Provides
+    fun provideSubjectTaskDao(db: SubjectDatabase): SubjectTaskDao = db.subjectTaskDao()
+
+    @Provides
+    fun provideCourseMaterialDao(db: SubjectDatabase): CourseMaterialDao = db.courseMaterialDao()
 }
+
 

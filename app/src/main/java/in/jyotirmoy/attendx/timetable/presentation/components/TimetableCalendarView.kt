@@ -42,8 +42,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
+import `in`.jyotirmoy.attendx.core.common.LocalFloatingNavBarPadding
 import `in`.jyotirmoy.attendx.timetable.data.model.TimeTableScheduleWithSubject
 import kotlinx.coroutines.delay
 import java.time.LocalDate
@@ -102,7 +104,8 @@ fun TimetableCalendarView(
     startDay: Int = 1,
     currentClassId: Int? = null,
     snapToNow: Boolean = false,
-    onSnapConsumed: () -> Unit = {}
+    onSnapConsumed: () -> Unit = {},
+    bottomPadding: Dp = LocalFloatingNavBarPadding.current.takeIf { it > 0.dp } ?: 100.dp
 ) {
     val displayedDays = when (numDays) {
         1 -> listOf(startDay.coerceIn(1, 7))
@@ -230,7 +233,7 @@ fun TimetableCalendarView(
                 hourHeight = hourHeightDp.dp,
                 width = timeColumnWidth,
                 scrollState = verticalScrollState,
-                modifier = Modifier.padding(top = 4.dp, bottom = 56.dp)
+                modifier = Modifier.padding(top = 4.dp, bottom = bottomPadding)
             )
 
             // Multi-Day Columns Area
@@ -239,7 +242,7 @@ fun TimetableCalendarView(
                     .weight(1f)
                     .fillMaxHeight()
                     .verticalScroll(verticalScrollState)
-                    .padding(top = 4.dp, end = 4.dp, bottom = 56.dp)
+                    .padding(top = 4.dp, end = 4.dp, bottom = bottomPadding)
             ) {
                 displayedDays.forEach { dayOfWeek ->
                     val isToday = dayOfWeek == todayDow

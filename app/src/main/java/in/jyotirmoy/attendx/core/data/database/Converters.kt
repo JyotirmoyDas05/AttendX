@@ -11,4 +11,12 @@ object Converters {
     @TypeConverter
     @JvmStatic
     fun toStatus(value: String): AttendanceStatus = AttendanceStatus.valueOf(value)
+
+    @TypeConverter
+    @JvmStatic
+    fun fromLocalDate(value: String?): java.time.LocalDate? = value?.let { java.time.LocalDate.parse(it) }
+
+    @TypeConverter
+    @JvmStatic
+    fun localDateToString(date: java.time.LocalDate?): String? = date?.toString()
 }

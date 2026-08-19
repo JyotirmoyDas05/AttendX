@@ -6,11 +6,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.State
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import `in`.jyotirmoy.attendx.core.presentation.provider.AppSeedColors
 import `in`.jyotirmoy.attendx.core.presentation.provider.SeedColor
@@ -36,6 +38,8 @@ val LocalTonalPalette = staticCompositionLocalOf<List<AppSeedColors>> {
 val LocalNotificationPermission = staticCompositionLocalOf<Boolean> {
     error("No notification preference provided")
 }
+
+val LocalFloatingNavBarPadding = compositionLocalOf { 0.dp }
 
 @Composable
 fun CompositionLocals(

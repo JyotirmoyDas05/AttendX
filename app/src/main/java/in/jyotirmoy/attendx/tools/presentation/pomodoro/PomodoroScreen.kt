@@ -1,344 +1,286 @@
 package `in`.jyotirmoy.attendx.tools.presentation.pomodoro
 
-import android.content.res.Configuration
+import android.content.Intent
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
+import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Pause
-import androidx.compose.material.icons.rounded.PlayArrow
-import androidx.compose.material.icons.rounded.Refresh
-import androidx.compose.material.icons.rounded.SkipNext
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.FloatingToolbarDefaults
+import androidx.compose.material3.HorizontalFloatingToolbar
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.PlainTooltip
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.ToggleButton
+import androidx.compose.material3.ToggleButtonDefaults
+import androidx.compose.material3.TooltipAnchorPosition
+import androidx.compose.material3.TooltipBox
+import androidx.compose.material3.TooltipDefaults
+import androidx.compose.material3.rememberTooltipState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.LocalView
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.role
-import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import `in`.jyotirmoy.attendx.core.presentation.components.text.AutoResizeableText
-import `in`.jyotirmoy.attendx.core.presentation.util.springyPressEffect
-import `in`.jyotirmoy.attendx.core.utils.HapticUtils.weakHaptic
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import `in`.jyotirmoy.attendx.R
+import `in`.jyotirmoy.attendx.core.common.LocalFloatingNavBarPadding
+import `in`.jyotirmoy.attendx.tools.presentation.pomodoro.components.AlarmDialog
+import `in`.jyotirmoy.attendx.tools.presentation.pomodoro.components.AlwaysOnDisplay
+import `in`.jyotirmoy.attendx.tools.presentation.pomodoro.components.TopicBottomSheet
+import `in`.jyotirmoy.attendx.tools.presentation.pomodoro.model.TimerMode
+import `in`.jyotirmoy.attendx.tools.presentation.pomodoro.screens.PomodoroSettingsScreen
+import `in`.jyotirmoy.attendx.tools.presentation.pomodoro.screens.PomodoroStatsScreen
+import `in`.jyotirmoy.attendx.tools.presentation.pomodoro.screens.PomodoroTimerScreen
+import `in`.jyotirmoy.attendx.tools.presentation.pomodoro.settings.SettingsViewModel
+import `in`.jyotirmoy.attendx.tools.presentation.pomodoro.stats.StatsViewModel
 
+enum class PomodoroSubScreen {
+    TIMER, STATS, SETTINGS, AOD
+}
+
+data class PomodoroNavItem(
+    val screen: PomodoroSubScreen,
+    val unselectedIcon: Int,
+    val selectedIcon: Int,
+    val labelRes: Int
+)
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun PomodoroScreen(
-    viewModel: PomodoroViewModel = hiltViewModel()
+    timerViewModel: PomodoroViewModel = hiltViewModel(),
+    settingsViewModel: SettingsViewModel = hiltViewModel(),
+    statsViewModel: StatsViewModel = hiltViewModel()
 ) {
-    val state by viewModel.uiState.collectAsState()
-    val view = LocalView.current
-    val configuration = LocalConfiguration.current
-    val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+    val context = LocalContext.current
+    val colorScheme = MaterialTheme.colorScheme
 
-    // mode-based animated color
-    val modeColor by animateColorAsState(
-        targetValue = when (state.mode) {
-            PomodoroMode.FOCUS -> MaterialTheme.colorScheme.primary
-            PomodoroMode.SHORT_BREAK -> MaterialTheme.colorScheme.tertiary
-            PomodoroMode.LONG_BREAK -> MaterialTheme.colorScheme.secondary
-        },
-        animationSpec = tween(400),
-        label = "modeColor"
+    val timerState by timerViewModel.timerState.collectAsStateWithLifecycle()
+    val settingsState by settingsViewModel.settingsState.collectAsStateWithLifecycle()
+    val progress by timerViewModel.progress.collectAsStateWithLifecycle()
+    val topics by timerViewModel.topics.collectAsStateWithLifecycle()
+    val selectedTopic by timerViewModel.selectedTopic.collectAsStateWithLifecycle()
+    val isCreateTopicSheetOpen by timerViewModel.isCreateTopicSheetOpen.collectAsStateWithLifecycle()
+    val isEditTopicSheetOpen by timerViewModel.isEditTopicSheetOpen.collectAsStateWithLifecycle()
+
+    var currentScreen by remember { mutableStateOf(PomodoroSubScreen.TIMER) }
+
+    val primary by animateColorAsState(
+        if (timerState.timerMode == TimerMode.FOCUS) colorScheme.primary else colorScheme.tertiary,
+        label = "toolbarPrimary"
+    )
+    val onPrimary by animateColorAsState(
+        if (timerState.timerMode == TimerMode.FOCUS) colorScheme.onPrimary else colorScheme.onTertiary,
+        label = "toolbarOnPrimary"
+    )
+    val primaryContainer by animateColorAsState(
+        if (timerState.timerMode == TimerMode.FOCUS) colorScheme.primaryContainer else colorScheme.tertiaryContainer,
+        label = "toolbarPrimaryContainer"
+    )
+    val onPrimaryContainer by animateColorAsState(
+        if (timerState.timerMode == TimerMode.FOCUS) colorScheme.onPrimaryContainer else colorScheme.onTertiaryContainer,
+        label = "toolbarOnPrimaryContainer"
     )
 
-    val isPlaying = state.isRunning && !state.isPaused
+    val navItems = remember {
+        listOf(
+            PomodoroNavItem(
+                PomodoroSubScreen.TIMER,
+                R.drawable.timer_outlined,
+                R.drawable.timer_filled,
+                R.string.timer
+            ),
+            PomodoroNavItem(
+                PomodoroSubScreen.STATS,
+                R.drawable.monitoring,
+                R.drawable.monitoring_filled,
+                R.string.stats
+            ),
+            PomodoroNavItem(
+                PomodoroSubScreen.SETTINGS,
+                R.drawable.settings,
+                R.drawable.settings_filled,
+                R.string.settings
+            )
+        )
+    }
 
-    val resetInteraction = remember { MutableInteractionSource() }
-    val playPauseInteraction = remember { MutableInteractionSource() }
-    val skipInteraction = remember { MutableInteractionSource() }
-
-    var resetRotationTarget by remember { mutableFloatStateOf(0f) }
-    val resetRotation by animateFloatAsState(
-        targetValue = resetRotationTarget,
-        animationSpec = spring(
-            dampingRatio = 0.6f,
-            stiffness = 800f
-        ),
-        label = "resetRotation"
-    )
-
-    @Composable
-    fun ControlsRow(modifier: Modifier = Modifier) {
-        Row(
-            modifier = modifier.padding(horizontal = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            ToggleButton(
-                checked = false,
-                onCheckedChange = {
-                    view.weakHaptic()
-                    resetRotationTarget -= 360f
-                    viewModel.resetTimer()
-                },
-                modifier = Modifier
-                    .weight(1f)
-                    .height(64.dp)
-                    .springyPressEffect(
-                        interactionSource = resetInteraction,
-                        neighborInteractionSources = listOf(playPauseInteraction),
-                        scaleDown = 0.90f
-                    )
-                    .semantics { role = Role.Button },
-                interactionSource = resetInteraction,
-                shapes = ButtonGroupDefaults.connectedLeadingButtonShapes(),
-                colors = ToggleButtonDefaults.toggleButtonColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                    contentColor = MaterialTheme.colorScheme.onSurface,
-                    checkedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                    checkedContentColor = MaterialTheme.colorScheme.onSurface
-                )
-            ) {
-                Icon(
-                    Icons.Rounded.Refresh,
-                    contentDescription = "Reset",
-                    modifier = Modifier
-                        .size(28.dp)
-                        .graphicsLayer { rotationZ = resetRotation }
-                )
+    if (timerState.alarmRinging) {
+        AlarmDialog(
+            stopAlarm = {
+                val intent = Intent(context, PomodoroService::class.java).apply {
+                    action = PomodoroService.Actions.STOP_ALARM.toString()
+                }
+                context.startService(intent)
             }
+        )
+    }
 
-            ToggleButton(
-                checked = isPlaying,
-                onCheckedChange = {
-                    view.weakHaptic()
-                    if (isPlaying) viewModel.pauseTimer()
-                    else viewModel.startTimer()
-                },
-                modifier = Modifier
-                    .weight(1.8f)
-                    .height(64.dp)
-                    .springyPressEffect(
-                        interactionSource = playPauseInteraction,
-                        neighborInteractionSources = listOf(resetInteraction, skipInteraction),
-                        scaleDown = 0.85f
-                    )
-                    .semantics { role = Role.Button },
-                interactionSource = playPauseInteraction,
-                shapes = ButtonGroupDefaults.connectedMiddleButtonShapes(),
-                colors = ToggleButtonDefaults.toggleButtonColors(
-                    containerColor = modeColor.copy(alpha = 0.2f),
-                    contentColor = modeColor,
-                    checkedContainerColor = modeColor,
-                    checkedContentColor = MaterialTheme.colorScheme.onPrimary
-                )
-            ) {
-                AnimatedContent(
-                    targetState = isPlaying,
-                    transitionSpec = {
-                        (scaleIn(
-                            animationSpec = spring(
-                                dampingRatio = 0.6f,
-                                stiffness = 800f
-                            ),
-                            initialScale = 0.0f
-                        ) + fadeIn(
-                            animationSpec = spring(
-                                dampingRatio = 1.0f,
-                                stiffness = 1600f
-                            )
-                        )).togetherWith(
-                            scaleOut(
-                                animationSpec = spring(
-                                    dampingRatio = 1.0f,
-                                    stiffness = 1600f
+    if (isCreateTopicSheetOpen) {
+        TopicBottomSheet(
+            initialTopic = null,
+            onDismiss = timerViewModel::closeCreateTopicSheet,
+            onSaveTopic = timerViewModel::saveTopic
+        )
+    }
+
+    if (isEditTopicSheetOpen) {
+        TopicBottomSheet(
+            initialTopic = selectedTopic,
+            onDismiss = timerViewModel::closeEditTopicSheet,
+            onSaveTopic = timerViewModel::saveTopic
+        )
+    }
+
+    if (currentScreen == PomodoroSubScreen.AOD) {
+        AlwaysOnDisplay(
+            timerState = timerState,
+            progress = { progress },
+            onDismiss = { currentScreen = PomodoroSubScreen.TIMER }
+        )
+    } else {
+        Scaffold(
+            bottomBar = {
+                val floatingNavBarPadding = LocalFloatingNavBarPadding.current
+                val navBarPadding = if (floatingNavBarPadding > 0.dp) floatingNavBarPadding else 16.dp
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = navBarPadding + 8.dp)
+                        .zIndex(2f),
+                    contentAlignment = Alignment.Center
+                ) {
+                    HorizontalFloatingToolbar(
+                        expanded = true,
+                        colors = FloatingToolbarDefaults.vibrantFloatingToolbarColors(
+                            toolbarContainerColor = primaryContainer,
+                            toolbarContentColor = onPrimaryContainer
+                        )
+                    ) {
+                        navItems.forEach { item ->
+                            val selected = currentScreen == item.screen
+                            TooltipBox(
+                                positionProvider = TooltipDefaults.rememberTooltipPositionProvider(
+                                    TooltipAnchorPosition.Above
                                 ),
-                                targetScale = 0.0f
-                            ) + fadeOut(
-                                animationSpec = spring(
-                                    dampingRatio = 1.0f,
-                                    stiffness = 1600f
-                                )
-                            )
-                        ).using(SizeTransform(clip = false))
-                    },
-                    label = "playPauseIcon"
-                ) { playing ->
-                    Icon(
-                        if (playing) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
-                        contentDescription = if (playing) "Pause" else "Play",
-                        modifier = Modifier.size(32.dp)
-                    )
+                                tooltip = { PlainTooltip { Text(stringResource(item.labelRes)) } },
+                                state = rememberTooltipState()
+                            ) {
+                                ToggleButton(
+                                    checked = selected,
+                                    onCheckedChange = { if (!selected) currentScreen = item.screen },
+                                    colors = ToggleButtonDefaults.toggleButtonColors(
+                                        containerColor = primaryContainer,
+                                        contentColor = onPrimaryContainer,
+                                        checkedContainerColor = primary,
+                                        checkedContentColor = onPrimary
+                                    ),
+                                    shapes = ToggleButtonDefaults.shapes(CircleShape, CircleShape, CircleShape),
+                                    modifier = Modifier.height(56.dp)
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Crossfade(targetState = selected, label = "iconCrossfade") { isSel ->
+                                            Icon(
+                                                painter = painterResource(if (isSel) item.selectedIcon else item.unselectedIcon),
+                                                contentDescription = stringResource(item.labelRes),
+                                                modifier = Modifier.padding(horizontal = 4.dp)
+                                            )
+                                        }
+                                        AnimatedVisibility(
+                                            visible = selected,
+                                            enter = expandHorizontally(),
+                                            exit = shrinkHorizontally()
+                                        ) {
+                                            Text(
+                                                text = stringResource(item.labelRes),
+                                                fontFamily = `in`.jyotirmoy.attendx.tools.presentation.pomodoro.theme.NunitoFontFamily,
+                                                fontSize = 15.sp,
+                                                fontWeight = FontWeight.SemiBold,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Clip,
+                                                modifier = Modifier.padding(start = ButtonDefaults.IconSpacing, end = 4.dp)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
-
-            ToggleButton(
-                checked = false,
-                onCheckedChange = {
-                    view.weakHaptic()
-                    viewModel.skipSession()
+        ) { contentPadding ->
+            AnimatedContent(
+                targetState = currentScreen,
+                transitionSpec = {
+                    fadeIn().togetherWith(fadeOut())
                 },
-                modifier = Modifier
-                    .weight(1f)
-                    .height(64.dp)
-                    .springyPressEffect(
-                        interactionSource = skipInteraction,
-                        neighborInteractionSources = listOf(playPauseInteraction),
-                        scaleDown = 0.90f
-                    )
-                    .semantics { role = Role.Button },
-                interactionSource = skipInteraction,
-                shapes = ButtonGroupDefaults.connectedTrailingButtonShapes(),
-                colors = ToggleButtonDefaults.toggleButtonColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                    contentColor = MaterialTheme.colorScheme.onSurface,
-                    checkedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                    checkedContentColor = MaterialTheme.colorScheme.onSurface
-                )
-            ) {
-                Icon(
-                    Icons.Rounded.SkipNext,
-                    contentDescription = "Skip",
-                    modifier = Modifier.size(28.dp)
-                )
-            }
-        }
-    }
-
-    @Composable
-    fun ModeSelector(modifier: Modifier = Modifier) {
-        SingleChoiceSegmentedButtonRow(
-            modifier = modifier.fillMaxWidth()
-        ) {
-            PomodoroMode.entries.forEachIndexed { index, mode ->
-                SegmentedButton(
-                    selected = state.mode == mode,
-                    onClick = { viewModel.changeMode(mode) },
-                    shape = SegmentedButtonDefaults.itemShape(
-                        index = index,
-                        count = PomodoroMode.entries.size
-                    ),
-                    colors = SegmentedButtonDefaults.colors(
-                        activeContainerColor = modeColor.copy(alpha = 0.15f),
-                        activeContentColor = modeColor
-                    )
-                ) {
-                    Text(mode.label)
+                label = "screenTransition",
+                modifier = Modifier.fillMaxSize()
+            ) { screen ->
+                when (screen) {
+                    PomodoroSubScreen.TIMER -> {
+                        PomodoroTimerScreen(
+                            timerState = timerState,
+                            settingsState = settingsState,
+                            selectedTopic = selectedTopic,
+                            topics = topics,
+                            contentPadding = contentPadding,
+                            progress = { progress },
+                            onAction = timerViewModel::onAction,
+                            onSelectTopic = timerViewModel::selectTopic,
+                            onCreateTopic = timerViewModel::openCreateTopicSheet,
+                            onNavigateAod = { currentScreen = PomodoroSubScreen.AOD }
+                        )
+                    }
+                    PomodoroSubScreen.STATS -> {
+                        PomodoroStatsScreen(
+                            contentPadding = contentPadding,
+                            viewModel = statsViewModel
+                        )
+                    }
+                    PomodoroSubScreen.SETTINGS -> {
+                        PomodoroSettingsScreen(
+                            contentPadding = contentPadding,
+                            viewModel = settingsViewModel,
+                            topics = topics,
+                            selectedTopic = selectedTopic,
+                            onSelectTopic = timerViewModel::selectTopic,
+                            onCreateTopic = timerViewModel::openCreateTopicSheet,
+                            onEditTopic = timerViewModel::openEditTopicSheet
+                        )
+                    }
+                    PomodoroSubScreen.AOD -> {}
                 }
             }
         }
     }
-
-    @Composable
-    fun TimerDisplay(modifier: Modifier = Modifier) {
-        Box(
-            contentAlignment = Alignment.Center,
-            modifier = modifier
-        ) {
-            val progress by animateFloatAsState(
-                targetValue = if (state.totalTime > 0) {
-                    state.timeLeft.toFloat() / state.totalTime.toFloat()
-                } else 1f,
-                animationSpec = tween(300),
-                label = "progress"
-            )
-
-            CircularWavyProgressIndicator(
-                progress = { progress },
-                modifier = Modifier.fillMaxSize(),
-                color = modeColor,
-                trackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-            )
-
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier.fillMaxSize(0.65f)
-            ) {
-                AutoResizeableText(
-                    text = formatTime(state.timeLeft),
-                    style = MaterialTheme.typography.displayLarge.copy(
-                        fontSize = 60.sp,
-                        fontWeight = FontWeight.Bold
-                    ),
-                    color = modeColor,
-                    maxLines = 1,
-                    softWrap = false,
-                    minFontSize = 12.sp
-                )
-            }
-        }
-    }
-
-    Scaffold(
-        topBar = {
-            TopAppBar(title = { Text("Pomodoro Timer") })
-        }
-    ) { padding ->
-        if (isLandscape) {
-            Row(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding)
-                    .padding(horizontal = 24.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                TimerDisplay(
-                    modifier = Modifier
-                        .fillMaxHeight(0.85f)
-                        .aspectRatio(1f)
-                )
-
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(start = 24.dp),
-                    verticalArrangement = Arrangement.SpaceEvenly,
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    ModeSelector()
-                    Spacer(modifier = Modifier.height(16.dp))
-                    ControlsRow(modifier = Modifier.fillMaxWidth())
-                }
-            }
-        } else {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding)
-                    .padding(horizontal = 24.dp)
-                    .verticalScroll(rememberScrollState()),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.SpaceEvenly
-            ) {
-                ModeSelector()
-
-                TimerDisplay(
-                    modifier = Modifier
-                        .size(280.dp)
-                        .aspectRatio(1f)
-                )
-
-                ControlsRow(modifier = Modifier.fillMaxWidth())
-            }
-        }
-    }
 }
-
-private fun formatTime(millis: Long): String {
-    val totalSeconds = millis / 1000
-    val m = totalSeconds / 60
-    val s = totalSeconds % 60
-    return String.format("%02d:%02d", m, s)
-}
-

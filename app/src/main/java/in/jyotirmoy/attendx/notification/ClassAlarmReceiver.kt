@@ -10,6 +10,7 @@ import android.content.Intent
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.datastore.preferences.core.booleanPreferencesKey
+import `in`.jyotirmoy.attendx.R
 import `in`.jyotirmoy.attendx.core.utils.TimeUtils
 import `in`.jyotirmoy.attendx.settings.data.local.SettingsKeys
 import `in`.jyotirmoy.attendx.settings.data.local.provider.settingsDataStore
@@ -44,9 +45,11 @@ class ClassAlarmReceiver : BroadcastReceiver() {
         // Check verification in a Coroutine
         CoroutineScope(Dispatchers.IO).launch {
             val settings = context.settingsDataStore.data.first()
-            val isEnabled = settings[booleanPreferencesKey(SettingsKeys.ENABLE_TIMETABLE_NOTIFICATIONS.name)] ?: true
+            val masterEnabled = settings[booleanPreferencesKey(SettingsKeys.ENABLE_NOTIFICATIONS.name)] ?: true
+            val timetableEnabled = settings[booleanPreferencesKey(SettingsKeys.ENABLE_TIMETABLE_NOTIFICATIONS.name)] ?: true
+            val isEnabled = masterEnabled && timetableEnabled
             
-            android.util.Log.d("ClassAlarmReceiver", "Timetable notifications enabled: $isEnabled")
+            android.util.Log.d("ClassAlarmReceiver", "Timetable notifications enabled: $isEnabled (master=$masterEnabled, timetable=$timetableEnabled)")
             
             if (isEnabled) {
                 android.util.Log.d("ClassAlarmReceiver", "Showing notification for $subjectName")
@@ -102,7 +105,7 @@ class ClassAlarmReceiver : BroadcastReceiver() {
         )
 
         val notificationBuilder = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setSmallIcon(R.drawable.ic_launcher_bear_monochrome)
             .setContentTitle(title)
             .setContentText(message)
             .setStyle(NotificationCompat.BigTextStyle().bigText(message))
@@ -121,6 +124,10 @@ class ClassAlarmReceiver : BroadcastReceiver() {
                 "Missed",
                 createAttendanceIntent(context, subjectId, "MISSED", scheduleId)
             )
+
+        `in`.jyotirmoy.attendx.notification.helper.NotificationHelper.getAppIconBitmap(context)?.let {
+            notificationBuilder.setLargeIcon(it)
+        }
 
         val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         // Use scheduleId as notification ID to allow multiple simultaneous notifications

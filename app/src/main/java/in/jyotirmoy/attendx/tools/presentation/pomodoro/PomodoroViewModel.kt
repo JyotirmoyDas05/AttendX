@@ -1,124 +1,163 @@
 package `in`.jyotirmoy.attendx.tools.presentation.pomodoro
 
-import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
-import android.content.ServiceConnection
-import android.os.IBinder
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import `in`.jyotirmoy.attendx.tools.data.model.Topic
+import `in`.jyotirmoy.attendx.tools.data.repository.StateRepository
+import `in`.jyotirmoy.attendx.tools.data.repository.TopicRepository
+import `in`.jyotirmoy.attendx.tools.presentation.pomodoro.model.SettingsAction
+import `in`.jyotirmoy.attendx.tools.presentation.pomodoro.model.TimerAction
+import `in`.jyotirmoy.attendx.tools.presentation.pomodoro.model.TimerMode
+import `in`.jyotirmoy.attendx.tools.presentation.pomodoro.model.TimerState
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
 class PomodoroViewModel @Inject constructor(
-    @ApplicationContext private val context: Context
+    @param:ApplicationContext private val context: Context,
+    private val stateRepository: StateRepository,
+    private val topicRepository: TopicRepository
 ) : ViewModel() {
 
-    private var pomodoroService: PomodoroService? = null
-    private var isBound = false
+    val timerState: StateFlow<TimerState> = stateRepository.timerState
+    val settingsState = stateRepository.settingsState
+    val time = stateRepository.time
 
-    private val _uiState = MutableStateFlow(TimerState())
-    val uiState: StateFlow<TimerState> = _uiState.asStateFlow()
+    val topics: StateFlow<List<Topic>> = topicRepository.getAllTopics()
+        .stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(5000),
+            listOf(Topic(id = 1, name = "Default", colorHex = "#A8C7FA"))
+        )
 
-    private val connection = object : ServiceConnection {
-        override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
-            val binder = service as PomodoroService.LocalBinder
-            pomodoroService = binder.getService()
-            isBound = true
-            
-            viewModelScope.launch {
-                pomodoroService?.timerState?.collect { state ->
-                    _uiState.value = state
-                }
-            }
-        }
+    private val _selectedTopic = MutableStateFlow(Topic(id = 1, name = "Default", colorHex = "#A8C7FA"))
+    val selectedTopic: StateFlow<Topic> = _selectedTopic.asStateFlow()
 
-        override fun onServiceDisconnected(name: ComponentName?) {
-            pomodoroService = null
-            isBound = false
-        }
-    }
+    private val _isCreateTopicSheetOpen = MutableStateFlow(false)
+    val isCreateTopicSheetOpen: StateFlow<Boolean> = _isCreateTopicSheetOpen.asStateFlow()
+
+    private val _isEditTopicSheetOpen = MutableStateFlow(false)
+    val isEditTopicSheetOpen: StateFlow<Boolean> = _isEditTopicSheetOpen.asStateFlow()
 
     init {
-        bindService()
-    }
-
-    private fun bindService() {
-        Intent(context, PomodoroService::class.java).also { intent ->
-            context.bindService(intent, connection, Context.BIND_AUTO_CREATE)
+        viewModelScope.launch {
+            topicRepository.ensureDefaultTopic()
         }
     }
 
-    fun startTimer() {
-        if (isBound) {
-            val currentState = _uiState.value
-            // If already running, do nothing or handle resume? 
-            // Reuse existing duration or restart if completed?
-            if (!currentState.isRunning && !currentState.isPaused) {
-                // If starting fresh
-                startTimer(currentState.mode.durationMillis)
-            } else if (currentState.isPaused) {
-                resumeTimer()
+    val progress: StateFlow<Float> = combine(
+        stateRepository.time,
+        stateRepository.timerState,
+        stateRepository.settingsState
+    ) { time, timerState, settingsState ->
+        val total = when (timerState.timerMode) {
+            TimerMode.FOCUS -> settingsState.focusTime
+            TimerMode.SHORT_BREAK -> settingsState.shortBreakTime
+            else -> settingsState.longBreakTime
+        }
+        if (total <= 0) 1f else ((total - time).toFloat() / total.toFloat()).coerceIn(0f, 1f)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0f)
+
+    fun openCreateTopicSheet() {
+        _isCreateTopicSheetOpen.value = true
+    }
+
+    fun closeCreateTopicSheet() {
+        _isCreateTopicSheetOpen.value = false
+    }
+
+    fun openEditTopicSheet() {
+        _isEditTopicSheetOpen.value = true
+    }
+
+    fun closeEditTopicSheet() {
+        _isEditTopicSheetOpen.value = false
+    }
+
+    fun selectTopic(topic: Topic) {
+        _selectedTopic.value = topic
+        viewModelScope.launch {
+            stateRepository.settingsState.update {
+                it.copy(
+                    focusTime = topic.focusTime,
+                    shortBreakTime = topic.shortBreakTime,
+                    longBreakTime = topic.longBreakTime
+                )
+            }
+            if (!timerState.value.timerRunning) {
+                stateRepository.resetTimer(topic.focusTime)
             }
         }
     }
 
-    private fun startTimer(durationMillis: Long) {
-        if (isBound) {
-            val intent = Intent(context, PomodoroService::class.java)
-            context.startForegroundService(intent) // Start service first
-            pomodoroService?.startTimer(durationMillis)
+    fun saveTopic(topic: Topic) {
+        viewModelScope.launch {
+            val id = topicRepository.saveTopic(topic)
+            val updated = topic.copy(id = if (topic.id != 0L) topic.id else id)
+            selectTopic(updated)
+            closeCreateTopicSheet()
+            closeEditTopicSheet()
         }
     }
 
-    fun skipSession() {
-        val currentMode = _uiState.value.mode
-        val nextMode = when (currentMode) {
-            PomodoroMode.FOCUS -> PomodoroMode.SHORT_BREAK // Simple toggle for now
-            PomodoroMode.SHORT_BREAK -> PomodoroMode.FOCUS
-            PomodoroMode.LONG_BREAK -> PomodoroMode.FOCUS
+    fun deleteTopic(topic: Topic) {
+        viewModelScope.launch {
+            if (topic.id != 1L) {
+                topicRepository.deleteTopic(topic)
+                val defaultTopic = topicRepository.ensureDefaultTopic()
+                selectTopic(defaultTopic)
+            }
         }
-        changeMode(nextMode)
-    }
-    
-    fun changeMode(mode: PomodoroMode) {
-        stopTimer()
-        // We need to update the UI state immediately even if service is stopped
-        // But service is source of truth. We should update service state if bound?
-        // Or just local state? 
-        // Ideally tell service to reset to this mode.
-        pomodoroService?.resetToMode(mode)
     }
 
-    fun resetTimer() {
-        stopTimer()
-        pomodoroService?.resetToMode(_uiState.value.mode)
+    fun onAction(action: TimerAction) {
+        when (action) {
+            is TimerAction.ToggleTimer -> {
+                sendServiceIntent(PomodoroService.Actions.TOGGLE.toString())
+            }
+            is TimerAction.ResetTimer -> {
+                stateRepository.resetTimer()
+                if (timerState.value.serviceRunning) {
+                    sendServiceIntent(PomodoroService.Actions.RESET.toString())
+                }
+            }
+            is TimerAction.UndoReset -> {
+                stateRepository.undoReset()
+                if (timerState.value.serviceRunning) {
+                    sendServiceIntent(PomodoroService.Actions.UNDO_RESET.toString())
+                }
+            }
+            is TimerAction.SkipTimer -> {
+                sendServiceIntent(PomodoroService.Actions.SKIP.toString())
+            }
+            is TimerAction.StopAlarm -> {
+                sendServiceIntent(PomodoroService.Actions.STOP_ALARM.toString())
+            }
+            is TimerAction.SetInfiniteFocus -> {
+                stateRepository.timerState.update { it.copy(infiniteFocus = action.value) }
+            }
+        }
     }
 
-
-    fun pauseTimer() {
-        pomodoroService?.pauseTimer()
-    }
-
-    fun resumeTimer() {
-        pomodoroService?.resumeTimer()
-    }
-
-    fun stopTimer() {
-        pomodoroService?.stopTimerService()
-    }
-
-    override fun onCleared() {
-        super.onCleared()
-        if (isBound) {
-            context.unbindService(connection)
-            isBound = false
+    private fun sendServiceIntent(actionName: String) {
+        val intent = Intent(context, PomodoroService::class.java).apply {
+            action = actionName
+        }
+        try {
+            context.startService(intent)
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
     }
 }

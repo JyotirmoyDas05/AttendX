@@ -1,6 +1,5 @@
 package `in`.jyotirmoy.attendx.core.data.database
 
-
 import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
@@ -9,11 +8,12 @@ import androidx.room.TypeConverters
 import `in`.jyotirmoy.attendx.core.data.model.AttendanceEntity
 import `in`.jyotirmoy.attendx.core.data.model.ClassScheduleEntity
 import `in`.jyotirmoy.attendx.core.data.model.SubjectEntity
+import `in`.jyotirmoy.attendx.core.data.model.CourseMaterialEntity
+import `in`.jyotirmoy.attendx.core.data.model.SubjectTaskEntity
 import `in`.jyotirmoy.attendx.peer.data.local.PeerComparisonCacheDao
 import `in`.jyotirmoy.attendx.peer.data.local.PeerComparisonCacheEntity
 import `in`.jyotirmoy.attendx.timetable.data.model.TimeTableScheduleEntity
 import `in`.jyotirmoy.attendx.timetable.data.dao.TimeTableDao
-import `in`.jyotirmoy.attendx.core.data.database.Converters
 
 @Database(
     entities = [
@@ -21,9 +21,11 @@ import `in`.jyotirmoy.attendx.core.data.database.Converters
         AttendanceEntity::class,
         ClassScheduleEntity::class,
         TimeTableScheduleEntity::class,
-        PeerComparisonCacheEntity::class
+        PeerComparisonCacheEntity::class,
+        SubjectTaskEntity::class,
+        CourseMaterialEntity::class
     ],
-    version = 10,
+    version = 12,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -33,6 +35,8 @@ abstract class SubjectDatabase : RoomDatabase() {
     abstract fun classScheduleDao(): ClassScheduleDao
     abstract fun timeTableDao(): TimeTableDao
     abstract fun peerComparisonCacheDao(): PeerComparisonCacheDao
+    abstract fun subjectTaskDao(): SubjectTaskDao
+    abstract fun courseMaterialDao(): CourseMaterialDao
 
     companion object {
         @Volatile
@@ -48,7 +52,7 @@ abstract class SubjectDatabase : RoomDatabase() {
                     SubjectDatabase::class.java,
                     "subject_database"
                 )
-                    .fallbackToDestructiveMigration()
+                    .fallbackToDestructiveMigration(false)
                     .build()
                 INSTANCE = instance
                 instance
@@ -56,4 +60,3 @@ abstract class SubjectDatabase : RoomDatabase() {
         }
     }
 }
-

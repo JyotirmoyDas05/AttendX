@@ -1,6 +1,8 @@
 package `in`.jyotirmoy.attendx.calender.presentation.screens
 
-
+import android.content.Intent
+import android.net.Uri
+import android.widget.Toast
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.ContentTransform
 import androidx.compose.animation.SizeTransform
@@ -45,6 +47,8 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material.icons.rounded.Settings
+import androidx.core.content.FileProvider
+import java.io.File
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -58,6 +62,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -65,6 +70,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -72,14 +78,23 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.toRoute
 import `in`.jyotirmoy.attendx.R
+import `in`.jyotirmoy.attendx.calender.presentation.components.bottomsheet.AddCourseMaterialBottomSheet
+import `in`.jyotirmoy.attendx.calender.presentation.components.bottomsheet.AddEditTaskBottomSheet
 import `in`.jyotirmoy.attendx.calender.presentation.components.bottomsheet.AttendanceTargetBottomSheet
 import `in`.jyotirmoy.attendx.calender.presentation.components.bottomsheet.SubjectAttendanceDataBottomSheet
+import `in`.jyotirmoy.attendx.calender.presentation.components.bottomsheet.TaskDetailBottomSheet
 import `in`.jyotirmoy.attendx.calender.presentation.components.canvas.CalendarCanvas
+import `in`.jyotirmoy.attendx.calender.presentation.components.card.CourseMaterialsCard
+import `in`.jyotirmoy.attendx.calender.presentation.components.card.NotesAndTasksCard
+import `in`.jyotirmoy.attendx.calender.presentation.components.dialog.RemoveOrDeleteMaterialDialog
 import `in`.jyotirmoy.attendx.calender.presentation.components.GroupedTimetableCards
 import `in`.jyotirmoy.attendx.calender.presentation.viewmodel.CalendarViewModel
 import `in`.jyotirmoy.attendx.core.common.LocalSettings
 import `in`.jyotirmoy.attendx.core.common.LocalWeakHaptic
 import `in`.jyotirmoy.attendx.core.domain.model.AttendanceStatus
+import `in`.jyotirmoy.attendx.core.domain.model.CourseMaterial
+import `in`.jyotirmoy.attendx.core.domain.model.MaterialType
+import `in`.jyotirmoy.attendx.core.domain.model.SubjectTask
 import `in`.jyotirmoy.attendx.core.domain.model.SubjectAttendance
 import `in`.jyotirmoy.attendx.core.presentation.components.button.BackButton
 import `in`.jyotirmoy.attendx.core.presentation.components.text.AutoResizeableText
@@ -160,6 +175,7 @@ fun CalendarScreen(
     viewModel: CalendarViewModel = hiltViewModel(),
     homeViewModel: HomeViewModel = hiltViewModel(),
 ) {
+    val context = LocalContext.current
     val weakHaptic = LocalWeakHaptic.current
     val navController = LocalNavController.current
     val args = navController.currentBackStackEntry?.toRoute<CalendarScreen>()
@@ -176,6 +192,14 @@ fun CalendarScreen(
     val shouldRememberMonthYear = LocalSettings.current.rememberCalendarMonthYear
     var showSubjectAttendanceDataBottomSheet by rememberSaveable { mutableStateOf(false) }
     var showTargetBottomSheet by rememberSaveable { mutableStateOf(false) }
+    var showAddTaskBottomSheet by rememberSaveable { mutableStateOf(false) }
+    var showAddMaterialBottomSheet by rememberSaveable { mutableStateOf(false) }
+    var editingTask by remember { mutableStateOf<SubjectTask?>(null) }
+    var selectedTaskForDetail by remember { mutableStateOf<SubjectTask?>(null) }
+    var materialToDelete by remember { mutableStateOf<CourseMaterial?>(null) }
+
+    val tasks by viewModel.getTasksForSubject(subjectId).collectAsState(initial = emptyList())
+    val materials by viewModel.getMaterialsForSubject(subjectId).collectAsState(initial = emptyList())
 
     // Get attendance counts for insights
     val attendanceCounts by homeViewModel.getSubjectAttendanceCounts(subjectId)
@@ -430,6 +454,66 @@ fun CalendarScreen(
                 }
             }
 
+            // Notes & Tasks Section
+            NotesAndTasksCard(
+                tasks = tasks,
+                onAddTaskClick = { showAddTaskBottomSheet = true },
+                onTaskClick = { task -> selectedTaskForDetail = task }
+            )
+
+            // Course Materials Section
+            CourseMaterialsCard(
+                materials = materials,
+                onAddMaterialClick = { showAddMaterialBottomSheet = true },
+                onMaterialClick = { material ->
+                    try {
+                        if (material.type == MaterialType.LINK) {
+                            val webUri = if (!material.uriOrUrl.startsWith("http://") && !material.uriOrUrl.startsWith("https://")) {
+                                Uri.parse("https://${material.uriOrUrl}")
+                            } else {
+                                Uri.parse(material.uriOrUrl)
+                            }
+                            val intent = Intent(Intent.ACTION_VIEW, webUri).apply {
+                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            }
+                            context.startActivity(intent)
+                        } else {
+                            val rawUri = Uri.parse(material.uriOrUrl)
+                            val contentUri: Uri = if (rawUri.scheme == "file" || rawUri.scheme == null) {
+                                val file = if (rawUri.scheme == "file") File(rawUri.path ?: "") else File(material.uriOrUrl)
+                                FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+                            } else {
+                                rawUri
+                            }
+
+                            val mimeType = when {
+                                material.type == MaterialType.PDF || material.title.endsWith(".pdf", ignoreCase = true) -> "application/pdf"
+                                material.type == MaterialType.IMAGE || material.title.endsWith(".jpg", ignoreCase = true) || material.title.endsWith(".png", ignoreCase = true) -> "image/*"
+                                material.title.endsWith(".doc", ignoreCase = true) || material.title.endsWith(".docx", ignoreCase = true) -> "application/msword"
+                                material.title.endsWith(".ppt", ignoreCase = true) || material.title.endsWith(".pptx", ignoreCase = true) -> "application/vnd.ms-powerpoint"
+                                material.title.endsWith(".xls", ignoreCase = true) || material.title.endsWith(".xlsx", ignoreCase = true) -> "application/vnd.ms-excel"
+                                material.title.endsWith(".txt", ignoreCase = true) -> "text/plain"
+                                else -> material.mimeType ?: "*/*"
+                            }
+
+                            val intent = Intent(Intent.ACTION_VIEW).apply {
+                                setDataAndType(contentUri, mimeType)
+                                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            }
+                            context.startActivity(Intent.createChooser(intent, "Open with").apply {
+                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            })
+                        }
+                    } catch (e: Exception) {
+                        Toast.makeText(context, "Cannot open material", Toast.LENGTH_SHORT).show()
+                    }
+                },
+                onMaterialDelete = { material ->
+                    materialToDelete = material
+                }
+            )
+
             Spacer(modifier = Modifier.height(24.dp))
         }
         
@@ -454,6 +538,81 @@ fun CalendarScreen(
                 currentTarget = targetPercentage,
                 onDismiss = {
                     showTargetBottomSheet = false
+                }
+            )
+        }
+
+        if (selectedTaskForDetail != null) {
+            TaskDetailBottomSheet(
+                subjectName = subject.ifBlank { "Subject" },
+                task = selectedTaskForDetail!!,
+                onDismiss = { selectedTaskForDetail = null },
+                onEdit = {
+                    val taskToEdit = selectedTaskForDetail
+                    selectedTaskForDetail = null
+                    editingTask = taskToEdit
+                },
+                onDelete = {
+                    val taskToDelete = selectedTaskForDetail
+                    selectedTaskForDetail = null
+                    taskToDelete?.let { viewModel.deleteTask(it) }
+                },
+                onToggleCompletion = { isCompleted ->
+                    selectedTaskForDetail?.id?.let {
+                        viewModel.updateTaskCompletion(it, isCompleted)
+                    }
+                }
+            )
+        }
+
+        if (showAddTaskBottomSheet || editingTask != null) {
+            AddEditTaskBottomSheet(
+                subjectId = subjectId,
+                existingTask = editingTask,
+                onDismiss = {
+                    showAddTaskBottomSheet = false
+                    editingTask = null
+                },
+                onSaveTask = { task ->
+                    viewModel.insertTask(task)
+                    editingTask = null
+                }
+            )
+        }
+
+        if (showAddMaterialBottomSheet) {
+            AddCourseMaterialBottomSheet(
+                subjectId = subjectId,
+                subjectName = subject,
+                onDismiss = { showAddMaterialBottomSheet = false },
+                onSaveMaterial = { material ->
+                    viewModel.insertMaterial(material)
+                }
+            )
+        }
+
+        if (materialToDelete != null) {
+            val mat = materialToDelete!!
+            RemoveOrDeleteMaterialDialog(
+                material = mat,
+                onDismiss = { materialToDelete = null },
+                onRemoveFromApp = {
+                    viewModel.deleteMaterial(mat)
+                    materialToDelete = null
+                },
+                onDeletePermanently = {
+                    try {
+                        if (mat.type != MaterialType.LINK) {
+                            val fileUri = Uri.parse(mat.uriOrUrl)
+                            if (fileUri.scheme == "file") {
+                                java.io.File(fileUri.path ?: "").delete()
+                            } else if (fileUri.scheme == "content") {
+                                context.contentResolver.delete(fileUri, null, null)
+                            }
+                        }
+                    } catch (_: Exception) {}
+                    viewModel.deleteMaterial(mat)
+                    materialToDelete = null
                 }
             )
         }

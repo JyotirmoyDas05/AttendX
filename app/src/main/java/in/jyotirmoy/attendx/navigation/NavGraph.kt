@@ -185,6 +185,17 @@ fun Navigation(
                 popEnterTransition = { slideFadeInFromLeft() },
                 popExitTransition = { slideFadeOutToRight() }
             ) {
+                `in`.jyotirmoy.attendx.tools.presentation.ToolsHubScreen(
+                    onNavigateToPomodoro = { navController.navigate(PomodoroScreenRoute) }
+                )
+            }
+
+            composable<PomodoroScreenRoute>(
+                enterTransition = { slideFadeInFromRight() },
+                exitTransition = { slideFadeOutToLeft() },
+                popEnterTransition = { slideFadeInFromLeft() },
+                popExitTransition = { slideFadeOutToRight() }
+            ) {
                 `in`.jyotirmoy.attendx.tools.presentation.pomodoro.PomodoroScreen()
             }
 
@@ -251,6 +262,9 @@ data class TemplatePreviewScreen(val templateId: String)
 
 @Serializable
 object ToolsScreen
+
+@Serializable
+object PomodoroScreenRoute
 
 @Serializable
 object PeerInsightsRoute

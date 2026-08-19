@@ -70,10 +70,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import android.os.Build
 import androidx.compose.foundation.layout.offset
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import `in`.jyotirmoy.attendx.core.common.LocalFloatingNavBarPadding
 import `in`.jyotirmoy.attendx.core.common.LocalWeakHaptic
 import `in`.jyotirmoy.attendx.home.presentation.components.drawer.SmartAttendanceDrawer
 import `in`.jyotirmoy.attendx.home.presentation.screens.HomeScreen
@@ -343,21 +345,28 @@ fun MainScreen(
             )
         }
     ) {
+        val navBarBottomPadding = if (isLandscape) 72.dp else 104.dp
         Box(modifier = Modifier.fillMaxSize()) {
             // Screen content (true edge-to-edge behind floating nav bar)
-            Box(modifier = Modifier.fillMaxSize()) {
-                when (selectedTab) {
-                    0 -> HomeScreen(
-                        onOpenDrawer = {
-                            scope.launch { drawerState.open() }
-                        }
-                    )
-                    1 -> `in`.jyotirmoy.attendx.tools.presentation.pomodoro.PomodoroScreen()
-                    2 -> TimeTableScreen(
-                        onNavigateToUpload = { navController.navigate(UploadTemplateScreen) },
-                        onNavigateToMarketplace = { navController.navigate(MarketplaceScreen()) },
-                        onNavigateToSettings = { navController.navigate(SettingsScreen) }
-                    )
+            CompositionLocalProvider(LocalFloatingNavBarPadding provides navBarBottomPadding) {
+                Box(modifier = Modifier.fillMaxSize()) {
+                    when (selectedTab) {
+                        0 -> HomeScreen(
+                            onOpenDrawer = {
+                                scope.launch { drawerState.open() }
+                            }
+                        )
+                        1 -> `in`.jyotirmoy.attendx.tools.presentation.ToolsHubScreen(
+                            onNavigateToPomodoro = {
+                                navController.navigate(`in`.jyotirmoy.attendx.navigation.PomodoroScreenRoute)
+                            }
+                        )
+                        2 -> TimeTableScreen(
+                            onNavigateToUpload = { navController.navigate(UploadTemplateScreen) },
+                            onNavigateToMarketplace = { navController.navigate(MarketplaceScreen()) },
+                            onNavigateToSettings = { navController.navigate(SettingsScreen) }
+                        )
+                    }
                 }
             }
 
