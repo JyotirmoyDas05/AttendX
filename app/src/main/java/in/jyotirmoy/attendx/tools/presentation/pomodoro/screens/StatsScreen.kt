@@ -1,7 +1,14 @@
 package `in`.jyotirmoy.attendx.tools.presentation.pomodoro.screens
 
+import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -73,6 +80,8 @@ import `in`.jyotirmoy.attendx.tools.presentation.pomodoro.util.millisecondsToMin
 
 enum class StatsViewMode { MAIN, THIS_WEEK, THIS_MONTH, THIS_YEAR }
 
+val StatsViewMode.isDetail get() = this != StatsViewMode.MAIN
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PomodoroStatsScreen(
@@ -81,6 +90,10 @@ fun PomodoroStatsScreen(
     modifier: Modifier = Modifier
 ) {
     var viewMode by remember { mutableStateOf(StatsViewMode.MAIN) }
+
+    BackHandler(enabled = viewMode.isDetail) {
+        viewMode = StatsViewMode.MAIN
+    }
 
     val todayStat by viewModel.todayStat.collectAsStateWithLifecycle()
     val allTimeTotalFocus by viewModel.allTimeTotalFocus.collectAsStateWithLifecycle()
@@ -104,7 +117,24 @@ fun PomodoroStatsScreen(
     val hoursFormat = stringResource(R.string.hours_format)
     val minutesFormat = stringResource(R.string.minutes_format)
 
-    when (viewMode) {
+    AnimatedContent(
+        targetState = viewMode,
+        transitionSpec = {
+            if (targetState.isDetail) {
+                // Forward: new content fades+scales in, old fades out
+                (fadeIn() + scaleIn(initialScale = 0.95f))
+                    .togetherWith(fadeOut() + scaleOut(targetScale = 1.05f))
+            } else {
+                // Back: old content fades+scales in from slightly bigger
+                (fadeIn() + scaleIn(initialScale = 1.05f))
+                    .togetherWith(fadeOut() + scaleOut(targetScale = 0.95f))
+            }
+        },
+        label = "statsNavTransition",
+        modifier = modifier
+    ) { mode ->
+    @Suppress("UNUSED_EXPRESSION")
+    when (mode) {
         StatsViewMode.MAIN -> {
             val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
             Scaffold(
@@ -502,8 +532,10 @@ fun PomodoroStatsScreen(
                 onBack = { viewMode = StatsViewMode.MAIN }
             )
         }
-    }
+    } // end when
+    } // end AnimatedContent
 }
+
 
 // ----- Week Detail Screen -----
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)

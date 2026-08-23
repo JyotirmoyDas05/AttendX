@@ -61,12 +61,6 @@ abstract class RepositoryModule {
 
     @Binds
     @Singleton
-    abstract fun bindPeerGroupRepository(
-        impl: `in`.jyotirmoy.attendx.peer.data.repository.PeerGroupRepositoryImpl
-    ): `in`.jyotirmoy.attendx.peer.domain.repository.PeerGroupRepository
-
-    @Binds
-    @Singleton
     abstract fun bindTaskRepository(
         taskRepositoryImpl: TaskRepositoryImpl
     ): TaskRepository

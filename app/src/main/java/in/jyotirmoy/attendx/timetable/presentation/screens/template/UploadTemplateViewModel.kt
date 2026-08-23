@@ -7,18 +7,31 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import java.util.Calendar
+import java.util.Locale
 import `in`.jyotirmoy.attendx.core.data.service.AnonymousAuthService
 import `in`.jyotirmoy.attendx.timetable.domain.usecase.GetExportableDataUseCase
 import `in`.jyotirmoy.attendx.timetable.domain.usecase.UploadTemplateUseCase
 import `in`.jyotirmoy.attendx.timetable.data.model.community.TemplateClassEntry
 import `in`.jyotirmoy.attendx.timetable.data.model.community.TemplateSubjectEntry
 
+private fun getDefaultAcademicYear(): String {
+    val calendar = Calendar.getInstance()
+    val year = calendar.get(Calendar.YEAR)
+    val month = calendar.get(Calendar.MONTH) // 0-indexed: 0 = Jan, 5 = June
+    
+    // Academic year begins around June/July: if month >= June, session is Y-(Y+1) (e.g. 2026-27), else (Y-1)-Y
+    val startYear = if (month >= Calendar.JUNE) year else year - 1
+    val endYearShort = (startYear + 1) % 100
+    return String.format(Locale.US, "%d-%02d", startYear, endYearShort)
+}
+
 data class UploadState(
     val college: String = "",
     val department: String = "",
     val semester: String = "",
     val section: String = "",
-    val academicYear: String = "2025-26",
+    val academicYear: String = getDefaultAcademicYear(),
     val availableSubjects: List<TemplateSubjectEntry> = emptyList(),
     val availableClasses: List<TemplateClassEntry> = emptyList(),
     val selectedSubjects: List<TemplateSubjectEntry> = emptyList(),
@@ -123,23 +136,34 @@ class UploadTemplateViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
-            _state.value = _state.value.copy(isLoading = true)
-            val result = uploadTemplateUseCase(
-                college = _state.value.college,
-                department = _state.value.department,
-                semester = semInt,
-                section = _state.value.section,
-                academicYear = _state.value.academicYear,
-                authorId = anonymousAuthService.getOrCreateUid(),
-                authorName = "Anonymous Student",
-                classes = _state.value.selectedClasses,
-                subjects = _state.value.selectedSubjects
-            )
-            
-            if (result.isSuccess) {
-                 _state.value = _state.value.copy(isLoading = false, isSuccess = true)
-            } else {
-                 _state.value = _state.value.copy(isLoading = false, error = result.exceptionOrNull()?.message ?: "Upload failed")
+            _state.value = _state.value.copy(isLoading = true, error = null)
+            try {
+                val uid = try {
+                    anonymousAuthService.getOrCreateUid()
+                } catch (e: Exception) {
+                    "anonymous_${System.currentTimeMillis()}"
+                }
+
+                val result = uploadTemplateUseCase(
+                    college = _state.value.college,
+                    department = _state.value.department,
+                    semester = semInt,
+                    section = _state.value.section,
+                    academicYear = _state.value.academicYear,
+                    authorId = uid,
+                    authorName = "Anonymous Student",
+                    classes = _state.value.selectedClasses,
+                    subjects = _state.value.selectedSubjects
+                )
+                
+                if (result.isSuccess) {
+                     _state.value = _state.value.copy(isLoading = false, isSuccess = true)
+                } else {
+                     val errorMsg = result.exceptionOrNull()?.message ?: "Upload failed"
+                     _state.value = _state.value.copy(isLoading = false, error = errorMsg)
+                }
+            } catch (e: Exception) {
+                _state.value = _state.value.copy(isLoading = false, error = e.message ?: "Upload failed")
             }
         }
     }

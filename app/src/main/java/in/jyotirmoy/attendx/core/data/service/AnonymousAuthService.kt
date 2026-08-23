@@ -12,6 +12,7 @@ class AnonymousAuthService @Inject constructor() {
     suspend fun getOrCreateUid(): String {
         val current = auth.currentUser
         if (current != null) return current.uid
-        return auth.signInAnonymously().await().user!!.uid
+        return auth.signInAnonymously().await().user?.uid
+            ?: throw IllegalStateException("Firebase Anonymous Auth returned null user")
     }
 }

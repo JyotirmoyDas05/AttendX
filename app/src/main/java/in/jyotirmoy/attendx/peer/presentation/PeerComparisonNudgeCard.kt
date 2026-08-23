@@ -10,7 +10,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ChevronRight
-import androidx.compose.material.icons.outlined.Groups
+import androidx.compose.material.icons.outlined.QrCodeScanner
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -21,25 +21,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import `in`.jyotirmoy.attendx.peer.domain.model.PeerComparisonResult
 
 @Composable
 fun PeerComparisonNudgeCard(
-    state: PeerComparisonState,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val (title, subtitle) = when (val result = state.result) {
-        is PeerComparisonResult.Success -> {
-            val pct = result.data.userPercentile.toInt()
-            "You're in the ${pct}th percentile" to "Tap to see your peer comparison details"
-        }
-        is PeerComparisonResult.InsufficientPeers ->
-            "Peer data not yet available" to "Waiting for more students to join your group"
-        else ->
-            "Compare with peers anonymously" to "See how your attendance stacks up"
-    }
-
     Card(
         onClick = onClick,
         modifier = modifier.fillMaxWidth(),
@@ -55,7 +42,7 @@ fun PeerComparisonNudgeCard(
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Icon(
-                imageVector = Icons.Outlined.Groups,
+                imageVector = Icons.Outlined.QrCodeScanner,
                 contentDescription = null,
                 modifier = Modifier.size(28.dp),
                 tint = MaterialTheme.colorScheme.primary
@@ -65,12 +52,12 @@ fun PeerComparisonNudgeCard(
                 verticalArrangement = Arrangement.spacedBy(2.dp)
             ) {
                 Text(
-                    text = title,
+                    text = "Compare with a peer",
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.SemiBold
                 )
                 Text(
-                    text = subtitle,
+                    text = "Scan a QR code to compare attendance subject-by-subject",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

@@ -15,11 +15,14 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.AttachFile
+import androidx.compose.material.icons.outlined.Audiotrack
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material.icons.outlined.PictureAsPdf
+import androidx.compose.material.icons.outlined.Slideshow
+import androidx.compose.material.icons.outlined.Videocam
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -201,14 +204,26 @@ private fun MaterialItemRow(
         MaterialType.PDF -> Icons.Outlined.PictureAsPdf
         MaterialType.LINK -> Icons.Outlined.Link
         MaterialType.IMAGE -> Icons.Outlined.Image
-        MaterialType.DOC -> Icons.Outlined.Description
+        MaterialType.AUDIO -> Icons.Outlined.Audiotrack
+        MaterialType.VIDEO -> Icons.Outlined.Videocam
+        MaterialType.DOC -> when {
+            material.title.endsWith(".ppt", ignoreCase = true) || material.title.endsWith(".pptx", ignoreCase = true) -> Icons.Outlined.Slideshow
+            else -> Icons.Outlined.Description
+        }
     }
 
     val typeLabel = when (material.type) {
         MaterialType.LINK -> "Link"
         MaterialType.PDF -> "PDF"
-        MaterialType.IMAGE -> "JPG"
-        MaterialType.DOC -> "Doc"
+        MaterialType.IMAGE -> "Image"
+        MaterialType.AUDIO -> "Audio"
+        MaterialType.VIDEO -> "Video"
+        MaterialType.DOC -> when {
+            material.title.endsWith(".ppt", ignoreCase = true) || material.title.endsWith(".pptx", ignoreCase = true) -> "PPT"
+            material.title.endsWith(".doc", ignoreCase = true) || material.title.endsWith(".docx", ignoreCase = true) -> "Doc"
+            material.title.endsWith(".xls", ignoreCase = true) || material.title.endsWith(".xlsx", ignoreCase = true) -> "Excel"
+            else -> "Doc"
+        }
     }
 
     val addedDate = SimpleDateFormat("MMM dd", Locale.getDefault()).format(Date(material.addedAt))

@@ -4,7 +4,9 @@ enum class MaterialType {
     PDF,
     LINK,
     IMAGE,
-    DOC
+    DOC,
+    AUDIO,
+    VIDEO
 }
 
 data class CourseMaterial(

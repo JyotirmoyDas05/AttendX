@@ -18,6 +18,10 @@ import `in`.jyotirmoy.attendx.core.domain.repository.AttendanceRepository
 import `in`.jyotirmoy.attendx.core.domain.repository.CourseMaterialRepository
 import `in`.jyotirmoy.attendx.core.domain.repository.SubjectRepository
 import `in`.jyotirmoy.attendx.core.domain.repository.TaskRepository
+import android.content.Context
+import dagger.hilt.android.qualifiers.ApplicationContext
+import `in`.jyotirmoy.attendx.notification.TaskAlarmScheduler
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -35,6 +39,7 @@ class CalendarViewModel @Inject constructor(
     private val taskRepository: TaskRepository,
     private val courseMaterialRepository: CourseMaterialRepository,
     private val getWeekDayLabelsUseCase: GetWeekDayLabelsUseCase,
+    @ApplicationContext private val context: Context,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -56,19 +61,64 @@ class CalendarViewModel @Inject constructor(
         courseMaterialRepository.getMaterialsForSubject(subjectId)
 
     fun insertTask(task: SubjectTask) {
-        viewModelScope.launch { taskRepository.insertTask(task) }
+        viewModelScope.launch {
+            val newId = taskRepository.insertTask(task)
+            val taskId = if (task.id == 0 && newId > 0) newId.toInt() else task.id
+            if (task.reminderMinutes != null && task.dueDate != null && !task.isCompleted) {
+                try {
+                    val subject = subjectRepository.getSubjectById(task.subjectId).first()
+                    TaskAlarmScheduler.scheduleTaskReminder(
+                        context = context,
+                        taskId = taskId,
+                        subjectId = task.subjectId,
+                        subjectName = subject.subject,
+                        taskTitle = task.title,
+                        taskDescription = task.description,
+                        dueDateMillis = task.dueDate!!,
+                        reminderMinutes = task.reminderMinutes!!
+                    )
+                } catch (_: Exception) {}
+            }
+        }
     }
 
     fun updateTask(task: SubjectTask) {
-        viewModelScope.launch { taskRepository.updateTask(task) }
+        viewModelScope.launch {
+            taskRepository.updateTask(task)
+            if (task.reminderMinutes != null && task.dueDate != null && !task.isCompleted) {
+                try {
+                    val subject = subjectRepository.getSubjectById(task.subjectId).first()
+                    TaskAlarmScheduler.scheduleTaskReminder(
+                        context = context,
+                        taskId = task.id,
+                        subjectId = task.subjectId,
+                        subjectName = subject.subject,
+                        taskTitle = task.title,
+                        taskDescription = task.description,
+                        dueDateMillis = task.dueDate!!,
+                        reminderMinutes = task.reminderMinutes!!
+                    )
+                } catch (_: Exception) {}
+            } else {
+                TaskAlarmScheduler.cancelTaskReminder(context, task.id)
+            }
+        }
     }
 
     fun updateTaskCompletion(taskId: Int, isCompleted: Boolean) {
-        viewModelScope.launch { taskRepository.updateTaskCompletion(taskId, isCompleted) }
+        viewModelScope.launch {
+            taskRepository.updateTaskCompletion(taskId, isCompleted)
+            if (isCompleted) {
+                TaskAlarmScheduler.cancelTaskReminder(context, taskId)
+            }
+        }
     }
 
     fun deleteTask(task: SubjectTask) {
-        viewModelScope.launch { taskRepository.deleteTask(task) }
+        viewModelScope.launch {
+            TaskAlarmScheduler.cancelTaskReminder(context, task.id)
+            taskRepository.deleteTask(task)
+        }
     }
 
     fun insertMaterial(material: CourseMaterial) {

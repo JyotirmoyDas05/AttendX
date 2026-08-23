@@ -62,8 +62,13 @@ class ImportTemplateUseCase @Inject constructor(
                 timeTableDao.insertClass(schedule)
             }
             
-            // 5. Update download count
-            repository.incrementDownloads(templateId)
+            // 5. Update download count safely
+            try {
+                repository.incrementDownloads(templateId)
+            } catch (e: Exception) {
+                // Non-critical background analytics failure shouldn't fail import
+                e.printStackTrace()
+            }
 
             Result.success(Unit)
         } catch (e: Exception) {

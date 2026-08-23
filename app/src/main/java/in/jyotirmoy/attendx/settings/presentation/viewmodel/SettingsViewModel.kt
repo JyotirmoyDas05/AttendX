@@ -76,11 +76,10 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             // Migration for version 16 to set new requested defaults
             val savedVersion = settingsRepository.getInt(SettingsKeys.SAVED_VERSION_CODE).first()
-            if (savedVersion < 16) {
+            if (savedVersion in 1..<16) {
                 settingsRepository.setInt(SettingsKeys.THEME_MODE, AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)
                 settingsRepository.setBoolean(SettingsKeys.HIGH_CONTRAST_DARK_MODE, true)
                 settingsRepository.setBoolean(SettingsKeys.DYNAMIC_COLORS, true)
-                settingsRepository.setInt(SettingsKeys.SAVED_VERSION_CODE, 16)
             }
 
             val lookAndFeel = settingsRepository.getLookAndFeelPageList()
@@ -171,7 +170,7 @@ class SettingsViewModel @Inject constructor(
                     SettingsUiEvent.Navigate(BackupAndRestoreScreen)
                 )
 
-                SettingsKeys.PEER_COMPARISON_ENABLED -> _uiEvent.emit(
+                SettingsKeys.PEER_COMPARISON -> _uiEvent.emit(
                     SettingsUiEvent.Navigate(PeerInsightsRoute)
                 )
 

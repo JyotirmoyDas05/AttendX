@@ -14,16 +14,21 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.CloudDownload
 import androidx.compose.material.icons.rounded.Settings
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalDrawerSheet
@@ -47,6 +52,7 @@ import `in`.jyotirmoy.attendx.home.presentation.viewmodel.HomeViewModel
 fun SmartAttendanceDrawer(
     modifier: Modifier = Modifier,
     viewModel: HomeViewModel = hiltViewModel(),
+    onCommunityClick: () -> Unit = {},
     onSettingsClick: () -> Unit
 ) {
     val subjects by viewModel.subjectList.collectAsState(initial = emptyList())
@@ -99,32 +105,18 @@ fun SmartAttendanceDrawer(
                     verticalArrangement = Arrangement.spacedBy(5.dp), // 5dp gap between cards for grouped appearance
                     flingBehavior = ScrollableDefaults.flingBehavior() // Smooth overscroll
                 ) {
-                    itemsIndexed(subjects) { index, subject ->
+                    itemsIndexed(
+                        items = subjects,
+                        key = { _, subject -> subject.id }
+                    ) { index, subject ->
                         val counts by viewModel.getSubjectAttendanceCounts(subject.id)
                             .collectAsState(initial = `in`.jyotirmoy.attendx.core.domain.model.SubjectAttendance())
 
-                        val isFirst = index == 0
-                        val isLast = index == subjects.size - 1
-                        val isOnly = subjects.size == 1
-
-                        // Smart corner rounding - matching home screen grouped cards
                         val shape = when {
-                            isOnly -> RoundedCornerShape(25.dp)
-                            isFirst -> RoundedCornerShape(
-                                topStart = 25.dp,
-                                topEnd = 25.dp,
-                                bottomStart = 10.dp,
-                                bottomEnd = 10.dp
-                            )
-
-                            isLast -> RoundedCornerShape(
-                                topStart = 10.dp,
-                                topEnd = 10.dp,
-                                bottomStart = 25.dp,
-                                bottomEnd = 25.dp
-                            )
-
-                            else -> RoundedCornerShape(10.dp)
+                            subjects.size == 1 -> RoundedCornerShape(25.dp)
+                            index == 0 -> RoundedCornerShape(topStart = 25.dp, topEnd = 25.dp, bottomStart = 8.dp, bottomEnd = 8.dp)
+                            index == subjects.size - 1 -> RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp, bottomStart = 25.dp, bottomEnd = 25.dp)
+                            else -> RoundedCornerShape(8.dp)
                         }
 
                         SmartAttendanceCard(
@@ -138,31 +130,65 @@ fun SmartAttendanceDrawer(
                 }
             }
 
-            // Settings Button - matching Add Subject button positioning and overlay behavior
-            androidx.compose.material3.Button(
-                onClick = onSettingsClick,
+            // Dual action footer: Templates & Settings side-by-side
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 25.dp)
-                    .padding(bottom = 25.dp) // Consistent bottom padding
-                    .height(56.dp)
+                    .padding(horizontal = 16.dp)
+                    .padding(bottom = 20.dp)
                     .align(Alignment.BottomCenter),
-                shape = RoundedCornerShape(40.dp),
-                colors = androidx.compose.material3.ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary
-                )
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
-                    imageVector = Icons.Rounded.Settings,
-                    contentDescription = null
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "Settings",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
-                )
+                // Templates Button
+                FilledTonalButton(
+                    onClick = onCommunityClick,
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(52.dp),
+                    shape = RoundedCornerShape(26.dp),
+                    contentPadding = PaddingValues(horizontal = 12.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.CloudDownload,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "Templates",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1
+                    )
+                }
+
+                // Settings Button
+                Button(
+                    onClick = onSettingsClick,
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(52.dp),
+                    shape = RoundedCornerShape(26.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary
+                    ),
+                    contentPadding = PaddingValues(horizontal = 12.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.Settings,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "Settings",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1
+                    )
+                }
             }
         }
     }

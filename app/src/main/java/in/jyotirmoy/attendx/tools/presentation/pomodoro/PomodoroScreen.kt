@@ -78,7 +78,8 @@ data class PomodoroNavItem(
 fun PomodoroScreen(
     timerViewModel: PomodoroViewModel = hiltViewModel(),
     settingsViewModel: SettingsViewModel = hiltViewModel(),
-    statsViewModel: StatsViewModel = hiltViewModel()
+    statsViewModel: StatsViewModel = hiltViewModel(),
+    onNavigateBack: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val colorScheme = MaterialTheme.colorScheme
@@ -92,6 +93,10 @@ fun PomodoroScreen(
     val isEditTopicSheetOpen by timerViewModel.isEditTopicSheetOpen.collectAsStateWithLifecycle()
 
     var currentScreen by remember { mutableStateOf(PomodoroSubScreen.TIMER) }
+
+    androidx.activity.compose.BackHandler(enabled = currentScreen != PomodoroSubScreen.TIMER) {
+        currentScreen = PomodoroSubScreen.TIMER
+    }
 
     val primary by animateColorAsState(
         if (timerState.timerMode == TimerMode.FOCUS) colorScheme.primary else colorScheme.tertiary,
@@ -258,7 +263,8 @@ fun PomodoroScreen(
                             onAction = timerViewModel::onAction,
                             onSelectTopic = timerViewModel::selectTopic,
                             onCreateTopic = timerViewModel::openCreateTopicSheet,
-                            onNavigateAod = { currentScreen = PomodoroSubScreen.AOD }
+                            onNavigateAod = { currentScreen = PomodoroSubScreen.AOD },
+                            onNavigateBack = onNavigateBack
                         )
                     }
                     PomodoroSubScreen.STATS -> {

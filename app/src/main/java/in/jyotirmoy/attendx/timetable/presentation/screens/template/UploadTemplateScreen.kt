@@ -1,22 +1,20 @@
 package `in`.jyotirmoy.attendx.timetable.presentation.screens.template
 
+import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.Color
-import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.ViewModel
-import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.launch
-import javax.inject.Inject
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import `in`.jyotirmoy.attendx.timetable.domain.usecase.UploadTemplateUseCase
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -26,8 +24,8 @@ fun UploadTemplateScreen(
     viewModel: UploadTemplateViewModel = hiltViewModel()
 ) {
     val state = viewModel.state.value
+    val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
-    val scope = rememberCoroutineScope()
 
     Scaffold(
         topBar = {
@@ -35,7 +33,7 @@ fun UploadTemplateScreen(
                 title = { Text("Share Timetable") },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 }
             )
@@ -183,14 +181,14 @@ fun UploadTemplateScreen(
     
     LaunchedEffect(key1 = state.isSuccess) {
         if (state.isSuccess) {
-            snackbarHostState.showSnackbar("Template uploaded successfully!")
+            Toast.makeText(context, "Template shared to community successfully!", Toast.LENGTH_SHORT).show()
             onNavigateBack()
         }
     }
     
     LaunchedEffect(key1 = state.error) {
         if (state.error != null) {
-            snackbarHostState.showSnackbar(state.error)
+            Toast.makeText(context, state.error, Toast.LENGTH_LONG).show()
             viewModel.onEvent(UploadEvent.ErrorShown)
         }
     }

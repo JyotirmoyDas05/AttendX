@@ -28,7 +28,9 @@
 # keep Firebase/Firestore model classes
 -keep class in.jyotirmoy.attendx.timetable.data.model.community.** { *; }
 -keep class in.jyotirmoy.attendx.settings.domain.model.** { *; }
--keep class in.jyotirmoy.attendx.peer.data.model.** { *; }
--keep class in.jyotirmoy.attendx.peer.data.local.** { *; }
 -keep class in.jyotirmoy.attendx.settings.data.remote.dto.** { *; }
+
+# Peer QR Session — Firestore manual map (no toObject reflection), but keep for safety
+-keep class in.jyotirmoy.attendx.peer.data.model.PeerSessionDoc { *; }
+-keep class in.jyotirmoy.attendx.peer.data.model.PeerSubjectPayload { *; }
 

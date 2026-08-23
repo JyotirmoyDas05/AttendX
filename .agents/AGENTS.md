@@ -82,3 +82,29 @@
   git tag vX.Y.Z                        # Example tag (e.g. v2.5.1)
   git push origin vX.Y.Z
   ```
+
+---
+
+## 3. Material 3 Expressive Components & Animation Guidelines
+
+### A. Exclusively Use Material 3 Expressive UI Offerings
+- AttendX is a **Material 3 Expressive** design system. Always prefer and use Material 3 Expressive components (`@OptIn(ExperimentalMaterial3ExpressiveApi::class)` from `androidx.compose.material3`) rather than legacy M2 or basic M3 components.  
+- **Examples**:
+  - **Loading & Progress Indicators**:
+    - Use `LoadingIndicator` / `ContainedLoadingIndicator` for indeterminate spinners and loading states (morphing polygon shapes).
+    - Use `CircularWavyProgressIndicator` / `LinearWavyProgressIndicator` for determinate and indeterminate progress bars.
+    - Avoid legacy `CircularProgressIndicator` / `LinearProgressIndicator` unless explicitly requested.
+
+### B. AnimatedContent State Keying
+- When using `AnimatedContent` with sealed UI states containing high-frequency changing values (such as countdown timers, `secondsRemaining`, or live progress updates), **ALWAYS** specify `contentKey = { it::class }`:
+  ```kotlin
+  AnimatedContent(
+      targetState = state,
+      contentKey = { it::class },
+      transitionSpec = { fadeIn() togetherWith fadeOut() }
+  ) { targetState ->
+      // Composable content
+  }
+  ```
+  This ensures smooth in-place recomposition without flashing the screen or resetting child animations on every second.
+

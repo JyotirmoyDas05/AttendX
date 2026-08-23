@@ -129,6 +129,31 @@ class BootCompletedReceiver : BroadcastReceiver() {
             Log.e(TAG, "❌ Failed to reschedule legacy schedules", e)
         }
 
+        // 3. Reschedule Pending Task Reminders
+        try {
+            val pendingTasks = database.subjectTaskDao().getPendingTasksWithReminders()
+            Log.d(TAG, "📋 Found ${pendingTasks.size} pending task reminders to reschedule")
+            for (task in pendingTasks) {
+                if (task.dueDate != null && task.reminderMinutes != null) {
+                    val subject = subjectDao.getSubjectEntityById(task.subjectId)
+                    val subjectName = subject?.subject ?: "Class"
+                    val scheduled = TaskAlarmScheduler.scheduleTaskReminder(
+                        context = context,
+                        taskId = task.id,
+                        subjectId = task.subjectId,
+                        subjectName = subjectName,
+                        taskTitle = task.title,
+                        taskDescription = task.description,
+                        dueDateMillis = task.dueDate,
+                        reminderMinutes = task.reminderMinutes
+                    )
+                    if (scheduled) successCount++
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Failed to reschedule task reminders", e)
+        }
+
         Log.d(TAG, "📊 Boot/Permission Reschedule Summary: Success=$successCount, Failed=$failCount")
     }
 }

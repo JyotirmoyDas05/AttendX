@@ -105,7 +105,7 @@ class ClassAlarmReceiver : BroadcastReceiver() {
         )
 
         val notificationBuilder = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_launcher_bear_monochrome)
+            .setSmallIcon(R.drawable.ic_bear_notifications_monochrome)
             .setContentTitle(title)
             .setContentText(message)
             .setStyle(NotificationCompat.BigTextStyle().bigText(message))
@@ -124,10 +124,6 @@ class ClassAlarmReceiver : BroadcastReceiver() {
                 "Missed",
                 createAttendanceIntent(context, subjectId, "MISSED", scheduleId)
             )
-
-        `in`.jyotirmoy.attendx.notification.helper.NotificationHelper.getAppIconBitmap(context)?.let {
-            notificationBuilder.setLargeIcon(it)
-        }
 
         val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         // Use scheduleId as notification ID to allow multiple simultaneous notifications

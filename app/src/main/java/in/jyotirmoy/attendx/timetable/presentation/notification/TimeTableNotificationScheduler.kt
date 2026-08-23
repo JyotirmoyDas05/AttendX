@@ -2,32 +2,29 @@ package `in`.jyotirmoy.attendx.timetable.presentation.notification
 
 import android.content.Context
 import android.util.Log
-import `in`.jyotirmoy.attendx.core.data.database.SubjectDatabase
+import `in`.jyotirmoy.attendx.core.data.database.SubjectDao
 import `in`.jyotirmoy.attendx.notification.TimetableAlarmScheduler
 import `in`.jyotirmoy.attendx.timetable.data.model.TimeTableScheduleEntity
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.runBlocking
 import javax.inject.Inject
 
-class TimeTableNotificationScheduler @Inject constructor() {
+class TimeTableNotificationScheduler @Inject constructor(
+    private val subjectDao: SubjectDao
+) {
 
     companion object {
         private const val TAG = "TimeTableScheduler"
     }
 
-    fun scheduleClassAlarm(context: Context, schedule: TimeTableScheduleEntity) {
+    suspend fun scheduleClassAlarm(context: Context, schedule: TimeTableScheduleEntity) {
         if (!schedule.isActive) return
 
         val appContext = context.applicationContext
         val startFormatted = formatTime(schedule.startTime)
         val endFormatted = formatTime(schedule.endTime)
 
-        // Resolve subject name
+        // Resolve subject name directly from database
         val subjectName = try {
-            val db = SubjectDatabase.getDatabase(appContext)
-            runBlocking {
-                db.subjectDao().getSubjectById(schedule.subjectId).first()?.subject ?: "Class"
-            }
+            subjectDao.getSubjectEntityById(schedule.subjectId)?.subject ?: "Class"
         } catch (e: Exception) {
             Log.e(TAG, "Error fetching subject name for schedule ${schedule.id}", e)
             "Class"

@@ -68,11 +68,11 @@ class TimetableAlarmReceiver : BroadcastReceiver() {
                 
                 val db = `in`.jyotirmoy.attendx.core.data.database.SubjectDatabase.getDatabase(appContext)
 
-                // Fallback: resolve subject name from Room DB if missing or "Unknown"
+                // Fallback: resolve subject name from Room DB if missing, "Unknown", or fallback "Class"
                 var resolvedSubjectName = subjectName
-                if (resolvedSubjectName == "Unknown" || resolvedSubjectName.isBlank()) {
+                if (resolvedSubjectName == "Unknown" || resolvedSubjectName.isBlank() || resolvedSubjectName.equals("Class", ignoreCase = true)) {
                     try {
-                        val entity = db.subjectDao().getSubjectById(subjectId).first()
+                        val entity = db.subjectDao().getSubjectEntityById(subjectId)
                         if (entity != null && entity.subject.isNotBlank()) {
                             resolvedSubjectName = entity.subject
                         }
@@ -171,8 +171,8 @@ class TimetableAlarmReceiver : BroadcastReceiver() {
             }
         }
 
-        // Use valid app icon
-        val iconRes = R.drawable.ic_notifications
+        // Use mascot notification icon
+        val iconRes = R.drawable.ic_bear_notifications_monochrome
 
         `in`.jyotirmoy.attendx.notification.helper.NotificationHelper.showNotificationWithActions(
             context = context,
@@ -208,8 +208,8 @@ class TimetableAlarmReceiver : BroadcastReceiver() {
             }
         }
 
-        // Use valid app icon
-        val iconRes = R.drawable.ic_notifications
+        // Use mascot notification icon
+        val iconRes = R.drawable.ic_bear_notifications_monochrome
 
         `in`.jyotirmoy.attendx.notification.helper.NotificationHelper.showNotification(
             context = context,

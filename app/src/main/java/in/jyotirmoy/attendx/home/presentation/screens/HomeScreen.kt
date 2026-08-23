@@ -17,6 +17,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -31,11 +32,13 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.CloudDownload
 import androidx.compose.material.icons.rounded.SystemUpdate
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -102,7 +105,6 @@ import `in`.jyotirmoy.attendx.navigation.PeerInsightsRoute
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
-import `in`.jyotirmoy.attendx.peer.presentation.PeerComparisonViewModel
 import `in`.jyotirmoy.attendx.peer.presentation.PeerComparisonNudgeCard
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
@@ -113,8 +115,7 @@ fun HomeScreen(
     onOpenDrawer: () -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel(),
     settingsViewModel: SettingsViewModel = hiltViewModel(),
-    autoUpdateViewModel: AutoUpdateViewModel = hiltViewModel(),
-    peerViewModel: PeerComparisonViewModel = hiltViewModel()
+    autoUpdateViewModel: AutoUpdateViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
     val weakHaptic = LocalWeakHaptic.current
@@ -326,52 +327,52 @@ fun HomeScreen(
 
             if (subjectCount == 0) {
                 item {
-
-
-// ... inside the composable, replacing the Text ...
-
-                    val noSubjectText = stringResource(R.string.no_subject_yet)
-                    val importText = stringResource(R.string.import_template)
-                    
-                    val annotatedString = buildAnnotatedString {
-                        append(noSubjectText)
-                        append(" ")
-                        pushStringAnnotation(tag = "IMPORT", annotation = "import")
-                        withStyle(style = SpanStyle(color = MaterialTheme.colorScheme.primary, textDecoration = TextDecoration.Underline, fontWeight = FontWeight.Bold)) {
-                            append(importText)
-                        }
-                        pop()
-                    }
-
-                    ClickableText(
-                        text = annotatedString,
-                        style = MaterialTheme.typography.bodyLarge.copy(
-                            textAlign = TextAlign.Center, 
-                            color = LocalContentColor.current.copy(alpha = 0.75f)
-                        ),
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 25.dp)
-                            .onGloballyPositioned { importTextLayoutCoordinates = it },
-                        onClick = { offset ->
-                            annotatedString.getStringAnnotations(tag = "IMPORT", start = offset, end = offset)
-                                .firstOrNull()?.let {
-                                    val rootHeight = rootLayoutCoordinates?.size?.height?.toFloat() ?: 1f
-                                    val textPosition = importTextLayoutCoordinates?.positionInRoot()
-                                    val textHeight = importTextLayoutCoordinates?.size?.height?.toFloat() ?: 0f
-                                    val textWidth = importTextLayoutCoordinates?.size?.width?.toFloat() ?: 0f
-                                    
-                                    // Calculate pivot roughly at center of the text block manually since we don't have exact click coordinates relative to root easily without pointer input
-                                    // A safe bet is vertically centered on the text, horizontally centered (0.5f)
-                                    
-                                    val pivotY = if (rootHeight > 0) {
-                                        ((textPosition?.y ?: 0f) + textHeight / 2) / rootHeight
-                                    } else 0.5f
-                                    
-                                    navController.navigate(MarketplaceScreen(pivotX = 0.5f, pivotY = pivotY))
-                                }
+                            .padding(horizontal = 25.dp, vertical = 6.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(14.dp)
+                    ) {
+                        Text(
+                            text = stringResource(R.string.no_subject_yet),
+                            style = MaterialTheme.typography.bodyLarge.copy(
+                                textAlign = TextAlign.Center,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+                            )
+                        )
+
+                        FilledTonalButton(
+                            onClick = {
+                                weakHaptic()
+                                val rootHeight = rootLayoutCoordinates?.size?.height?.toFloat() ?: 1f
+                                val textPosition = importTextLayoutCoordinates?.positionInRoot()
+                                val textHeight = importTextLayoutCoordinates?.size?.height?.toFloat() ?: 0f
+
+                                val pivotY = if (rootHeight > 0) {
+                                    ((textPosition?.y ?: 0f) + textHeight / 2) / rootHeight
+                                } else 0.5f
+
+                                navController.navigate(MarketplaceScreen(pivotX = 0.5f, pivotY = pivotY))
+                            },
+                            shape = RoundedCornerShape(24.dp),
+                            modifier = Modifier
+                                .height(46.dp)
+                                .onGloballyPositioned { importTextLayoutCoordinates = it }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.CloudDownload,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = stringResource(R.string.import_template),
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.SemiBold
+                            )
                         }
-                    )
+                    }
                 }
             }
 
@@ -401,12 +402,7 @@ fun HomeScreen(
                 }
 
                 item {
-                    val peerState by peerViewModel.state.collectAsState()
-                    LaunchedEffect(totalProgress) {
-                        peerViewModel.setUserAttendance(totalProgress * 100f)
-                    }
                     PeerComparisonNudgeCard(
-                        state = peerState,
                         onClick = { navController.navigate(PeerInsightsRoute) },
                         modifier = Modifier.padding(horizontal = 15.dp, vertical = 10.dp)
                     )

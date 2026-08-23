@@ -35,6 +35,7 @@ class MarketplaceViewModel @Inject constructor(
     val state: State<MarketplaceState> = _state
     
     private var searchJob: Job? = null
+    private var getTemplatesJob: Job? = null
 
     init {
         searchTemplates("")
@@ -56,7 +57,8 @@ class MarketplaceViewModel @Inject constructor(
 
     private fun searchTemplates(query: String) {
         _state.value = _state.value.copy(isLoading = true)
-        repository.searchTemplates(query, null, null)
+        getTemplatesJob?.cancel()
+        getTemplatesJob = repository.searchTemplates(query, null, null)
             .onEach { templates ->
                 _state.value = _state.value.copy(
                     templates = templates,

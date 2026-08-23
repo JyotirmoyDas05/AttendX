@@ -114,7 +114,9 @@ class PomodoroService : Service() {
                 toggleTimer()
             }
             Actions.RESET.toString() -> {
-                if (_timerState.value.timerRunning) toggleTimer()
+                if (_timerState.value.timerRunning) {
+                    _timerState.update { it.copy(timerRunning = false) }
+                }
                 skipScope.launch {
                     resetTimer()
                     stopForegroundServiceInternal()
@@ -144,17 +146,34 @@ class PomodoroService : Service() {
             timerScope.launch {
                 while (true) {
                     if (!_timerState.value.timerRunning) break
-                    if (startTime == 0L) startTime = SystemClock.elapsedRealtime()
-
                     val settingsState = _settingsState.value
                     val timerState = _timerState.value
 
-                    val focusTime = if (!timerState.infiniteFocus) settingsState.focusTime else Long.MAX_VALUE
-                    time = when (_timerState.value.timerMode) {
-                        TimerMode.FOCUS -> focusTime - (SystemClock.elapsedRealtime() - startTime - pauseDuration)
-                        TimerMode.SHORT_BREAK -> settingsState.shortBreakTime - (SystemClock.elapsedRealtime() - startTime - pauseDuration)
-                        else -> settingsState.longBreakTime - (SystemClock.elapsedRealtime() - startTime - pauseDuration)
+                    val totalDuration = if (timerState.infiniteFocus && timerState.timerMode == TimerMode.FOCUS) {
+                        Long.MAX_VALUE
+                    } else {
+                        when (timerState.timerMode) {
+                            TimerMode.FOCUS -> settingsState.focusTime
+                            TimerMode.SHORT_BREAK -> settingsState.shortBreakTime
+                            else -> settingsState.longBreakTime
+                        }
                     }
+
+                    if (startTime == 0L) {
+                        val currentRemaining = time
+                        val alreadyElapsed = if (totalDuration != Long.MAX_VALUE && currentRemaining in 1..totalDuration) {
+                            totalDuration - currentRemaining
+                        } else if (totalDuration == Long.MAX_VALUE && currentRemaining < Long.MAX_VALUE && currentRemaining > 0L) {
+                            Long.MAX_VALUE - currentRemaining
+                        } else {
+                            0L
+                        }
+                        startTime = SystemClock.elapsedRealtime() - alreadyElapsed
+                        pauseDuration = 0L
+                        pauseTime = 0L
+                    }
+
+                    time = totalDuration - (SystemClock.elapsedRealtime() - startTime - pauseDuration)
 
                     iterations = (iterations + 1) % 60
 
@@ -240,7 +259,7 @@ class PomodoroService : Service() {
         )
 
         val builder = NotificationCompat.Builder(this, notificationChannelId)
-            .setSmallIcon(R.drawable.ic_pomodoro_notification)
+            .setSmallIcon(R.drawable.ic_bear_notifications_monochrome)
             .setContentTitle(title)
             .setContentText(content)
             .setContentIntent(contentPendingIntent)
@@ -308,20 +327,6 @@ class PomodoroService : Service() {
         startTime = 0L
         pauseTime = 0L
         pauseDuration = 0L
-
-        time = if (!timerState.infiniteFocus) settingsState.focusTime else Long.MAX_VALUE
-
-        _timerState.update { currentState ->
-            currentState.copy(
-                timerMode = TimerMode.FOCUS,
-                timeStr = if (!currentState.infiniteFocus) millisecondsToStr(time) else millisecondsToStr(0),
-                totalTime = time,
-                nextTimerMode = if (settingsState.sessionLength > 1) TimerMode.SHORT_BREAK else TimerMode.LONG_BREAK,
-                nextTimeStr = millisecondsToStr(if (settingsState.sessionLength > 1) settingsState.shortBreakTime else settingsState.longBreakTime),
-                currentFocusCount = 1,
-                totalFocusCount = settingsState.sessionLength
-            )
-        }
     }
 
     private fun undoReset() {
@@ -331,7 +336,8 @@ class PomodoroService : Service() {
         startTime = timerStateSnapshot.startTime
         pauseTime = timerStateSnapshot.pauseTime
         pauseDuration = timerStateSnapshot.pauseDuration
-        _timerState.update { timerStateSnapshot.timerState }
+        _timerState.update { timerStateSnapshot.timerState.copy(timerRunning = false) }
+        stateRepository.undoReset()
     }
 
     private suspend fun skipTimer(fromButton: Boolean = false) {
@@ -490,7 +496,7 @@ class PomodoroService : Service() {
 
     private fun startForegroundServiceInternal() {
         val builder = NotificationCompat.Builder(this, notificationChannelId)
-            .setSmallIcon(R.drawable.ic_pomodoro_notification)
+            .setSmallIcon(R.drawable.ic_bear_notifications_monochrome)
             .setContentTitle(getString(R.string.pomodoro_timer))
             .setContentText(getString(R.string.start))
             .setOngoing(true)

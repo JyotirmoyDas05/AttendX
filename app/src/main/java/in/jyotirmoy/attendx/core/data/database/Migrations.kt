@@ -137,6 +137,13 @@ val MIGRATION_11_12 = object : Migration(11, 12) {
     }
 }
 
+val MIGRATION_12_13 = object : Migration(12, 13) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        // Drop old peer comparison cache table — replaced by ephemeral QR session model
+        db.execSQL("DROP TABLE IF EXISTS peer_comparison_cache")
+    }
+}
+
 
 
 

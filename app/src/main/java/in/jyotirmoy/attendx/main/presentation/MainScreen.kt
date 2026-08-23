@@ -337,6 +337,11 @@ fun MainScreen(
         gesturesEnabled = drawerState.isOpen || selectedTab == 0,
         drawerContent = {
             SmartAttendanceDrawer(
+                onCommunityClick = {
+                    scope.launch { drawerState.close() }
+                    navController.navigate(MarketplaceScreen())
+                    weakHaptic()
+                },
                 onSettingsClick = {
                     scope.launch { drawerState.close() }
                     navController.navigate(SettingsScreen)
@@ -359,6 +364,12 @@ fun MainScreen(
                         1 -> `in`.jyotirmoy.attendx.tools.presentation.ToolsHubScreen(
                             onNavigateToPomodoro = {
                                 navController.navigate(`in`.jyotirmoy.attendx.navigation.PomodoroScreenRoute)
+                            },
+                            onNavigateToMarketplace = {
+                                navController.navigate(MarketplaceScreen())
+                            },
+                            onNavigateToUpload = {
+                                navController.navigate(UploadTemplateScreen)
                             }
                         )
                         2 -> TimeTableScreen(

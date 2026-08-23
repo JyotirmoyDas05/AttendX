@@ -43,7 +43,7 @@ object NotificationHelper {
         notificationId: Int,
         title: String,
         message: String,
-        @DrawableRes smallIconResId: Int = R.drawable.ic_launcher_bear_monochrome,
+        @DrawableRes smallIconResId: Int = R.drawable.ic_bear_notifications_monochrome,
         priority: Int = NotificationCompat.PRIORITY_DEFAULT,
         subjectId: Int = -1,
         subjectName: String? = null
@@ -52,7 +52,7 @@ object NotificationHelper {
 
         val notificationSmallIcon =
             if (smallIconResId == 0 || smallIconResId == android.R.drawable.ic_dialog_info) {
-                R.drawable.ic_launcher_bear_monochrome
+                R.drawable.ic_bear_notifications_monochrome
             } else {
                 smallIconResId
             }
@@ -73,8 +73,6 @@ object NotificationHelper {
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
 
-        val appIconBitmap = getAppIconBitmap(context)
-
         val notificationBuilder = NotificationCompat.Builder(context, channelId)
             .setSmallIcon(notificationSmallIcon)
             .setContentTitle(title)
@@ -82,10 +80,6 @@ object NotificationHelper {
             .setPriority(priority)
             .setAutoCancel(true)
             .setContentIntent(pendingIntent)
-
-        if (appIconBitmap != null) {
-            notificationBuilder.setLargeIcon(appIconBitmap)
-        }
 
         NotificationManagerCompat.from(context).notify(notificationId, notificationBuilder.build())
     }
@@ -99,7 +93,7 @@ object NotificationHelper {
         notificationId: Int,
         title: String,
         message: String,
-        @DrawableRes smallIconResId: Int = R.drawable.ic_launcher_bear_monochrome,
+        @DrawableRes smallIconResId: Int = R.drawable.ic_bear_notifications_monochrome,
         subjectId: Int,
         scheduleId: Int,
         subjectName: String? = null,
@@ -109,7 +103,7 @@ object NotificationHelper {
 
         val notificationSmallIcon =
             if (smallIconResId == 0 || smallIconResId == android.R.drawable.ic_dialog_info) {
-                R.drawable.ic_launcher_bear_monochrome
+                R.drawable.ic_bear_notifications_monochrome
             } else {
                 smallIconResId
             }
@@ -155,8 +149,6 @@ object NotificationHelper {
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
 
-        val appIconBitmap = getAppIconBitmap(context)
-
         val notificationBuilder = NotificationCompat.Builder(context, channelId)
             .setSmallIcon(notificationSmallIcon)
             .setContentTitle(title)
@@ -168,10 +160,6 @@ object NotificationHelper {
             .setContentIntent(pendingIntent)
             .addAction(android.R.drawable.ic_input_add, "Attended", attendedPendingIntent)
             .addAction(android.R.drawable.ic_delete, "Missed", missedPendingIntent)
-
-        if (appIconBitmap != null) {
-            notificationBuilder.setLargeIcon(appIconBitmap)
-        }
 
         NotificationManagerCompat.from(context).notify(notificationId, notificationBuilder.build())
     }

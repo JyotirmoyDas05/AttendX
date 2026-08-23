@@ -135,7 +135,13 @@
     <string name="no_attendance_yet">No attendance yet. Add some to view progress</string>
     <string name="no_changelog_found">No changelog found for this version</string>
     <string name="no_subject_yet">Click on the + button to add a subject or</string>
-    <string name="import_template">Import Template</string>"
+    <string name="import_template">Import Template</string>
+    <string name="templates">Templates</string>
+    <string name="community_templates">Community Templates</string>
+    <string name="community_templates_desc">Browse &amp; share semester schedules</string>
+    <string name="browse_templates">Browse Templates</string>
+    <string name="share_schedule">Share Schedule</string>
+    <string name="share">Share</string>
     <string name="notifications">Notifications</string>
     <string name="notify_missed_attendance">Notify missed attendance</string>
     <string name="notify_update_available">Notify when update available</string>
@@ -345,4 +351,21 @@
     <string name="sound">Sound</string>
     <string name="vibrate">Vibration</string>
     <string name="gap">Gap</string>
+    <string name="duration">Duration</string>
+    <string name="dnd">Do Not Disturb</string>
+    <string name="dnd_desc">Turn on DND when running a Focus timer</string>
+    <string name="topics">Topics</string>
+    <string name="topics_desc">Create and manage topics</string>
+    <string name="settings_infinite_focus_tip">Long press the timer clock to enable infinite focus mode</string>
+    <string name="system_default">System</string>
+    <string name="backup_desc">Backup all stats and settings</string>
+    <string name="restore_desc">Restore stats and settings</string>
+    <string name="backup_dialog_desc">Your stats and settings will be saved to a file in your chosen folder. You can restore this data later in %1$s.</string>
+    <string name="restore_dialog_desc">Your stats and settings will be restored from the chosen backup file. The app will need to be restarted when the restore is complete. &lt;b&gt;All existing data will be erased, and this cannot be undone.&lt;/b&gt;</string>
+    <string name="exit">Exit</string>
+    <string name="choose_folder">Choose folder</string>
+    <string name="choose_file">Choose file</string>
+    <string name="restart_app">Restart app</string>
+    <string name="create_new_topic">Create new topic</string>
+    <string name="edit_topic">Edit topic</string>
 </resources>

@@ -169,7 +169,8 @@ fun Navigation(
                     onNavigateBack = { navController.popBackStack() },
                     onTemplateClick = { template -> 
                         navController.navigate(TemplatePreviewScreen(template.id))
-                    }
+                    },
+                    onNavigateToUpload = { navController.navigate(UploadTemplateScreen) }
                 )
             }
 
@@ -196,7 +197,9 @@ fun Navigation(
                 popEnterTransition = { slideFadeInFromLeft() },
                 popExitTransition = { slideFadeOutToRight() }
             ) {
-                `in`.jyotirmoy.attendx.tools.presentation.pomodoro.PomodoroScreen()
+                `in`.jyotirmoy.attendx.tools.presentation.pomodoro.PomodoroScreen(
+                    onNavigateBack = { navController.popBackStack() }
+                )
             }
 
             composable<PeerInsightsRoute>(

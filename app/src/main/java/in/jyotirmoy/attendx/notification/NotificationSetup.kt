@@ -15,6 +15,7 @@ object NotificationSetup {
     const val ATTENDANCE_CHANNEL_ID = "attendance_channel"
     const val UPDATE_CHANNEL_ID = "update_channel"
     const val TIMETABLE_CHANNEL_ID = "timetable_channel"
+    const val TASK_REMINDER_CHANNEL_ID = "task_reminder_channel"
 
     fun initNotificationChannels(context: Context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -31,6 +32,14 @@ object NotificationSetup {
                     NotificationManager.IMPORTANCE_HIGH
                 ).apply {
                     description = "Notifications for scheduled classes"
+                    this.group = GROUP_ID
+                },
+                NotificationChannel(
+                    TASK_REMINDER_CHANNEL_ID,
+                    "Task Reminders",
+                    NotificationManager.IMPORTANCE_HIGH
+                ).apply {
+                    description = "Reminders for assignments and tasks"
                     this.group = GROUP_ID
                 },
                 NotificationChannel(
@@ -135,7 +144,7 @@ object NotificationSetup {
             notificationId = scheduleId,
             title = "Class Started: $subjectName",
             message = message,
-            smallIconResId = R.drawable.ic_launcher_bear_monochrome,
+            smallIconResId = R.drawable.ic_bear_notifications_monochrome,
             subjectId = subjectId,
             scheduleId = scheduleId,
             subjectName = subjectName

@@ -18,6 +18,9 @@ interface SubjectTaskDao {
     @Query("SELECT * FROM subject_tasks WHERE isCompleted = 0 AND isNote = 0 ORDER BY dueDate ASC, createdAt DESC")
     fun getAllPendingTasks(): Flow<List<SubjectTaskEntity>>
 
+    @Query("SELECT * FROM subject_tasks WHERE isCompleted = 0 AND isNote = 0 AND reminderMinutes IS NOT NULL AND dueDate IS NOT NULL")
+    suspend fun getPendingTasksWithReminders(): List<SubjectTaskEntity>
+
     @Query("SELECT * FROM subject_tasks WHERE id = :taskId")
     suspend fun getTaskById(taskId: Int): SubjectTaskEntity?
 

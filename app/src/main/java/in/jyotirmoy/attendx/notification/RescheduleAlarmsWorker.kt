@@ -11,6 +11,7 @@ import `in`.jyotirmoy.attendx.core.domain.repository.ClassScheduleRepository
 import `in`.jyotirmoy.attendx.core.domain.repository.SubjectRepository
 import kotlinx.coroutines.flow.first
 
+import `in`.jyotirmoy.attendx.core.data.database.SubjectTaskDao
 import `in`.jyotirmoy.attendx.timetable.domain.repository.TimeTableRepository
 
 @InstallIn(SingletonComponent::class)
@@ -19,6 +20,7 @@ interface RescheduleWorkerEntryPoint {
     fun subjectRepository(): SubjectRepository
     fun classScheduleRepository(): ClassScheduleRepository
     fun timeTableRepository(): TimeTableRepository
+    fun subjectTaskDao(): SubjectTaskDao
 }
 
 class RescheduleAlarmsWorker(
@@ -32,6 +34,7 @@ class RescheduleAlarmsWorker(
             val subjectRepository = entryPoint.subjectRepository()
             val classScheduleRepository = entryPoint.classScheduleRepository()
             val timeTableRepository = entryPoint.timeTableRepository()
+            val subjectTaskDao = entryPoint.subjectTaskDao()
 
             // Cleanup stale legacy channel
             deleteLegacyChannel(applicationContext)
@@ -86,6 +89,29 @@ class RescheduleAlarmsWorker(
                     }
                 }
             }
+
+            // 3. Reschedule Pending Task Reminders
+            try {
+                val pendingTasks = subjectTaskDao.getPendingTasksWithReminders()
+                for (task in pendingTasks) {
+                    if (task.dueDate != null && task.reminderMinutes != null) {
+                        val subjectName = subjectsMap[task.subjectId]?.subject ?: "Class"
+                        TaskAlarmScheduler.scheduleTaskReminder(
+                            context = applicationContext,
+                            taskId = task.id,
+                            subjectId = task.subjectId,
+                            subjectName = subjectName,
+                            taskTitle = task.title,
+                            taskDescription = task.description,
+                            dueDateMillis = task.dueDate,
+                            reminderMinutes = task.reminderMinutes
+                        )
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+
             return Result.success()
         } catch (e: Exception) {
             e.printStackTrace()

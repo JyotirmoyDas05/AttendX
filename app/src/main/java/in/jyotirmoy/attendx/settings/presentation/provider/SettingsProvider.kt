@@ -63,9 +63,9 @@ object SettingsProvider {
                 iconVector = Icons.Rounded.SettingsBackupRestore
             ),
             nullPreferenceItem(
-                key = SettingsKeys.PEER_COMPARISON_ENABLED,
+                key = SettingsKeys.PEER_COMPARISON,
                 titleString = "Peer Comparison",
-                descriptionString = "Compare your attendance anonymously with peers",
+                descriptionString = "Compare your attendance with a friend via QR code",
                 iconVector = Icons.Rounded.QueryStats
             ),
             nullPreferenceItem(

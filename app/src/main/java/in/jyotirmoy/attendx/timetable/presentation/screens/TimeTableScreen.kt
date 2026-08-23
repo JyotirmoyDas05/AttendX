@@ -17,6 +17,7 @@ import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -41,15 +42,23 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.rounded.CloudDownload
+import androidx.compose.material.icons.rounded.CloudUpload
 import androidx.compose.material.icons.rounded.Settings
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -85,7 +94,11 @@ import `in`.jyotirmoy.attendx.timetable.presentation.components.ViewClassSheet
 import `in`.jyotirmoy.attendx.timetable.presentation.viewmodel.TimeTableViewModel
 import `in`.jyotirmoy.attendx.timetable.presentation.viewmodel.TimetableViewMode
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class)
+@OptIn(
+    ExperimentalMaterial3Api::class,
+    ExperimentalSharedTransitionApi::class,
+    ExperimentalMaterial3ExpressiveApi::class
+)
 @Composable
 fun TimeTableScreen(
     viewModel: TimeTableViewModel = hiltViewModel(),
@@ -118,6 +131,8 @@ fun TimeTableScreen(
 
     val snackbarHostState = remember { SnackbarHostState() }
     var snapToNow by remember { mutableStateOf(false) }
+    var showMoreMenu by remember { mutableStateOf(false) }
+    var showLandscapeMoreMenu by remember { mutableStateOf(false) }
 
     // Update status bar icon contrast
     val view = LocalView.current
@@ -232,6 +247,19 @@ fun TimeTableScreen(
                             )
                         }
 
+                        Spacer(modifier = Modifier.width(2.dp))
+
+                        // Material 3 Expressive More Options Menu (Import / Export)
+                        TimetableExpressiveMoreMenu(
+                            expanded = showLandscapeMoreMenu,
+                            onDismissRequest = { showLandscapeMoreMenu = false },
+                            onToggle = { showLandscapeMoreMenu = true },
+                            onNavigateToMarketplace = onNavigateToMarketplace,
+                            onNavigateToUpload = onNavigateToUpload,
+                            buttonSize = 34.dp,
+                            iconSize = 20.dp
+                        )
+
                         Spacer(modifier = Modifier.width(6.dp))
 
                         // M3 Expressive 4-Way Segmented View Switcher
@@ -321,6 +349,19 @@ fun TimeTableScreen(
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
+
+                            Spacer(modifier = Modifier.width(4.dp))
+
+                            // Material 3 Expressive More Options Menu (Import / Export)
+                            TimetableExpressiveMoreMenu(
+                                expanded = showMoreMenu,
+                                onDismissRequest = { showMoreMenu = false },
+                                onToggle = { showMoreMenu = true },
+                                onNavigateToMarketplace = onNavigateToMarketplace,
+                                onNavigateToUpload = onNavigateToUpload,
+                                buttonSize = 40.dp,
+                                iconSize = 24.dp
+                            )
                         }
 
                     // Adaptive 4-Way Segmented View Switcher (Schedule | Day | 3-Day | Week)
@@ -577,5 +618,124 @@ fun TimeTableScreen(
             onConfirm = { viewModel.deleteSelectedClasses() },
             onDismiss = { viewModel.hideDeleteConfirmation() }
         )
+    }
+}
+
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun TimetableExpressiveMoreMenu(
+    expanded: Boolean,
+    onDismissRequest: () -> Unit,
+    onToggle: () -> Unit,
+    onNavigateToMarketplace: () -> Unit,
+    onNavigateToUpload: () -> Unit,
+    buttonSize: androidx.compose.ui.unit.Dp = 40.dp,
+    iconSize: androidx.compose.ui.unit.Dp = 24.dp
+) {
+    Box {
+        IconButton(
+            onClick = onToggle,
+            modifier = Modifier.size(buttonSize)
+        ) {
+            Icon(
+                imageVector = Icons.Default.MoreVert,
+                contentDescription = "More Options",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(iconSize)
+            )
+        }
+
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = onDismissRequest,
+            shape = RoundedCornerShape(22.dp),
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            tonalElevation = 6.dp,
+            shadowElevation = 8.dp,
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
+        ) {
+            // 1. Import Template
+            DropdownMenuItem(
+                text = {
+                    Column {
+                        Text(
+                            text = "Import Template",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            text = "Browse community schedules",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                },
+                leadingIcon = {
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.65f),
+                        modifier = Modifier.size(34.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Rounded.CloudDownload,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    }
+                },
+                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
+                onClick = {
+                    onDismissRequest()
+                    onNavigateToMarketplace()
+                }
+            )
+
+            HorizontalDivider(
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
+            )
+
+            // 2. Share Schedule
+            DropdownMenuItem(
+                text = {
+                    Column {
+                        Text(
+                            text = "Share Schedule",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            text = "Upload timetable to community",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                },
+                leadingIcon = {
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.65f),
+                        modifier = Modifier.size(34.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Rounded.CloudUpload,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.secondary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    }
+                },
+                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
+                onClick = {
+                    onDismissRequest()
+                    onNavigateToUpload()
+                }
+            )
+        }
     }
 }

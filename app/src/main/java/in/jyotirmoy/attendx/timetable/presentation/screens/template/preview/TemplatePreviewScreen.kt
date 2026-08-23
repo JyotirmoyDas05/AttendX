@@ -17,7 +17,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import android.widget.Toast
+import androidx.compose.ui.platform.LocalContext
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import `in`.jyotirmoy.attendx.timetable.data.model.community.CommunityTemplate
 import `in`.jyotirmoy.attendx.timetable.data.model.community.TemplateClassEntry
 import `in`.jyotirmoy.attendx.timetable.data.model.community.TemplateSubjectEntry
@@ -30,11 +32,13 @@ fun TemplatePreviewScreen(
     onNavigateBack: () -> Unit,
     viewModel: TemplatePreviewViewModel = hiltViewModel()
 ) {
-    val state by remember { viewModel.state }
+    val state by viewModel.state
+    val context = LocalContext.current
     var selectedTab by remember { mutableIntStateOf(0) }
     
     LaunchedEffect(state.importSuccess) {
         if (state.importSuccess) {
+            Toast.makeText(context, "Template imported successfully!", Toast.LENGTH_SHORT).show()
             onNavigateBack()
         }
     }

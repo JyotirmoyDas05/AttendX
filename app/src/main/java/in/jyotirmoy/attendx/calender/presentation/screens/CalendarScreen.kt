@@ -81,11 +81,13 @@ import `in`.jyotirmoy.attendx.R
 import `in`.jyotirmoy.attendx.calender.presentation.components.bottomsheet.AddCourseMaterialBottomSheet
 import `in`.jyotirmoy.attendx.calender.presentation.components.bottomsheet.AddEditTaskBottomSheet
 import `in`.jyotirmoy.attendx.calender.presentation.components.bottomsheet.AttendanceTargetBottomSheet
+import `in`.jyotirmoy.attendx.calender.presentation.components.bottomsheet.AudioPlayerBottomSheet
 import `in`.jyotirmoy.attendx.calender.presentation.components.bottomsheet.SubjectAttendanceDataBottomSheet
 import `in`.jyotirmoy.attendx.calender.presentation.components.bottomsheet.TaskDetailBottomSheet
 import `in`.jyotirmoy.attendx.calender.presentation.components.canvas.CalendarCanvas
 import `in`.jyotirmoy.attendx.calender.presentation.components.card.CourseMaterialsCard
 import `in`.jyotirmoy.attendx.calender.presentation.components.card.NotesAndTasksCard
+import `in`.jyotirmoy.attendx.calender.presentation.components.dialog.ImagePreviewDialog
 import `in`.jyotirmoy.attendx.calender.presentation.components.dialog.RemoveOrDeleteMaterialDialog
 import `in`.jyotirmoy.attendx.calender.presentation.components.GroupedTimetableCards
 import `in`.jyotirmoy.attendx.calender.presentation.viewmodel.CalendarViewModel
@@ -197,6 +199,8 @@ fun CalendarScreen(
     var editingTask by remember { mutableStateOf<SubjectTask?>(null) }
     var selectedTaskForDetail by remember { mutableStateOf<SubjectTask?>(null) }
     var materialToDelete by remember { mutableStateOf<CourseMaterial?>(null) }
+    var previewingImageMaterial by remember { mutableStateOf<CourseMaterial?>(null) }
+    var previewingAudioMaterial by remember { mutableStateOf<CourseMaterial?>(null) }
 
     val tasks by viewModel.getTasksForSubject(subjectId).collectAsState(initial = emptyList())
     val materials by viewModel.getMaterialsForSubject(subjectId).collectAsState(initial = emptyList())
@@ -467,46 +471,61 @@ fun CalendarScreen(
                 onAddMaterialClick = { showAddMaterialBottomSheet = true },
                 onMaterialClick = { material ->
                     try {
-                        if (material.type == MaterialType.LINK) {
-                            val webUri = if (!material.uriOrUrl.startsWith("http://") && !material.uriOrUrl.startsWith("https://")) {
-                                Uri.parse("https://${material.uriOrUrl}")
-                            } else {
-                                Uri.parse(material.uriOrUrl)
+                        when {
+                            material.type == MaterialType.IMAGE ||
+                            material.title.endsWith(".jpg", ignoreCase = true) ||
+                            material.title.endsWith(".png", ignoreCase = true) ||
+                            material.title.endsWith(".jpeg", ignoreCase = true) -> {
+                                previewingImageMaterial = material
                             }
-                            val intent = Intent(Intent.ACTION_VIEW, webUri).apply {
-                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            material.type == MaterialType.AUDIO ||
+                            material.title.endsWith(".mp3", ignoreCase = true) ||
+                            material.title.endsWith(".m4a", ignoreCase = true) ||
+                            material.title.endsWith(".wav", ignoreCase = true) -> {
+                                previewingAudioMaterial = material
                             }
-                            context.startActivity(intent)
-                        } else {
-                            val rawUri = Uri.parse(material.uriOrUrl)
-                            val contentUri: Uri = if (rawUri.scheme == "file" || rawUri.scheme == null) {
-                                val file = if (rawUri.scheme == "file") File(rawUri.path ?: "") else File(material.uriOrUrl)
-                                FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
-                            } else {
-                                rawUri
+                            material.type == MaterialType.LINK -> {
+                                val webUri = if (!material.uriOrUrl.startsWith("http://") && !material.uriOrUrl.startsWith("https://")) {
+                                    Uri.parse("https://${material.uriOrUrl}")
+                                } else {
+                                    Uri.parse(material.uriOrUrl)
+                                }
+                                val intent = Intent(Intent.ACTION_VIEW, webUri).apply {
+                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                }
+                                context.startActivity(intent)
                             }
+                            else -> {
+                                val rawUri = Uri.parse(material.uriOrUrl)
+                                val contentUri: Uri = if (rawUri.scheme == "file" || rawUri.scheme == null) {
+                                    val file = if (rawUri.scheme == "file") File(rawUri.path ?: "") else File(material.uriOrUrl)
+                                    FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+                                } else {
+                                    rawUri
+                                }
 
-                            val mimeType = when {
-                                material.type == MaterialType.PDF || material.title.endsWith(".pdf", ignoreCase = true) -> "application/pdf"
-                                material.type == MaterialType.IMAGE || material.title.endsWith(".jpg", ignoreCase = true) || material.title.endsWith(".png", ignoreCase = true) -> "image/*"
-                                material.title.endsWith(".doc", ignoreCase = true) || material.title.endsWith(".docx", ignoreCase = true) -> "application/msword"
-                                material.title.endsWith(".ppt", ignoreCase = true) || material.title.endsWith(".pptx", ignoreCase = true) -> "application/vnd.ms-powerpoint"
-                                material.title.endsWith(".xls", ignoreCase = true) || material.title.endsWith(".xlsx", ignoreCase = true) -> "application/vnd.ms-excel"
-                                material.title.endsWith(".txt", ignoreCase = true) -> "text/plain"
-                                else -> material.mimeType ?: "*/*"
-                            }
+                                val mimeType = when {
+                                    material.type == MaterialType.PDF || material.title.endsWith(".pdf", ignoreCase = true) -> "application/pdf"
+                                    material.type == MaterialType.VIDEO || material.title.endsWith(".mp4", ignoreCase = true) || material.title.endsWith(".mkv", ignoreCase = true) -> "video/*"
+                                    material.title.endsWith(".doc", ignoreCase = true) || material.title.endsWith(".docx", ignoreCase = true) -> "application/msword"
+                                    material.title.endsWith(".ppt", ignoreCase = true) || material.title.endsWith(".pptx", ignoreCase = true) -> "application/vnd.ms-powerpoint"
+                                    material.title.endsWith(".xls", ignoreCase = true) || material.title.endsWith(".xlsx", ignoreCase = true) -> "application/vnd.ms-excel"
+                                    material.title.endsWith(".txt", ignoreCase = true) -> "text/plain"
+                                    else -> material.mimeType ?: "*/*"
+                                }
 
-                            val intent = Intent(Intent.ACTION_VIEW).apply {
-                                setDataAndType(contentUri, mimeType)
-                                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                val intent = Intent(Intent.ACTION_VIEW).apply {
+                                    setDataAndType(contentUri, mimeType)
+                                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                }
+                                context.startActivity(Intent.createChooser(intent, "Open with").apply {
+                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                })
                             }
-                            context.startActivity(Intent.createChooser(intent, "Open with").apply {
-                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                            })
                         }
                     } catch (e: Exception) {
-                        Toast.makeText(context, "Cannot open material", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "No app found to open this file", Toast.LENGTH_SHORT).show()
                     }
                 },
                 onMaterialDelete = { material ->
@@ -588,6 +607,20 @@ fun CalendarScreen(
                 onSaveMaterial = { material ->
                     viewModel.insertMaterial(material)
                 }
+            )
+        }
+
+        if (previewingImageMaterial != null) {
+            ImagePreviewDialog(
+                material = previewingImageMaterial!!,
+                onDismiss = { previewingImageMaterial = null }
+            )
+        }
+
+        if (previewingAudioMaterial != null) {
+            AudioPlayerBottomSheet(
+                material = previewingAudioMaterial!!,
+                onDismiss = { previewingAudioMaterial = null }
             )
         }
 

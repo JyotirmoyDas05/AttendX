@@ -10,8 +10,6 @@ import `in`.jyotirmoy.attendx.core.data.model.ClassScheduleEntity
 import `in`.jyotirmoy.attendx.core.data.model.SubjectEntity
 import `in`.jyotirmoy.attendx.core.data.model.CourseMaterialEntity
 import `in`.jyotirmoy.attendx.core.data.model.SubjectTaskEntity
-import `in`.jyotirmoy.attendx.peer.data.local.PeerComparisonCacheDao
-import `in`.jyotirmoy.attendx.peer.data.local.PeerComparisonCacheEntity
 import `in`.jyotirmoy.attendx.timetable.data.model.TimeTableScheduleEntity
 import `in`.jyotirmoy.attendx.timetable.data.dao.TimeTableDao
 
@@ -21,11 +19,10 @@ import `in`.jyotirmoy.attendx.timetable.data.dao.TimeTableDao
         AttendanceEntity::class,
         ClassScheduleEntity::class,
         TimeTableScheduleEntity::class,
-        PeerComparisonCacheEntity::class,
         SubjectTaskEntity::class,
         CourseMaterialEntity::class
     ],
-    version = 12,
+    version = 13,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -34,7 +31,6 @@ abstract class SubjectDatabase : RoomDatabase() {
     abstract fun attendanceDao(): AttendanceDao
     abstract fun classScheduleDao(): ClassScheduleDao
     abstract fun timeTableDao(): TimeTableDao
-    abstract fun peerComparisonCacheDao(): PeerComparisonCacheDao
     abstract fun subjectTaskDao(): SubjectTaskDao
     abstract fun courseMaterialDao(): CourseMaterialDao
 

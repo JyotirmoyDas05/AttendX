@@ -121,7 +121,20 @@ class StateRepository @Inject constructor(
 
         if (isFirstLoad) {
             isFirstLoad = false
-            resetTimer(settingsState.value.focusTime)
+            val defaultFocus = settingsState.value.focusTime
+            time.update { defaultFocus }
+            timerState.update { currentState ->
+                currentState.copy(
+                    timerRunning = false,
+                    timerMode = TimerMode.FOCUS,
+                    timeStr = millisecondsToStr(defaultFocus),
+                    totalTime = defaultFocus,
+                    nextTimerMode = if (settingsState.value.sessionLength > 1) TimerMode.SHORT_BREAK else TimerMode.LONG_BREAK,
+                    nextTimeStr = millisecondsToStr(if (settingsState.value.sessionLength > 1) settingsState.value.shortBreakTime else settingsState.value.longBreakTime),
+                    currentFocusCount = 1,
+                    totalFocusCount = settingsState.value.sessionLength
+                )
+            }
         }
     }
 
@@ -130,14 +143,16 @@ class StateRepository @Inject constructor(
         val currentDuration = time.value
         val currentTState = timerState.value
 
+        val cycles = (currentTState.currentFocusCount - 1) * 2 + if (currentTState.timerMode == TimerMode.FOCUS) 0 else 1
+
         timerStateSnapshot.save(
             0L,
             currentDuration,
-            0,
+            cycles,
             0L,
             0L,
             0L,
-            currentTState
+            currentTState.copy(timerRunning = false)
         )
 
         val duration = if (newDuration > 0) newDuration else settings.focusTime
@@ -157,7 +172,16 @@ class StateRepository @Inject constructor(
     }
 
     fun undoReset() {
-        time.update { timerStateSnapshot.time }
-        timerState.update { timerStateSnapshot.timerState }
+        if (timerStateSnapshot.time > 0L) {
+            val snapshotTime = timerStateSnapshot.time
+            val snapshotState = timerStateSnapshot.timerState
+            time.update { snapshotTime }
+            timerState.update {
+                snapshotState.copy(
+                    timerRunning = false,
+                    timeStr = millisecondsToStr(snapshotTime)
+                )
+            }
+        }
     }
 }

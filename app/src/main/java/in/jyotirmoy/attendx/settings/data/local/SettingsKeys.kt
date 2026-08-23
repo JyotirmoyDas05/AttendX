@@ -55,10 +55,7 @@ enum class SettingsKeys(val default: Any?) {
     GRACE_PERIOD_MINUTES(60),  // Default: 1 hour
     DEFAULT_START_MINUTE(45), // Default start minute (e.g., 9:45)
     DEFAULT_CLASS_DURATION(60), // Default duration in minutes
-    PEER_COMPARISON_ENABLED(false),
-    PEER_COMPARISON_CONSENT_SHOWN(false),
-    PEER_COMPARISON_GROUP_ID(""),
-    PEER_COMPARISON_GROUP_DISPLAY_NAME(""),
     LIQUID_GLASS_EFFECT(true),  // AGSL glass shader on nav bar (API 33+ only)
-    TIMETABLE_VIEW_MODE("DAY")
+    TIMETABLE_VIEW_MODE("DAY"),
+    PEER_COMPARISON(null)  // Navigation entry point to QR peer comparison
 }

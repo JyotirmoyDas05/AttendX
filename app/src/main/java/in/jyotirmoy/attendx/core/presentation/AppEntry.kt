@@ -18,9 +18,12 @@ import `in`.jyotirmoy.attendx.settings.data.local.SettingsKeys
 import `in`.jyotirmoy.attendx.settings.domain.model.UpdateResult
 import `in`.jyotirmoy.attendx.core.utils.DeviceArchitecture
 import android.content.Intent
+import androidx.compose.ui.platform.LocalContext
+import `in`.jyotirmoy.attendx.core.utils.BatteryOptimizationHelper
 import `in`.jyotirmoy.attendx.settings.presentation.page.autoupdate.viewmodel.AutoUpdateViewModel
 import `in`.jyotirmoy.attendx.settings.presentation.viewmodel.SettingsViewModel
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.first
 
 @Composable
 fun AppEntry(
@@ -29,12 +32,12 @@ fun AppEntry(
     autoUpdateViewModel: AutoUpdateViewModel = hiltViewModel(),
     settingsViewModel: SettingsViewModel = hiltViewModel()
 ) {
+    val context = LocalContext.current
     var showUpdateSheet by rememberSaveable { mutableStateOf(false) }
     var showChangelogSheet by rememberSaveable { mutableStateOf(false) }
     var tagName by rememberSaveable { mutableStateOf(BuildConfig.VERSION_NAME) }
     var releaseNotes by rememberSaveable { mutableStateOf("") }
     var apkUrl by rememberSaveable { mutableStateOf("") }
-    val savedVersionCode = LocalSettings.current.savedVersionCode
 
     LaunchedEffect(Unit) {
         autoUpdateViewModel.updateEvents.collectLatest { result ->
@@ -58,8 +61,19 @@ fun AppEntry(
         }
     }
 
-    LaunchedEffect(savedVersionCode) {
-        showChangelogSheet = savedVersionCode < BuildConfig.VERSION_CODE
+    LaunchedEffect(Unit) {
+        val persistedVersion = settingsViewModel.getInt(SettingsKeys.SAVED_VERSION_CODE).first()
+        if (persistedVersion < BuildConfig.VERSION_CODE) {
+            settingsViewModel.setInt(
+                SettingsKeys.SAVED_VERSION_CODE,
+                BuildConfig.VERSION_CODE
+            )
+            showChangelogSheet = true
+            // Prompt battery optimization exemption on first install or update
+            if (!BatteryOptimizationHelper.isIgnoringBatteryOptimizations(context)) {
+                BatteryOptimizationHelper.requestIgnoreBatteryOptimization(context)
+            }
+        }
     }
 
     Surface {

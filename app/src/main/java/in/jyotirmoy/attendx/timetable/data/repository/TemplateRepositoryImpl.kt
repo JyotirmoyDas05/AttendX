@@ -2,28 +2,34 @@ package `in`.jyotirmoy.attendx.timetable.data.repository
 
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
+import `in`.jyotirmoy.attendx.core.data.service.AnonymousAuthService
 import `in`.jyotirmoy.attendx.timetable.data.model.community.CommunityTemplate
 import `in`.jyotirmoy.attendx.timetable.domain.repository.TemplateRepository
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withTimeout
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class TemplateRepositoryImpl @Inject constructor(
-    private val firestore: FirebaseFirestore
+    private val firestore: FirebaseFirestore,
+    private val authService: AnonymousAuthService
 ) : TemplateRepository {
 
     private val templatesCollection = firestore.collection("templates")
 
     override suspend fun uploadTemplate(template: CommunityTemplate): Result<String> {
         return try {
-            val docRef = templatesCollection.document()
-            val templateWithId = template.copy(id = docRef.id)
-            docRef.set(templateWithId).await()
-            Result.success(docRef.id)
+            withTimeout(15_000L) {
+                authService.getOrCreateUid()
+                val docRef = templatesCollection.document()
+                val templateWithId = template.copy(id = docRef.id)
+                docRef.set(templateWithId).await()
+                Result.success(docRef.id)
+            }
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -34,6 +40,12 @@ class TemplateRepositoryImpl @Inject constructor(
         department: String?,
         semester: Int?
     ): Flow<List<CommunityTemplate>> = callbackFlow {
+        try {
+            authService.getOrCreateUid()
+        } catch (_: Exception) {
+            // Proceed even if auth fails temporarily
+        }
+
         var firebaseQuery: Query = templatesCollection.orderBy("likes", Query.Direction.DESCENDING)
 
         if (department != null) {
@@ -70,12 +82,15 @@ class TemplateRepositoryImpl @Inject constructor(
 
     override suspend fun getTemplateDetails(templateId: String): Result<CommunityTemplate> {
         return try {
-            val snapshot = templatesCollection.document(templateId).get().await()
-            val template = snapshot.toObject(CommunityTemplate::class.java)
-            if (template != null) {
-                Result.success(template)
-            } else {
-                Result.failure(Exception("Template not found"))
+            withTimeout(15_000L) {
+                try { authService.getOrCreateUid() } catch (_: Exception) {}
+                val snapshot = templatesCollection.document(templateId).get().await()
+                val template = snapshot.toObject(CommunityTemplate::class.java)
+                if (template != null) {
+                    Result.success(template)
+                } else {
+                    Result.failure(Exception("Template not found"))
+                }
             }
         } catch (e: Exception) {
             Result.failure(e)
@@ -84,9 +99,12 @@ class TemplateRepositoryImpl @Inject constructor(
 
     override suspend fun incrementDownloads(templateId: String) {
         try {
-            templatesCollection.document(templateId)
-                .update("downloads", com.google.firebase.firestore.FieldValue.increment(1))
-                .await()
+            withTimeout(5_000L) {
+                try { authService.getOrCreateUid() } catch (_: Exception) {}
+                templatesCollection.document(templateId)
+                    .update("downloads", com.google.firebase.firestore.FieldValue.increment(1))
+                    .await()
+            }
         } catch (e: Exception) {
             e.printStackTrace()
         }

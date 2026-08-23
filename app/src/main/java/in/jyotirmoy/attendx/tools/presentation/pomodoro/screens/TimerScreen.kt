@@ -36,8 +36,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.Label
 import androidx.compose.material.icons.rounded.NewLabel
 import androidx.compose.material3.ButtonGroup
@@ -108,6 +110,7 @@ fun PomodoroTimerScreen(
     onSelectTopic: (Topic) -> Unit,
     onCreateTopic: () -> Unit,
     onNavigateAod: () -> Unit,
+    onNavigateBack: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val scope = rememberCoroutineScope()
@@ -159,7 +162,21 @@ fun PomodoroTimerScreen(
         topBar = {
             CenterAlignedTopAppBar(
                 navigationIcon = {
-                    Spacer(Modifier.size(48.dp))
+                    IconButton(
+                        onClick = onNavigateBack,
+                        modifier = Modifier
+                            .padding(start = 8.dp)
+                            .size(48.dp)
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(colorScheme.surfaceContainerHighest)
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
+                            contentDescription = stringResource(R.string.back),
+                            tint = colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
                 },
                 title = {
                     Column(
@@ -440,7 +457,7 @@ fun PomodoroTimerScreen(
                                 shapes = IconButtonDefaults.toggleableShapes(),
                                 interactionSource = interactionSources[0],
                                 modifier = Modifier
-                                    .size(width = 136.dp, height = 96.dp)
+                                    .size(width = 120.dp, height = 96.dp)
                                     .animateWidth(interactionSources[0])
                             ) {
                                 Icon(
@@ -453,7 +470,26 @@ fun PomodoroTimerScreen(
                                 )
                             }
                         },
-                        { state -> }
+                        { state ->
+                            DropdownMenuItem(
+                                leadingIcon = {
+                                    Icon(
+                                        painter = painterResource(if (timerState.timerRunning) R.drawable.pause else R.drawable.play),
+                                        contentDescription = null,
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                },
+                                text = {
+                                    Text(
+                                        if (timerState.timerRunning) stringResource(R.string.pause) else stringResource(R.string.play)
+                                    )
+                                },
+                                onClick = {
+                                    onAction(TimerAction.ToggleTimer)
+                                    state.dismiss()
+                                }
+                            )
+                        }
                     )
 
                     customItem(
@@ -484,7 +520,7 @@ fun PomodoroTimerScreen(
                                 shapes = IconButtonDefaults.shapes(),
                                 interactionSource = interactionSources[1],
                                 modifier = Modifier
-                                    .size(96.dp)
+                                    .size(90.dp, 96.dp)
                                     .animateWidth(interactionSources[1])
                             ) {
                                 Icon(
@@ -495,7 +531,22 @@ fun PomodoroTimerScreen(
                                 )
                             }
                         },
-                        { state -> }
+                        { state ->
+                            DropdownMenuItem(
+                                leadingIcon = {
+                                    Icon(
+                                        painter = painterResource(R.drawable.restart_large),
+                                        contentDescription = null,
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                },
+                                text = { Text(stringResource(R.string.restart)) },
+                                onClick = {
+                                    onAction(TimerAction.ResetTimer)
+                                    state.dismiss()
+                                }
+                            )
+                        }
                     )
 
                     customItem(
@@ -512,7 +563,7 @@ fun PomodoroTimerScreen(
                                 shapes = IconButtonDefaults.shapes(),
                                 interactionSource = interactionSources[2],
                                 modifier = Modifier
-                                    .size(width = 80.dp, height = 96.dp)
+                                    .size(width = 64.dp, height = 96.dp)
                                     .animateWidth(interactionSources[2])
                             ) {
                                 Icon(
@@ -523,7 +574,22 @@ fun PomodoroTimerScreen(
                                 )
                             }
                         },
-                        { state -> }
+                        { state ->
+                            DropdownMenuItem(
+                                leadingIcon = {
+                                    Icon(
+                                        painter = painterResource(R.drawable.skip_next),
+                                        contentDescription = null,
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                },
+                                text = { Text(stringResource(R.string.skip_to_next)) },
+                                onClick = {
+                                    onAction(TimerAction.SkipTimer(fromButton = true))
+                                    state.dismiss()
+                                }
+                            )
+                        }
                     )
                 }
             }

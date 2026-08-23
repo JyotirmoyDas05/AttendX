@@ -7,10 +7,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.rounded.CloudUpload
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import `in`.jyotirmoy.attendx.timetable.data.model.community.CommunityTemplate
@@ -20,6 +22,7 @@ import `in`.jyotirmoy.attendx.timetable.data.model.community.CommunityTemplate
 fun MarketplaceScreen(
     onNavigateBack: () -> Unit,
     onTemplateClick: (CommunityTemplate) -> Unit,
+    onNavigateToUpload: () -> Unit = {},
     viewModel: MarketplaceViewModel = hiltViewModel()
 ) {
     val state = viewModel.state.value
@@ -33,6 +36,27 @@ fun MarketplaceScreen(
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back")
                     }
                 }
+            )
+        },
+        floatingActionButton = {
+            ExtendedFloatingActionButton(
+                onClick = onNavigateToUpload,
+                icon = {
+                    Icon(
+                        imageVector = Icons.Rounded.CloudUpload,
+                        contentDescription = "Share",
+                        modifier = Modifier.size(20.dp)
+                    )
+                },
+                text = {
+                    Text(
+                        text = "Share",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                },
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer
             )
         }
     ) { padding ->
