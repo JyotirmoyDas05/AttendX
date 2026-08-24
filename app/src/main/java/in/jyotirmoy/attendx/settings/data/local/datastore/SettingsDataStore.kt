@@ -28,15 +28,7 @@ class SettingsDataStore @Inject constructor(
     fun booleanFlow(key: SettingsKeys): Flow<Boolean> {
         val preferencesKey = key.toBooleanKey()
         val default = key.default as? Boolean == true
-
-        return ds.data.map { prefs ->
-            if (!prefs.contains(preferencesKey)) {
-                runCatching {
-                    context.settingsDataStore.edit { it[preferencesKey] = default }
-                }
-            }
-            prefs[preferencesKey] ?: default
-        }
+        return ds.data.map { prefs -> prefs[preferencesKey] ?: default }
     }
 
     suspend fun setBoolean(key: SettingsKeys, value: Boolean) {

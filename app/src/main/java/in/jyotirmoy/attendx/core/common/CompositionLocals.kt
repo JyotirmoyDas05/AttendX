@@ -1,6 +1,9 @@
 package `in`.jyotirmoy.attendx.core.common
 
 import androidx.appcompat.app.AppCompatDelegate
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -10,6 +13,7 @@ import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
@@ -40,6 +44,30 @@ val LocalNotificationPermission = staticCompositionLocalOf<Boolean> {
 }
 
 val LocalFloatingNavBarPadding = compositionLocalOf { 0.dp }
+
+/**
+ * A no-op horizontal drag consumer. ModalNavigationDrawer wraps ALL content in a
+ * full-screen `anchoredDraggable` (any unconsumed horizontal drag anywhere opens
+ * it — there is no edge check), and a state-flag flip in `gesturesEnabled` loses
+ * the race because the drawer starts dragging in the same pointer dispatch.
+ * Consuming the drag here wins deterministically instead: descendants run first
+ * in the pointer main pass, so real handlers keep priority — tab clicks, the
+ * nav bar's puck drag and the histogram's scrolling all still work, and the
+ * drawer only ever sees an already-consumed drag, which cancels its detection.
+ *
+ * Applied to the floating nav bar (dragging from the Home tab rightwards used
+ * to pull the drawer open) and the attendance histogram.
+ */
+@Composable
+fun Modifier.blocksDrawerGesture(): Modifier {
+    val noOpState = rememberDraggableState { }
+    return draggable(
+        state = noOpState,
+        orientation = Orientation.Horizontal,
+        onDragStarted = { _ -> },
+        onDragStopped = { },
+    )
+}
 
 @Composable
 fun CompositionLocals(

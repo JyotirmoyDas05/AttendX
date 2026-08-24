@@ -10,27 +10,28 @@ import `in`.jyotirmoy.attendx.settings.domain.model.PreferenceItem
 fun PreferenceItemView(
     item: PreferenceItem,
     modifier: Modifier = Modifier,
-    roundedShape: RoundedCornerShape = RoundedCornerShape(25.dp)
+    roundedShape: RoundedCornerShape = RoundedCornerShape(25.dp),
+    settingsViewModel: `in`.jyotirmoy.attendx.settings.presentation.viewmodel.SettingsViewModel = androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel()
 ) {
     when (item) {
         is PreferenceItem.BoolPreferenceItem -> BooleanPreferenceItemView(
             item = item,
             modifier = modifier,
-            roundedShape = roundedShape
+            roundedShape = roundedShape,
+            settingsViewModel = settingsViewModel
         )
 
         is PreferenceItem.IntPreferenceItem -> IntPreferenceItemView(
             item = item,
-            modifier = modifier
+            modifier = modifier,
+            settingsViewModel = settingsViewModel
         )
-
-        //    is PreferenceItem.StringPreferenceItem -> StringPreferenceItemView(item)
-        //   is PreferenceItem.FloatPreferenceItem -> FloatPreferenceItemView(item)
 
         is PreferenceItem.NullPreferenceItem -> NullPreferenceItemView(
             item = item,
             modifier = modifier,
-            roundedShape = roundedShape
+            roundedShape = roundedShape,
+            settingsViewModel = settingsViewModel
         )
 
         else -> {}

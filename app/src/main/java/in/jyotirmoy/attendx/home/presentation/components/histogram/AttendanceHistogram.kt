@@ -36,6 +36,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import `in`.jyotirmoy.attendx.core.common.blocksDrawerGesture
 import `in`.jyotirmoy.attendx.core.data.model.SubjectEntity
 import kotlinx.coroutines.delay
 
@@ -53,7 +54,10 @@ fun AttendanceHistogramCard(
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 15.dp),
+            .padding(horizontal = 15.dp)
+            // Swiping the histogram (its row sits at scroll position 0, so
+            // left-to-right drags go unconsumed) must not pull the drawer open.
+            .blocksDrawerGesture(),
         shape = RoundedCornerShape(25.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainer

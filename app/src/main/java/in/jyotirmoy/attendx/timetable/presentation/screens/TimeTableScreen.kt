@@ -185,7 +185,10 @@ fun TimeTableScreen(
                     contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                     shape = CircleShape,
                     modifier = Modifier
-                        .padding(bottom = if (isLandscape) 46.dp else 72.dp)
+                        // Measured nav bar footprint — never a fixed dp, so the
+                        // FAB can't slide behind the bar at any screen size,
+                        // font scale or orientation.
+                        .padding(bottom = bottomContentPadding)
                         .size(if (isLandscape) 44.dp else 56.dp)
                 ) {
                     Icon(

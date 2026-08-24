@@ -55,7 +55,25 @@ enum class SettingsKeys(val default: Any?) {
     GRACE_PERIOD_MINUTES(60),  // Default: 1 hour
     DEFAULT_START_MINUTE(45), // Default start minute (e.g., 9:45)
     DEFAULT_CLASS_DURATION(60), // Default duration in minutes
-    LIQUID_GLASS_EFFECT(true),  // AGSL glass shader on nav bar (API 33+ only)
+    LIQUID_GLASS_EFFECT(true),  // Master switch for Liquid Glass effect (API 31+)
+    LIQUID_GLASS_VIBRANCY(1.2f),
+    LIQUID_GLASS_BLUR_RADIUS(2f),
+    LIQUID_GLASS_LENS_HEIGHT(0.40f),
+    LIQUID_GLASS_LENS_AMOUNT(0.60f),
+    LIQUID_GLASS_CHROMATIC_ABERRATION(true),
+    LIQUID_GLASS_DEPTH_EFFECT(true),
+    LIQUID_GLASS_SURFACE_TINT_COLOR(0),
+    LIQUID_GLASS_SURFACE_OPACITY(0.50f),
+    LIQUID_GLASS_STYLE("LIQUID"),
+    LIQUID_GLASS_PUCK_COLOR(0),
+    LIQUID_GLASS_PUCK_OPACITY(0.70f),
+    LIQUID_GLASS_HIGHLIGHT_COLOR(0),
+    LIQUID_GLASS_HIGHLIGHT_OPACITY(0.55f),
+    LIQUID_GLASS_ADAPTIVE_CONTRAST(true),
+    LIQUID_GLASS_TEXT_COLOR(0),
     TIMETABLE_VIEW_MODE("DAY"),
-    PEER_COMPARISON(null)  // Navigation entry point to QR peer comparison
+    PEER_COMPARISON(null);  // Navigation entry point to QR peer comparison
+
+    val defaultValue: Any?
+        get() = default
 }

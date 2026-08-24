@@ -498,7 +498,10 @@ fun HomeScreen(
             ) + fadeOut(animationSpec = tween(200)),
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .padding(end = 20.dp, bottom = 82.dp)
+                // Measured nav bar footprint (inset + bar + clearance) — never a
+                // fixed dp, so the FAB can't slide behind the bar at any screen
+                // size, font scale or orientation.
+                .padding(end = 20.dp, bottom = bottomNavPadding)
         ) {
             
             ExtendedFloatingActionButton(

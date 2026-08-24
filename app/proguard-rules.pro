@@ -34,3 +34,8 @@
 -keep class in.jyotirmoy.attendx.peer.data.model.PeerSessionDoc { *; }
 -keep class in.jyotirmoy.attendx.peer.data.model.PeerSubjectPayload { *; }
 
+# Kyant0/backdrop glass system — ModifierNodeElement subclasses are
+# instantiated by reflection during Compose layout; keep them intact.
+-keep class in.jyotirmoy.attendx.core.ui.glass.backdrop.** { *; }
+-keep class in.jyotirmoy.attendx.core.ui.glass.shapes.** { *; }
+-keep class in.jyotirmoy.attendx.core.ui.glass.floatingtabbar.** { *; }

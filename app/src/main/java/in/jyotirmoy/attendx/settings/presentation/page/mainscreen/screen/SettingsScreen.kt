@@ -123,7 +123,7 @@ fun SettingsScreen(modifier: Modifier = Modifier, viewModel: SettingsViewModel =
                         )
 
                         group.items.forEach { item ->
-                            PreferenceItemView(item = item, modifier = modifier.animateItem())
+                            PreferenceItemView(item = item, modifier = modifier.animateItem(), settingsViewModel = viewModel)
                         }
                     }
 
@@ -136,7 +136,8 @@ fun SettingsScreen(modifier: Modifier = Modifier, viewModel: SettingsViewModel =
                             PreferenceItemView(
                                 item = item,
                                 modifier = Modifier.animateItem(),
-                                roundedShape = shape
+                                roundedShape = shape,
+                                settingsViewModel = viewModel
                             )
                         }
                     }

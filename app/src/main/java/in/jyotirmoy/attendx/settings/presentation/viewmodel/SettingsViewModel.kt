@@ -19,6 +19,7 @@ import `in`.jyotirmoy.attendx.navigation.AboutScreen
 import `in`.jyotirmoy.attendx.navigation.BackupAndRestoreScreen
 import `in`.jyotirmoy.attendx.navigation.BehaviorScreen
 import `in`.jyotirmoy.attendx.navigation.DarkThemeScreen
+import `in`.jyotirmoy.attendx.navigation.LiquidGlassScreenRoute
 import `in`.jyotirmoy.attendx.navigation.LookAndFeelScreen
 import `in`.jyotirmoy.attendx.navigation.NotificationScreen
 import `in`.jyotirmoy.attendx.navigation.PeerInsightsRoute
@@ -100,7 +101,7 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    private val _uiEvent = MutableSharedFlow<SettingsUiEvent>()
+    private val _uiEvent = MutableSharedFlow<SettingsUiEvent>(extraBufferCapacity = 5)
     val uiEvent = _uiEvent.asSharedFlow()
 
     init {
@@ -206,7 +207,9 @@ class SettingsViewModel @Inject constructor(
                     SettingsUiEvent.Navigate(DarkThemeScreen)
                 )
 
-
+                SettingsKeys.LIQUID_GLASS_EFFECT -> _uiEvent.emit(
+                    SettingsUiEvent.Navigate(LiquidGlassScreenRoute)
+                )
 
                 SettingsKeys.BACKUP_APP_SETTINGS -> _uiEvent.emit(
                     SettingsUiEvent.RequestDocumentUriForBackup(BackupOption.SETTINGS_ONLY)
@@ -249,7 +252,7 @@ class SettingsViewModel @Inject constructor(
                 }
             }
             SettingsKeys.LIQUID_GLASS_EFFECT -> {
-                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
                     flowOf(false)
                 } else {
                     getBoolean(key)
@@ -273,7 +276,7 @@ class SettingsViewModel @Inject constructor(
             SettingsKeys.NOTIFY_MISSED_ATTENDANCE -> notificationsEnabled
             SettingsKeys.ENABLE_TIMETABLE_NOTIFICATIONS -> notificationsEnabled
             SettingsKeys.PERSISTENT_NOTIFICATIONS -> notificationsEnabled
-            SettingsKeys.LIQUID_GLASS_EFFECT -> flowOf(Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
+            SettingsKeys.LIQUID_GLASS_EFFECT -> flowOf(Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
 
             else -> flowOf(true)
         }

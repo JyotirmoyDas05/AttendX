@@ -122,7 +122,8 @@ fun LookAndFeelScreen(
                                 PreferenceItemView(
                                     item = item,
                                     modifier = Modifier.animateItem(),
-                                    roundedShape = shape
+                                    roundedShape = shape,
+                                    settingsViewModel = settingsViewModel
                                 )
                             }
                         }
@@ -136,7 +137,8 @@ fun LookAndFeelScreen(
                                 PreferenceItemView(
                                     item = item,
                                     modifier = Modifier.animateItem(),
-                                    roundedShape = shape
+                                    roundedShape = shape,
+                                    settingsViewModel = settingsViewModel
                                 )
                             }
                         }

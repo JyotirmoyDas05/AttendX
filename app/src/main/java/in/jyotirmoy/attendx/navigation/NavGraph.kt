@@ -90,6 +90,13 @@ fun Navigation(
                 DarkThemeScreen()
             }
 
+            composable<LiquidGlassScreenRoute>(
+                enterTransition = { slideFadeInFromRight() },
+                popExitTransition = { slideFadeOutToRight() }
+            ) {
+                `in`.jyotirmoy.attendx.settings.presentation.page.lookandfeel.screens.LiquidGlassSettingsScreen()
+            }
+
             composable<BehaviorScreen>(
                 enterTransition = { slideFadeInFromRight() },
                 exitTransition = { slideFadeOutToLeft() },
@@ -233,6 +240,9 @@ object LookAndFeelScreen
 
 @Serializable
 object DarkThemeScreen
+
+@Serializable
+object LiquidGlassScreenRoute
 
 @Serializable
 object AboutScreen
