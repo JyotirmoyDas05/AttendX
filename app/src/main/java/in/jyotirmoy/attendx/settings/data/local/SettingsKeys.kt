@@ -72,7 +72,15 @@ enum class SettingsKeys(val default: Any?) {
     LIQUID_GLASS_ADAPTIVE_CONTRAST(true),
     LIQUID_GLASS_TEXT_COLOR(0),
     TIMETABLE_VIEW_MODE("DAY"),
-    PEER_COMPARISON(null);  // Navigation entry point to QR peer comparison
+    PEER_COMPARISON(null),  // Navigation entry point to QR peer comparison
+
+    // Origin of the community template this timetable was imported from, so the
+    // author publishing a new version can be surfaced. Only one is tracked:
+    // importing is a whole-timetable operation, so this covers the real case.
+    IMPORTED_TEMPLATE_ID(""),
+    IMPORTED_TEMPLATE_VERSION(0),
+    IMPORTED_TEMPLATE_DISMISSED_VERSION(0),
+    LAST_TEMPLATE_CHECK("");  // epoch millis; String because the enum has no Long
 
     val defaultValue: Any?
         get() = default

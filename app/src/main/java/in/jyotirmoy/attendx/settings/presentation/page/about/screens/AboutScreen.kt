@@ -22,6 +22,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.BugReport
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.NewReleases
+import androidx.compose.material.icons.rounded.PrivacyTip
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ElevatedCard
@@ -321,6 +322,12 @@ fun AboutScreen(
                             title = { Text(stringResource(R.string.view_github_repo), fontWeight = FontWeight.SemiBold) },
                             description = { Text(stringResource(R.string.view_github_repo_desc)) },
                             onClick = { openUrl(UrlConst.URL_GITHUB_REPO, context) }
+                        ),
+                        Material3SettingsItem(
+                            imageVector = Icons.Rounded.PrivacyTip,
+                            title = { Text(stringResource(R.string.privacy_policy), fontWeight = FontWeight.SemiBold) },
+                            description = { Text(stringResource(R.string.privacy_policy_desc)) },
+                            onClick = { openUrl(UrlConst.URL_PRIVACY_POLICY, context) }
                         ),
                         Material3SettingsItem(
                             icon = painterResource(R.drawable.ic_license),

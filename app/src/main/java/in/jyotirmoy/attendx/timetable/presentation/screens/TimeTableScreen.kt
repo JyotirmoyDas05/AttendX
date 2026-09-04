@@ -82,14 +82,37 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowCompat
 import androidx.hilt.navigation.compose.hiltViewModel
+import `in`.jyotirmoy.attendx.R
 import `in`.jyotirmoy.attendx.core.common.LocalFloatingNavBarPadding
 import `in`.jyotirmoy.attendx.core.presentation.components.dialog.ConfirmDeleteDialog
 import `in`.jyotirmoy.attendx.timetable.presentation.components.AddEditClassSheet
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import `in`.jyotirmoy.attendx.core.presentation.components.pager.InfiniteSwipePager
+import `in`.jyotirmoy.attendx.core.presentation.components.state.StatusMessage
+import `in`.jyotirmoy.attendx.timetable.domain.classesOn
+import `in`.jyotirmoy.attendx.timetable.presentation.components.CalendarPaging
+import java.time.LocalDate
+import java.time.format.TextStyle
+import java.util.Locale
+import androidx.compose.ui.platform.LocalDensity
+import `in`.jyotirmoy.attendx.timetable.presentation.components.GRID_START_MINUTES
+import `in`.jyotirmoy.attendx.timetable.presentation.components.GRID_END_MINUTES
+import java.time.LocalTime
+import androidx.compose.runtime.snapshotFlow
+import kotlinx.coroutines.flow.first
+import `in`.jyotirmoy.attendx.core.presentation.components.text.AutoResizeableText
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.draw.clipToBounds
+import `in`.jyotirmoy.attendx.timetable.presentation.components.DEFAULT_HOUR_HEIGHT
 import `in`.jyotirmoy.attendx.timetable.presentation.components.DaySelector
 import `in`.jyotirmoy.attendx.timetable.presentation.components.NextUpCard
 import `in`.jyotirmoy.attendx.timetable.presentation.components.SelectableClassCard
 import `in`.jyotirmoy.attendx.timetable.presentation.components.TimetableCalendarView
 import `in`.jyotirmoy.attendx.timetable.presentation.components.TodayCalendarIcon
+import `in`.jyotirmoy.attendx.timetable.presentation.screens.template.update.TemplateUpdateBadge
+import `in`.jyotirmoy.attendx.timetable.presentation.screens.template.update.TemplateUpdateViewModel
 import `in`.jyotirmoy.attendx.timetable.presentation.components.ViewClassSheet
 import `in`.jyotirmoy.attendx.timetable.presentation.viewmodel.TimeTableViewModel
 import `in`.jyotirmoy.attendx.timetable.presentation.viewmodel.TimetableViewMode
@@ -111,14 +134,25 @@ fun TimeTableScreen(
     val floatingNavBarPadding = LocalFloatingNavBarPadding.current
     val bottomContentPadding = if (floatingNavBarPadding > 0.dp) floatingNavBarPadding else if (isLandscape) 72.dp else 104.dp
 
+    // Separate instance from the nav-graph one, but the pending update lives in a
+    // @Singleton notifier so both observe the same state.
+    val templateUpdateViewModel: TemplateUpdateViewModel = hiltViewModel()
+    val pendingTemplateUpdate by templateUpdateViewModel.pending.collectAsState()
+
     val subjects by viewModel.subjects.collectAsState()
+    val anchorDate by viewModel.anchorDate.collectAsState()
     val selectedDay by viewModel.selectedDay.collectAsState()
     val dailySchedule by viewModel.dailySchedule.collectAsState()
     val nextClass by viewModel.nextClass.collectAsState()
     val currentClass by viewModel.currentClass.collectAsState()
     val viewMode by viewModel.viewMode.collectAsState()
-    val threeDayStartDay by viewModel.threeDayStartDay.collectAsState()
-    val weeklySchedule by viewModel.weeklySchedule.collectAsState()
+    val weeklyClasses by viewModel.weeklyClasses.collectAsState()
+
+    // Owned here rather than inside the grid so that paging to another day, or
+    // switching between Day and Week, keeps the same time of day and zoom level
+    // on screen instead of jumping back to the top.
+    val gridScrollState = rememberScrollState()
+    var hourHeight by rememberSaveable { mutableFloatStateOf(DEFAULT_HOUR_HEIGHT) }
 
     val showAddEditSheet by viewModel.showAddEditSheet.collectAsState()
     val editingSchedule by viewModel.editingSchedule.collectAsState()
@@ -131,6 +165,34 @@ fun TimeTableScreen(
 
     val snackbarHostState = remember { SnackbarHostState() }
     var snapToNow by remember { mutableStateOf(false) }
+
+    // Centring the grid on the current time moved up here with the scroll state.
+    // Doing it inside the grid meant it re-ran on every view switch, yanking the
+    // user back to now in the middle of the morph.
+    val density = LocalDensity.current
+    fun nowScrollTarget(): Int? {
+        val now = LocalTime.now()
+        val minutes = now.hour * 60 + now.minute
+        if (minutes !in GRID_START_MINUTES..GRID_END_MINUTES) return null
+        val hourHeightPx = with(density) { hourHeight.dp.toPx() }
+        return ((minutes - GRID_START_MINUTES) / 60f * hourHeightPx - hourHeightPx)
+            .toInt()
+            .coerceAtLeast(0)
+    }
+
+    LaunchedEffect(Unit) {
+        // The scroll state is created here but filled by the grid a frame later,
+        // so scrolling immediately would clamp to 0 and leave the view at 8am.
+        snapshotFlow { gridScrollState.maxValue }.first { it > 0 }
+        nowScrollTarget()?.let { gridScrollState.scrollTo(it) }
+    }
+
+    LaunchedEffect(snapToNow) {
+        if (snapToNow) {
+            nowScrollTarget()?.let { gridScrollState.animateScrollTo(it) }
+            snapToNow = false
+        }
+    }
     var showMoreMenu by remember { mutableStateOf(false) }
     var showLandscapeMoreMenu by remember { mutableStateOf(false) }
 
@@ -252,6 +314,13 @@ fun TimeTableScreen(
 
                         Spacer(modifier = Modifier.width(2.dp))
 
+                        TemplateUpdateBadge(
+                            visible = pendingTemplateUpdate != null,
+                            onClick = { templateUpdateViewModel.requestShow() },
+                            size = 34.dp,
+                            iconSize = 18.dp
+                        )
+
                         // Material 3 Expressive More Options Menu (Import / Export)
                         TimetableExpressiveMoreMenu(
                             expanded = showLandscapeMoreMenu,
@@ -293,11 +362,11 @@ fun TimeTableScreen(
                                         .padding(horizontal = 8.dp, vertical = 3.dp),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Text(
+                                    AutoResizeableText(
                                         text = label,
                                         style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.5.sp),
-                                        maxLines = 1,
                                         softWrap = false,
+                                        textAlign = TextAlign.Center,
                                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                                         color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -355,6 +424,11 @@ fun TimeTableScreen(
 
                             Spacer(modifier = Modifier.width(4.dp))
 
+                            TemplateUpdateBadge(
+                                visible = pendingTemplateUpdate != null,
+                                onClick = { templateUpdateViewModel.requestShow() }
+                            )
+
                             // Material 3 Expressive More Options Menu (Import / Export)
                             TimetableExpressiveMoreMenu(
                                 expanded = showMoreMenu,
@@ -398,12 +472,13 @@ fun TimeTableScreen(
                                     .padding(vertical = 7.dp),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Text(
+                                // Shrinks to fit its quarter of the switcher
+                                // rather than ellipsising "Schedule" away.
+                                AutoResizeableText(
                                     text = label,
                                     style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.5.sp),
-                                    maxLines = 1,
                                     softWrap = false,
-                                    overflow = TextOverflow.Ellipsis,
+                                    textAlign = TextAlign.Center,
                                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                                     color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -456,123 +531,121 @@ fun TimeTableScreen(
                         )
                     },
                     label = "viewModeTransition",
-                    modifier = Modifier.fillMaxSize()
+                    // Anything the transition lifts stays inside the grid area
+                    // instead of sliding up over the header.
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clipToBounds()
                 ) { currentViewMode ->
+                    val numDays = when (currentViewMode) {
+                        TimetableViewMode.SCHEDULE -> 1
+                        TimetableViewMode.DAY -> 1
+                        TimetableViewMode.THREE_DAY -> 3
+                        TimetableViewMode.WEEK -> 7
+                    }
+
                     when (currentViewMode) {
                         TimetableViewMode.SCHEDULE -> {
-                            // Schedule / Agenda List View
-                            Column(
-                                modifier = Modifier.fillMaxSize()
-                            ) {
-                                // Day Selector
+                            Column(modifier = Modifier.fillMaxSize()) {
                                 DaySelector(
-                                    selectedDay = selectedDay,
+                                    selectedDate = anchorDate,
                                     onDaySelected = viewModel::onDaySelected
                                 )
-                                
+
                                 Spacer(modifier = Modifier.height(if (isLandscape) 6.dp else 12.dp))
 
-                                // Class List
-                                LazyColumn(
+                                // The agenda pages by day just like the grids, so
+                                // the day strip above is no longer the only way to
+                                // move between days.
+                                InfiniteSwipePager(
+                                    reference = anchorDate,
+                                    offsetOf = { current, base ->
+                                        CalendarPaging.pageOffsetOf(current, base, numDays)
+                                    },
+                                    referenceAt = { base, offset ->
+                                        CalendarPaging.windowStartAt(base, offset, numDays)
+                                    },
+                                    onReferenceChange = viewModel::onDaySelected,
                                     modifier = Modifier.fillMaxSize(),
-                                    contentPadding = PaddingValues(
-                                        start = 16.dp,
-                                        end = 16.dp,
-                                        top = 6.dp,
-                                        bottom = bottomContentPadding
-                                    ),
-                                    verticalArrangement = Arrangement.spacedBy(6.dp)
-                                ) {
-                                    items(
-                                        items = dailySchedule,
-                                        key = { it.schedule.id }
-                                    ) { scheduleWithSubject ->
-                                        SelectableClassCard(
-                                            scheduleWithSubject = scheduleWithSubject,
-                                            isSelected = selectedClassIds.contains(scheduleWithSubject.schedule.id),
-                                            onLongPress = {
-                                                if (isSelectionMode) {
-                                                    viewModel.toggleClassSelection(scheduleWithSubject.schedule.id)
-                                                } else {
-                                                    viewModel.showEditSheet(scheduleWithSubject)
-                                                }
-                                            },
-                                            onClick = {
-                                                if (isSelectionMode) {
-                                                    viewModel.toggleClassSelection(scheduleWithSubject.schedule.id)
-                                                } else {
-                                                    viewModel.showViewSheet(scheduleWithSubject)
-                                                }
-                                            }
+                                    key = { it }
+                                ) { pageDate ->
+                                    val classes = remember(weeklyClasses, pageDate) {
+                                        classesOn(weeklyClasses, pageDate)
+                                            .sortedBy { it.schedule.startTime }
+                                    }
+
+                                    if (classes.isEmpty()) {
+                                        StatusMessage(
+                                            illustration = R.drawable.undraw_note_list,
+                                            title = "Nothing scheduled",
+                                            description = dayLabelOf(pageDate),
+                                            // Same allowance the populated list
+                                            // makes, so the caption is not left
+                                            // sitting under the floating nav bar.
+                                            modifier = Modifier.padding(
+                                                bottom = bottomContentPadding
+                                            )
                                         )
+                                    } else {
+                                        LazyColumn(
+                                            modifier = Modifier.fillMaxSize(),
+                                            contentPadding = PaddingValues(
+                                                start = 16.dp,
+                                                end = 16.dp,
+                                                top = 6.dp,
+                                                bottom = bottomContentPadding
+                                            ),
+                                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                                        ) {
+                                            items(
+                                                items = classes,
+                                                key = { it.schedule.id }
+                                            ) { scheduleWithSubject ->
+                                                SelectableClassCard(
+                                                    scheduleWithSubject = scheduleWithSubject,
+                                                    isSelected = selectedClassIds.contains(scheduleWithSubject.schedule.id),
+                                                    onLongPress = {
+                                                        if (isSelectionMode) {
+                                                            viewModel.toggleClassSelection(scheduleWithSubject.schedule.id)
+                                                        } else {
+                                                            viewModel.showEditSheet(scheduleWithSubject)
+                                                        }
+                                                    },
+                                                    onClick = {
+                                                        if (isSelectionMode) {
+                                                            viewModel.toggleClassSelection(scheduleWithSubject.schedule.id)
+                                                        } else {
+                                                            viewModel.showViewSheet(scheduleWithSubject, pageDate)
+                                                        }
+                                                    }
+                                                )
+                                            }
+                                        }
                                     }
                                 }
                             }
                         }
-                        TimetableViewMode.DAY -> {
-                            // 1-Day Timeline Grid View
+
+                        else -> {
                             TimetableCalendarView(
-                                weeklySchedule = weeklySchedule,
-                                onClassClick = { schedule ->
-                                    viewModel.showViewSheet(schedule)
+                                weeklyClasses = weeklyClasses,
+                                anchorDate = anchorDate,
+                                numDays = numDays,
+                                animatedVisibilityScope = this@AnimatedContent,
+                                verticalScrollState = gridScrollState,
+                                hourHeight = hourHeight,
+                                onHourHeightChange = { hourHeight = it },
+                                onAnchorDateChange = viewModel::setAnchorDate,
+                                onClassClick = { schedule, date ->
+                                    viewModel.showViewSheet(schedule, date)
                                 },
                                 onClassLongClick = { schedule ->
                                     viewModel.showEditSheet(schedule)
                                 },
-                                onEmptySlotClick = { day, time ->
-                                    viewModel.showAddSheetForSlot(day, time)
+                                onEmptySlotClick = { date, time ->
+                                    viewModel.showAddSheetForSlot(date, time)
                                 },
-                                onShiftDays = { delta -> viewModel.shiftStartDay(delta) },
-                                numDays = 1,
-                                startDay = selectedDay,
                                 currentClassId = currentClass?.schedule?.id,
-                                snapToNow = snapToNow,
-                                onSnapConsumed = { snapToNow = false },
-                                bottomPadding = bottomContentPadding,
-                                modifier = Modifier.padding(horizontal = 4.dp)
-                            )
-                        }
-                        TimetableViewMode.THREE_DAY -> {
-                            // 3-Day Shiftable Timeline Grid View
-                            TimetableCalendarView(
-                                weeklySchedule = weeklySchedule,
-                                onClassClick = { schedule ->
-                                    viewModel.showViewSheet(schedule)
-                                },
-                                onClassLongClick = { schedule ->
-                                    viewModel.showEditSheet(schedule)
-                                },
-                                onEmptySlotClick = { day, time ->
-                                    viewModel.showAddSheetForSlot(day, time)
-                                },
-                                onShiftDays = { delta -> viewModel.shiftStartDay(delta) },
-                                numDays = 3,
-                                startDay = threeDayStartDay,
-                                currentClassId = currentClass?.schedule?.id,
-                                snapToNow = snapToNow,
-                                onSnapConsumed = { snapToNow = false },
-                                bottomPadding = bottomContentPadding,
-                                modifier = Modifier.padding(horizontal = 4.dp)
-                            )
-                        }
-                        TimetableViewMode.WEEK -> {
-                            // 7-Day Full Week Timeline Grid View
-                            TimetableCalendarView(
-                                weeklySchedule = weeklySchedule,
-                                onClassClick = { schedule ->
-                                    viewModel.showViewSheet(schedule)
-                                },
-                                onClassLongClick = { schedule ->
-                                    viewModel.showEditSheet(schedule)
-                                },
-                                onEmptySlotClick = { day, time ->
-                                    viewModel.showAddSheetForSlot(day, time)
-                                },
-                                onShiftDays = { /* Week fits full screen */ },
-                                numDays = 7,
-                                currentClassId = currentClass?.schedule?.id,
-                                snapToNow = snapToNow,
-                                onSnapConsumed = { snapToNow = false },
                                 bottomPadding = bottomContentPadding,
                                 modifier = Modifier.padding(horizontal = 4.dp)
                             )
@@ -584,9 +657,11 @@ fun TimeTableScreen(
     }
 
     // View Class Details Bottom Sheet (XCalendar style + attendance actions)
-    viewingSchedule?.let { schedule ->
+    viewingSchedule?.let { viewed ->
+        val schedule = viewed.schedule
         ViewClassSheet(
             scheduleWithSubject = schedule,
+            classDate = viewed.date,
             attendanceListFlow = viewModel.getAttendanceForSubject(schedule.subject.id),
             attendanceCountsFlow = viewModel.getSubjectAttendanceCounts(schedule.subject.id),
             onDismiss = { viewModel.hideViewSheet() },
@@ -741,4 +816,11 @@ private fun TimetableExpressiveMoreMenu(
             )
         }
     }
+}
+
+/** "Monday 7 September" — the empty agenda page names the day it is about. */
+private fun dayLabelOf(date: LocalDate): String {
+    val day = date.dayOfWeek.getDisplayName(TextStyle.FULL, Locale.getDefault())
+    val month = date.month.getDisplayName(TextStyle.FULL, Locale.getDefault())
+    return "$day ${date.dayOfMonth} $month"
 }

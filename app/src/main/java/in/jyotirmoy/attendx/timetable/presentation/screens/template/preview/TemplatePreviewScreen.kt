@@ -1,61 +1,120 @@
+@file:OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
+
 package `in`.jyotirmoy.attendx.timetable.presentation.screens.template.preview
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Schedule
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.rounded.CloudOff
+import androidx.compose.material.icons.rounded.Info
+import androidx.compose.material.icons.rounded.Schedule
+import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.Icon
+import androidx.compose.material3.LargeTopAppBar
+import androidx.compose.material3.LoadingIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.PrimaryTabRow
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Tab
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import android.widget.Toast
-import androidx.compose.ui.platform.LocalContext
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.hilt.navigation.compose.hiltViewModel
+import `in`.jyotirmoy.attendx.core.presentation.components.button.BackButton
+import `in`.jyotirmoy.attendx.core.presentation.components.state.StatusMessage
+import `in`.jyotirmoy.attendx.core.presentation.components.text.AutoResizeableText
+import `in`.jyotirmoy.attendx.timetable.presentation.screens.template.components.SelectionSummary
+import `in`.jyotirmoy.attendx.timetable.presentation.screens.template.components.classSelectionItems
+import `in`.jyotirmoy.attendx.timetable.presentation.screens.template.components.subjectSelectionItems
 import `in`.jyotirmoy.attendx.timetable.data.model.community.CommunityTemplate
 import `in`.jyotirmoy.attendx.timetable.data.model.community.TemplateClassEntry
 import `in`.jyotirmoy.attendx.timetable.data.model.community.TemplateSubjectEntry
-import java.text.SimpleDateFormat
-import java.util.Locale
 
-@OptIn(ExperimentalMaterial3Api::class)
+private sealed interface PreviewContent {
+    data object Loading : PreviewContent
+    data class Failed(val message: String) : PreviewContent
+    data class Loaded(val template: CommunityTemplate) : PreviewContent
+}
+
 @Composable
 fun TemplatePreviewScreen(
     onNavigateBack: () -> Unit,
     viewModel: TemplatePreviewViewModel = hiltViewModel()
 ) {
     val state by viewModel.state
-    val context = LocalContext.current
-    var selectedTab by remember { mutableIntStateOf(0) }
-    
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    var selectedTab by rememberSaveable { mutableIntStateOf(0) }
+
     LaunchedEffect(state.importSuccess) {
         if (state.importSuccess) {
-            Toast.makeText(context, "Template imported successfully!", Toast.LENGTH_SHORT).show()
+            snackbarHostState.showSnackbar("Template imported")
             onNavigateBack()
         }
     }
 
+    // A load failure replaces the content; an import failure is transient and
+    // belongs in a snackbar over the still-usable template.
+    LaunchedEffect(state.error) {
+        val message = state.error
+        if (message != null && state.template != null) {
+            snackbarHostState.showSnackbar(message)
+        }
+    }
+
+    val content: PreviewContent = when {
+        state.isLoading -> PreviewContent.Loading
+        state.template != null -> PreviewContent.Loaded(state.template!!)
+        else -> PreviewContent.Failed(state.error ?: "Template not found")
+    }
+
     Scaffold(
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
-            TopAppBar(
-                title = { Text("Template Details") },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                }
+            LargeTopAppBar(
+                title = {
+                    Text(
+                        text = "Template Details",
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                },
+                navigationIcon = { BackButton() },
+                scrollBehavior = scrollBehavior
             )
         },
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         bottomBar = {
-            state.template?.let {
+            if (content is PreviewContent.Loaded) {
                 Button(
                     onClick = { viewModel.importTemplate() },
                     modifier = Modifier
@@ -64,64 +123,92 @@ fun TemplatePreviewScreen(
                     enabled = !state.isImporting
                 ) {
                     if (state.isImporting) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(24.dp),
-                            color = MaterialTheme.colorScheme.onPrimary
-                        )
+                        LoadingIndicator(modifier = Modifier.size(24.dp))
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Importing...")
+                        AutoResizeableText(
+                            text = "Importing…",
+                            style = MaterialTheme.typography.labelLarge,
+                            textAlign = TextAlign.Center
+                        )
                     } else {
-                        Text("Import Template")
+                        // Height follows the label so a scaled-up or translated
+                        // string grows the button rather than being cut off.
+                        AutoResizeableText(
+                            text = "Import Template",
+                            style = MaterialTheme.typography.labelLarge,
+                            textAlign = TextAlign.Center,
+                            maxLines = 2
+                        )
                     }
                 }
             }
         }
     ) { padding ->
-        Box(
+        AnimatedContent(
+            targetState = content,
+            contentKey = { it::class },
+            label = "template-preview",
             modifier = Modifier
                 .padding(padding)
                 .fillMaxSize()
-        ) {
-            if (state.isLoading) {
-                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-            } else if (state.error != null) {
-                Text(
-                    text = state.error!!,
-                    color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.align(Alignment.Center)
+        ) { target ->
+            when (target) {
+                is PreviewContent.Loading -> Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    LoadingIndicator()
+                }
+
+                is PreviewContent.Failed -> StatusMessage(
+                    icon = Icons.Rounded.CloudOff,
+                    title = "Couldn't load this template",
+                    description = target.message,
+                    tint = MaterialTheme.colorScheme.error
                 )
-            } else if (state.template != null) {
-                Column(modifier = Modifier.fillMaxSize()) {
-                    // Template Header
-                    TemplateHeader(template = state.template!!)
-                    
-                    // Tabs
-                    TabRow(selectedTabIndex = selectedTab) {
+
+                is PreviewContent.Loaded -> Column(modifier = Modifier.fillMaxSize()) {
+                    TemplateHeader(template = target.template)
+
+                    PrimaryTabRow(selectedTabIndex = selectedTab) {
                         Tab(
                             selected = selectedTab == 0,
                             onClick = { selectedTab = 0 },
-                            text = { Text("Subjects") },
-                            icon = { Icon(Icons.Default.Info, contentDescription = null) }
+                            text = {
+                                AutoResizeableText(
+                                    text = "Subjects",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    textAlign = TextAlign.Center
+                                )
+                            },
+                            icon = { Icon(Icons.Rounded.Info, contentDescription = null) }
                         )
                         Tab(
                             selected = selectedTab == 1,
                             onClick = { selectedTab = 1 },
-                            text = { Text("Timetable") },
-                            icon = { Icon(Icons.Default.Schedule, contentDescription = null) }
+                            text = {
+                                AutoResizeableText(
+                                    text = "Timetable",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    textAlign = TextAlign.Center
+                                )
+                            },
+                            icon = { Icon(Icons.Rounded.Schedule, contentDescription = null) }
                         )
                     }
-                    
-                    // Content
+
                     when (selectedTab) {
                         0 -> SubjectsList(
-                            template = state.template!!,
+                            template = target.template,
                             selectedSubjects = state.selectedSubjects,
-                            onToggle = viewModel::toggleSubject
+                            onToggle = viewModel::toggleSubject,
+                            onToggleAll = viewModel::toggleAllSubjects
                         )
-                        1 -> TimetableWeeklyView(
-                            template = state.template!!,
+                        else -> TimetableWeeklyView(
+                            template = target.template,
                             selectedClasses = state.selectedClasses,
-                            onToggle = viewModel::toggleClass
+                            onToggle = viewModel::toggleClass,
+                            onToggleAll = viewModel::toggleAllClasses
                         )
                     }
                 }
@@ -131,15 +218,15 @@ fun TemplatePreviewScreen(
 }
 
 @Composable
-fun TemplateHeader(template: CommunityTemplate) {
+private fun TemplateHeader(template: CommunityTemplate) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(16.dp)
+            .padding(horizontal = 16.dp, vertical = 8.dp)
     ) {
         Text(
             text = template.name,
-            style = MaterialTheme.typography.headlineSmall,
+            style = MaterialTheme.typography.titleLargeEmphasized,
             fontWeight = FontWeight.Bold
         )
         Spacer(modifier = Modifier.height(4.dp))
@@ -155,7 +242,8 @@ fun TemplateHeader(template: CommunityTemplate) {
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            text = "Uploaded by ${template.authorName}",
+            text = "Shared by ${template.authorName}" +
+                if (template.version > 1) " • version ${template.version}" else "",
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.outline
         )
@@ -163,206 +251,85 @@ fun TemplateHeader(template: CommunityTemplate) {
 }
 
 @Composable
-fun SubjectsList(
+private fun SubjectsList(
     template: CommunityTemplate,
     selectedSubjects: List<TemplateSubjectEntry>,
-    onToggle: (TemplateSubjectEntry) -> Unit
+    onToggle: (TemplateSubjectEntry) -> Unit,
+    onToggleAll: () -> Unit
 ) {
     val subjects = remember(template) {
         if (template.subjects.isNotEmpty()) {
             template.subjects.sortedBy { it.name }
         } else {
-            // Fallback for old templates
+            // Fallback for templates published before subjects were stored
             template.classes.map { it.subject }.distinct().sorted().map {
                 TemplateSubjectEntry(name = it)
             }
         }
     }
-    
+
+    if (subjects.isEmpty()) {
+        StatusMessage(
+            icon = Icons.Rounded.Info,
+            title = "No subjects in this template"
+        )
+        return
+    }
+
     LazyColumn(
-        contentPadding = PaddingValues(16.dp),
+        contentPadding = PaddingValues(vertical = 8.dp),
         modifier = Modifier.fillMaxSize()
     ) {
-        if (subjects.isEmpty()) {
-            item {
-                Text(
-                    "No subjects found in this template.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.fillMaxWidth().padding(16.dp),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        } else {
-            items(subjects) { subject ->
-                val isSelected = selectedSubjects.contains(subject)
-                val containerColor = if (isSelected) 
-                    MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f) 
-                else 
-                    MaterialTheme.colorScheme.surfaceContainer
-                
-                ListItem(
-                    headlineContent = { 
-                        Text(
-                            text = subject.name,
-                            fontWeight = FontWeight.Medium
-                        )
-                    },
-                    supportingContent = if (!subject.code.isNullOrBlank()) {
-                        { Text(text = subject.code) }
-                    } else null,
-                    leadingContent = {
-                        Box(
-                            modifier = Modifier
-                                .size(40.dp)
-                                .background(
-                                    if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.primaryContainer,
-                                    shape = MaterialTheme.shapes.small
-                                ),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = subject.name.take(1).uppercase(),
-                                style = MaterialTheme.typography.titleMedium,
-                                color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onPrimaryContainer
-                            )
-                        }
-                    },
-                    trailingContent = {
-                        Checkbox(
-                            checked = isSelected,
-                            onCheckedChange = { onToggle(subject) }
-                        )
-                    },
-                    colors = ListItemDefaults.colors(containerColor = containerColor),
-                    modifier = Modifier
-                        .padding(horizontal = 16.dp, vertical = 4.dp)
-                        .clip(MaterialTheme.shapes.medium)
-                        .clickable { onToggle(subject) }
-                )
-            }
+        item(key = "summary") {
+            SelectionSummary(
+                label = "subjects",
+                selectedCount = selectedSubjects.size,
+                totalCount = subjects.size,
+                onToggleAll = onToggleAll
+            )
         }
+
+        subjectSelectionItems(
+            subjects = subjects,
+            selected = selectedSubjects,
+            onToggle = onToggle
+        )
     }
 }
 
 @Composable
-fun TimetableWeeklyView(
+private fun TimetableWeeklyView(
     template: CommunityTemplate,
     selectedClasses: List<TemplateClassEntry>,
-    onToggle: (TemplateClassEntry) -> Unit
+    onToggle: (TemplateClassEntry) -> Unit,
+    onToggleAll: () -> Unit
 ) {
-    val weekDays = listOf("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
-    
+    if (template.classes.isEmpty()) {
+        StatusMessage(
+            icon = Icons.Rounded.Schedule,
+            title = "No schedule in this template"
+        )
+        return
+    }
+
     LazyColumn(
         contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
         modifier = Modifier.fillMaxSize()
     ) {
-        // Group classes by day of week (1=Monday, 7=Sunday)
-        val groupedClasses = template.classes.groupBy { it.dayOfWeek }
-        
-        items(weekDays.indices.toList()) { index ->
-            val dayOfWeek = index + 1
-            val classesForDay = groupedClasses[dayOfWeek]?.sortedBy { it.startTime } ?: emptyList()
-            
-            if (classesForDay.isNotEmpty()) {
-                Surface(
-                    shape = MaterialTheme.shapes.medium,
-                    tonalElevation = 2.dp,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(modifier = Modifier.padding(12.dp)) {
-                        Text(
-                            text = weekDays[index],
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        
-                        classesForDay.forEach { classEntry ->
-                            ClassItemRow(
-                                classEntry = classEntry,
-                                isSelected = selectedClasses.contains(classEntry),
-                                onToggle = { onToggle(classEntry) }
-                            )
-                            if (classEntry != classesForDay.last()) {
-                                HorizontalDivider(
-                                    modifier = Modifier.padding(vertical = 8.dp),
-                                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        
-        if (template.classes.isEmpty()) {
-             item {
-                Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
-                    Text("No usage schedule found.")
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun ClassItemRow(
-    classEntry: TemplateClassEntry,
-    isSelected: Boolean,
-    onToggle: () -> Unit
-) {
-    val containerColor = if (isSelected) 
-        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f) 
-    else 
-        MaterialTheme.colorScheme.surface
-
-    ListItem(
-        headlineContent = {
-            Text(
-                text = classEntry.subject,
-                fontWeight = FontWeight.SemiBold
+        item(key = "summary") {
+            SelectionSummary(
+                label = "classes",
+                selectedCount = selectedClasses.size,
+                totalCount = template.classes.size,
+                onToggleAll = onToggleAll
             )
-        },
-        supportingContent = {
-            Column {
-                if (!classEntry.room.isNullOrBlank()) {
-                    Text(
-                        text = classEntry.room,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                Text(
-                    text = "${classEntry.type} • ${formatTime(classEntry.startTime)} - ${formatTime(classEntry.endTime)}",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.secondary
-                )
-            }
-        },
-        trailingContent = {
-            Checkbox(
-                checked = isSelected,
-                onCheckedChange = { onToggle() }
-            )
-        },
-        colors = ListItemDefaults.colors(containerColor = containerColor),
-        modifier = Modifier
-            .padding(vertical = 4.dp)
-            .clip(MaterialTheme.shapes.medium)
-            .clickable { onToggle() }
-    )
-}
+        }
 
-private fun formatTime(minutes: Long): String {
-    val h = minutes / 60
-    val m = minutes % 60
-    val isPm = h >= 12
-    val displayHour = when {
-        h == 0L -> 12L
-        h > 12L -> h - 12L
-        else -> h
+        classSelectionItems(
+            classes = template.classes,
+            selected = selectedClasses,
+            onToggle = onToggle
+        )
     }
-    return String.format(Locale.getDefault(), "%d:%02d %s", displayHour, m, if (isPm) "pm" else "am")
 }

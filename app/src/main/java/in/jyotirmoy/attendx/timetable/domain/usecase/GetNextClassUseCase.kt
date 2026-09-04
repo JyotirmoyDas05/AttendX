@@ -1,6 +1,7 @@
 package `in`.jyotirmoy.attendx.timetable.domain.usecase
 
 import `in`.jyotirmoy.attendx.timetable.data.model.TimeTableScheduleWithSubject
+import `in`.jyotirmoy.attendx.timetable.domain.WeekPattern
 import `in`.jyotirmoy.attendx.timetable.domain.repository.TimeTableRepository
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -9,9 +10,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
-import java.time.LocalDate
 import java.time.LocalDateTime
-import java.time.temporal.ChronoField
 import javax.inject.Inject
 
 class GetNextClassUseCase @Inject constructor(
@@ -30,24 +29,12 @@ class GetNextClassUseCase @Inject constructor(
         return dayFlow.flatMapLatest { day ->
             combine(repository.getClassesForDayWithSubject(day), ticker) { classes, now ->
                 val currentMinutes = now.hour * 60 + now.minute
-                val currentWeekType = getCurrentWeekType(now.toLocalDate())
+                val date = now.toLocalDate()
                 classes
-                    .filter { matchesWeekPattern(it.schedule.weekPattern, currentWeekType) }
+                    .filter { WeekPattern.matches(it.schedule.weekPattern, date) }
                     .firstOrNull { it.schedule.startTime > currentMinutes }
             }
         }
     }
 
-    private fun matchesWeekPattern(pattern: String, currentWeek: String): Boolean {
-        return when (pattern) {
-            "odd" -> currentWeek == "odd"
-            "even" -> currentWeek == "even"
-            else -> true
-        }
-    }
-
-    private fun getCurrentWeekType(date: LocalDate): String {
-        val weekOfYear = date.get(ChronoField.ALIGNED_WEEK_OF_YEAR)
-        return if (weekOfYear % 2 == 1) "odd" else "even"
-    }
 }

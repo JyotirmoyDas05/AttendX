@@ -125,6 +125,10 @@ class PeerComparisonViewModel @Inject constructor(
             val result = peerSessionRepository.joinSession(cleanSessionId, payload)
 
             result.onSuccess { sessionDoc ->
+                // Tracked so the guest erases the session too on leaving; otherwise
+                // only the host ever cleans up.
+                activeSessionId = cleanSessionId
+
                 // Compute comparison directly for guest using auto/fuzzy matches
                 val proposals = matchSubjectsUseCase(
                     hostSubjects = payload,

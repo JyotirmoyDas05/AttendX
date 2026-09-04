@@ -1,9 +1,9 @@
 package `in`.jyotirmoy.attendx.timetable.presentation.components
 
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -13,24 +13,18 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TimePicker
-import androidx.compose.material3.TimePickerDialog
 import androidx.compose.material3.rememberModalBottomSheetState
-import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -41,13 +35,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import `in`.jyotirmoy.attendx.core.data.model.SubjectEntity
+import `in`.jyotirmoy.attendx.core.presentation.components.layout.AdaptiveTwoColumn
+import `in`.jyotirmoy.attendx.core.utils.TimeUtils
+import `in`.jyotirmoy.attendx.home.presentation.components.TimePickerField
 import `in`.jyotirmoy.attendx.timetable.data.model.TimeTableScheduleEntity
 import `in`.jyotirmoy.attendx.timetable.data.model.TimeTableScheduleWithSubject
 import java.time.DayOfWeek
 import java.time.format.TextStyle
 import java.util.Locale
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun AddEditClassSheet(
     subjects: List<SubjectEntity>,
@@ -85,63 +82,6 @@ fun AddEditClassSheet(
     var notes by remember { mutableStateOf(initialSchedule?.schedule?.notes ?: "") }
 
     var subjectDropdownExpanded by remember { mutableStateOf(false) }
-
-    // M3 TimePicker dialog visibility
-    var showStartTimePicker by remember { mutableStateOf(false) }
-    var showEndTimePicker by remember { mutableStateOf(false) }
-
-    // M3 TimePickerState
-    val startParts = startTime24.split(":")
-    val startTimePickerState = rememberTimePickerState(
-        initialHour = startParts.getOrElse(0) { "9" }.toIntOrNull() ?: 9,
-        initialMinute = startParts.getOrElse(1) { "0" }.toIntOrNull() ?: 0,
-        is24Hour = false
-    )
-
-    val endParts = endTime24.split(":")
-    val endTimePickerState = rememberTimePickerState(
-        initialHour = endParts.getOrElse(0) { "10" }.toIntOrNull() ?: 10,
-        initialMinute = endParts.getOrElse(1) { "0" }.toIntOrNull() ?: 0,
-        is24Hour = false
-    )
-
-    // Start Time Picker Dialog
-    if (showStartTimePicker) {
-        TimePickerDialog(
-            onDismissRequest = { showStartTimePicker = false },
-            title = { Text("Select Start Time") },
-            confirmButton = {
-                TextButton(onClick = {
-                    startTime24 = String.format("%02d:%02d", startTimePickerState.hour, startTimePickerState.minute)
-                    showStartTimePicker = false
-                }) { Text("OK") }
-            },
-            dismissButton = {
-                TextButton(onClick = { showStartTimePicker = false }) { Text("Cancel") }
-            }
-        ) {
-            TimePicker(state = startTimePickerState)
-        }
-    }
-
-    // End Time Picker Dialog
-    if (showEndTimePicker) {
-        TimePickerDialog(
-            onDismissRequest = { showEndTimePicker = false },
-            title = { Text("Select End Time") },
-            confirmButton = {
-                TextButton(onClick = {
-                    endTime24 = String.format("%02d:%02d", endTimePickerState.hour, endTimePickerState.minute)
-                    showEndTimePicker = false
-                }) { Text("OK") }
-            },
-            dismissButton = {
-                TextButton(onClick = { showEndTimePicker = false }) { Text("Cancel") }
-            }
-        ) {
-            TimePicker(state = endTimePickerState)
-        }
-    }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -195,11 +135,10 @@ fun AddEditClassSheet(
 
             // Day Selector Chips
             Text("Day", style = MaterialTheme.typography.labelMedium)
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 for (day in 1..7) {
                     FilterChip(
@@ -212,44 +151,39 @@ fun AddEditClassSheet(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Time Inputs - click to open M3 TimePicker
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                // Start Time
-                Box(modifier = Modifier.weight(1f)) {
-                    OutlinedTextField(
-                        value = format24To12Display(startTime24),
-                        onValueChange = {},
-                        label = { Text("Start") },
-                        readOnly = true,
-                        modifier = Modifier.fillMaxWidth(),
-                        trailingIcon = { Icon(Icons.Filled.Edit, contentDescription = null) }
+            // Time inputs — shared with the home-screen class sheet, so both get
+            // the dial/keyboard toggle and the same validation wording.
+            val rangeError = TimeUtils.validateRange(startTime24, endTime24)
+            AdaptiveTwoColumn(
+                first = {
+                    TimePickerField(
+                        label = "Start",
+                        time = startTime24,
+                        onTimeChange = { startTime24 = it },
+                        isError = rangeError != null,
+                        modifier = Modifier.fillMaxWidth()
                     )
-                    Box(
-                        modifier = Modifier
-                            .matchParentSize()
-                            .clickable { showStartTimePicker = true }
+                },
+                second = {
+                    TimePickerField(
+                        label = "End",
+                        time = endTime24,
+                        onTimeChange = { endTime24 = it },
+                        isError = rangeError != null,
+                        modifier = Modifier.fillMaxWidth()
                     )
                 }
+            )
 
-                // End Time
-                Box(modifier = Modifier.weight(1f)) {
-                    OutlinedTextField(
-                        value = format24To12Display(endTime24),
-                        onValueChange = {},
-                        label = { Text("End") },
-                        readOnly = true,
-                        modifier = Modifier.fillMaxWidth(),
-                        trailingIcon = { Icon(Icons.Filled.Edit, contentDescription = null) }
-                    )
-                    Box(
-                        modifier = Modifier
-                            .matchParentSize()
-                            .clickable { showEndTimePicker = true }
-                    )
-                }
+            if (rangeError != null) {
+                Spacer(modifier = Modifier.height(4.dp))
+                // Previously the Add button simply did nothing on a bad range,
+                // with no indication why.
+                Text(
+                    text = rangeError,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error
+                )
             }
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -273,7 +207,10 @@ fun AddEditClassSheet(
 
             // Class Type Chips
             Text("Class Type", style = MaterialTheme.typography.labelMedium)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 listOf("Lecture", "Lab", "Tutorial").forEach { type ->
                     FilterChip(
                         selected = classType == type,
@@ -287,7 +224,10 @@ fun AddEditClassSheet(
 
             // Week Pattern Chips
             Text("Week Pattern", style = MaterialTheme.typography.labelMedium)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 listOf("all" to "Every Week", "odd" to "Odd Weeks", "even" to "Even Weeks").forEach { (pattern, label) ->
                     FilterChip(
                         selected = weekPattern == pattern,
@@ -320,10 +260,11 @@ fun AddEditClassSheet(
                 }
                 Spacer(modifier = Modifier.width(8.dp))
                 Button(
+                    enabled = rangeError == null,
                     onClick = {
                         val startMinutes = parseTimeToMinutes(startTime24)
                         val endMinutes = parseTimeToMinutes(endTime24)
-                        if (startMinutes != null && endMinutes != null && startMinutes < endMinutes) {
+                        if (startMinutes != null && endMinutes != null) {
                             onSave(
                                 TimeTableScheduleEntity(
                                     id = initialSchedule?.schedule?.id ?: 0,
@@ -367,23 +308,5 @@ private fun parseTimeToMinutes(input: String): Long? {
         h * 60 + m
     } catch (e: Exception) {
         null
-    }
-}
-
-// "14:30" → "2:30 PM"
-private fun format24To12Display(time24: String): String {
-    return try {
-        val parts = time24.split(":")
-        val h = parts[0].toInt()
-        val m = parts.getOrElse(1) { "0" }.toInt()
-        val amPm = if (h < 12) "AM" else "PM"
-        val h12 = when {
-            h == 0 -> 12
-            h > 12 -> h - 12
-            else -> h
-        }
-        String.format("%d:%02d %s", h12, m, amPm)
-    } catch (e: Exception) {
-        time24
     }
 }

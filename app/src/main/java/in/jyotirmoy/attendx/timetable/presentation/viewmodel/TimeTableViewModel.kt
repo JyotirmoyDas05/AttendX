@@ -12,15 +12,15 @@ import `in`.jyotirmoy.attendx.settings.data.local.SettingsKeys
 import `in`.jyotirmoy.attendx.settings.domain.repository.SettingsRepository
 import `in`.jyotirmoy.attendx.timetable.data.model.TimeTableScheduleEntity
 import `in`.jyotirmoy.attendx.timetable.data.model.TimeTableScheduleWithSubject
+import `in`.jyotirmoy.attendx.timetable.domain.classesOn
 import `in`.jyotirmoy.attendx.timetable.domain.usecase.TimeTableUseCases
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -44,18 +44,22 @@ class TimeTableViewModel @Inject constructor(
     val subjects = subjectRepository.getAllSubjects()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    private val _selectedDay = MutableStateFlow(LocalDate.now().dayOfWeek.value)
-    val selectedDay: StateFlow<Int> = _selectedDay.asStateFlow()
+    /**
+     * The date the calendar views are anchored to. This replaced a pair of
+     * day-of-week indices (1..7) that wrapped at Sunday, which meant swiping
+     * forward past Sunday moved the displayed date a week *backwards*, and made
+     * a week view impossible because every week was the same seven indices.
+     */
+    private val _anchorDate = MutableStateFlow(LocalDate.now())
+    val anchorDate: StateFlow<LocalDate> = _anchorDate.asStateFlow()
 
-    @OptIn(ExperimentalCoroutinesApi::class)
-    val dailySchedule: StateFlow<List<TimeTableScheduleWithSubject>> = _selectedDay
-        .flatMapLatest { day ->
-            useCases.getDailySchedule(day)
-        }
+    /** Day of week currently focused, for callers that only care about that. */
+    val selectedDay: StateFlow<Int> = _anchorDate
+        .map { it.dayOfWeek.value }
         .stateIn(
             viewModelScope,
             SharingStarted.WhileSubscribed(5000),
-            emptyList()
+            LocalDate.now().dayOfWeek.value
         )
 
     val nextClass = useCases.getNextClass()
@@ -105,55 +109,44 @@ class TimeTableViewModel @Inject constructor(
         setViewMode(next)
     }
 
-    // Starting day of 1-day or 3-day view (defaults to today)
-    private val _threeDayStartDay = MutableStateFlow(LocalDate.now().dayOfWeek.value)
-    val threeDayStartDay: StateFlow<Int> = _threeDayStartDay.asStateFlow()
-
-    fun setThreeDayStartDay(day: Int) {
-        _threeDayStartDay.value = day.coerceIn(1, 7)
-        _selectedDay.value = day.coerceIn(1, 7)
-    }
-
-    fun shiftStartDay(delta: Int) {
-        val current = _threeDayStartDay.value
-        val newDay = ((current - 1 + delta) % 7 + 7) % 7 + 1
-        _threeDayStartDay.value = newDay
-        _selectedDay.value = newDay
+    /** Moves the anchor, e.g. after a swipe settles or a day is tapped. */
+    fun setAnchorDate(date: LocalDate) {
+        _anchorDate.value = date
     }
 
     fun snapToToday() {
-        val today = LocalDate.now().dayOfWeek.value
-        _selectedDay.value = today
-        _threeDayStartDay.value = today
+        _anchorDate.value = LocalDate.now()
     }
 
-    // Weekly schedule for calendar view - combines Mon-Sun schedules
+    /**
+     * Every class of the recurring week, keyed by day of week and *not* filtered
+     * by odd/even week. The timetable repeats, so one map serves every page the
+     * user can swipe to; only the odd/even decision varies, and that is applied
+     * per displayed date via [WeekPattern]. Filtering here instead would need a
+     * separate flow per week.
+     */
     @Suppress("UNCHECKED_CAST")
-    val weeklySchedule: StateFlow<Map<Int, List<TimeTableScheduleWithSubject>>> = 
+    val weeklyClasses: StateFlow<Map<Int, List<TimeTableScheduleWithSubject>>> =
         kotlinx.coroutines.flow.combine(
-            listOf(
-                useCases.getDailySchedule(1), // Mon
-                useCases.getDailySchedule(2), // Tue
-                useCases.getDailySchedule(3), // Wed
-                useCases.getDailySchedule(4), // Thu
-                useCases.getDailySchedule(5), // Fri
-                useCases.getDailySchedule(6), // Sat
-                useCases.getDailySchedule(7)  // Sun
-            )
+            (1..7).map { day -> useCases.getDailySchedule(day) }
         ) { schedules ->
-            mapOf(
-                1 to (schedules[0] as List<TimeTableScheduleWithSubject>),
-                2 to (schedules[1] as List<TimeTableScheduleWithSubject>),
-                3 to (schedules[2] as List<TimeTableScheduleWithSubject>),
-                4 to (schedules[3] as List<TimeTableScheduleWithSubject>),
-                5 to (schedules[4] as List<TimeTableScheduleWithSubject>),
-                6 to (schedules[5] as List<TimeTableScheduleWithSubject>),
-                7 to (schedules[6] as List<TimeTableScheduleWithSubject>)
-            )
+            (1..7).associateWith { day ->
+                schedules[day - 1] as List<TimeTableScheduleWithSubject>
+            }
         }.stateIn(
             viewModelScope,
             SharingStarted.WhileSubscribed(5000),
             emptyMap()
+        )
+
+    /** Classes on the anchored date, with odd/even weeks resolved for it. */
+    val dailySchedule: StateFlow<List<TimeTableScheduleWithSubject>> =
+        combine(weeklyClasses, _anchorDate) { weekly, date ->
+            classesOn(weekly, date)
+        }.stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(5000),
+            emptyList()
         )
 
     // Add / Edit Sheet state
@@ -167,11 +160,25 @@ class TimeTableViewModel @Inject constructor(
     val initialSlotTime: StateFlow<Pair<Long, Long>?> = _initialSlotTime.asStateFlow()
 
     // View Class Details Sheet state
-    private val _viewingSchedule = MutableStateFlow<TimeTableScheduleWithSubject?>(null)
-    val viewingSchedule: StateFlow<TimeTableScheduleWithSubject?> = _viewingSchedule.asStateFlow()
+    /**
+     * The class being inspected, together with the date it was opened from.
+     *
+     * The date matters: attendance is stored per calendar date, and the sheet
+     * used to work it out itself as "this class's weekday in the current week".
+     * That was invisible while only the current week could ever be shown, but
+     * the views now page through weeks, so marking a class present would have
+     * written the mark to the wrong day.
+     */
+    data class ViewedClass(
+        val schedule: TimeTableScheduleWithSubject,
+        val date: LocalDate
+    )
 
-    fun showViewSheet(schedule: TimeTableScheduleWithSubject) {
-        _viewingSchedule.value = schedule
+    private val _viewingSchedule = MutableStateFlow<ViewedClass?>(null)
+    val viewingSchedule: StateFlow<ViewedClass?> = _viewingSchedule.asStateFlow()
+
+    fun showViewSheet(schedule: TimeTableScheduleWithSubject, date: LocalDate) {
+        _viewingSchedule.value = ViewedClass(schedule, date)
     }
 
     fun hideViewSheet() {
@@ -206,9 +213,8 @@ class TimeTableViewModel @Inject constructor(
         }
     }
 
-    fun onDaySelected(day: Int) {
-        _selectedDay.value = day
-        _threeDayStartDay.value = day
+    fun onDaySelected(date: LocalDate) {
+        _anchorDate.value = date
     }
 
     fun showAddSheet() {
@@ -217,10 +223,9 @@ class TimeTableViewModel @Inject constructor(
         _showAddEditSheet.value = true
     }
 
-    fun showAddSheetForSlot(dayOfWeek: Int, startMinutes: Int) {
+    fun showAddSheetForSlot(date: LocalDate, startMinutes: Int) {
         _editingSchedule.value = null
-        _selectedDay.value = dayOfWeek
-        _threeDayStartDay.value = dayOfWeek
+        _anchorDate.value = date
         _initialSlotTime.value = Pair(startMinutes.toLong(), (startMinutes + 60).toLong())
         _showAddEditSheet.value = true
     }

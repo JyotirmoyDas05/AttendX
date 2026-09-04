@@ -1,15 +1,15 @@
+@file:OptIn(ExperimentalSharedTransitionApi::class)
+
 package `in`.jyotirmoy.attendx.timetable.presentation.components
 
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.AnimatedVisibilityScope
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionScope
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.compose.foundation.gestures.calculatePan
 import androidx.compose.foundation.gestures.calculateZoom
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,7 +22,6 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -31,26 +30,25 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
-import `in`.jyotirmoy.attendx.core.common.LocalFloatingNavBarPadding
+import `in`.jyotirmoy.attendx.core.presentation.components.pager.InfiniteSwipePager
 import `in`.jyotirmoy.attendx.timetable.data.model.TimeTableScheduleWithSubject
+import `in`.jyotirmoy.attendx.timetable.domain.classesOn
 import kotlinx.coroutines.delay
 import java.time.LocalDate
 import java.time.LocalTime
-import kotlin.math.abs
 
 data class PositionedSchedule(
     val scheduleWithSubject: TimeTableScheduleWithSubject,
@@ -92,245 +90,184 @@ fun calculatePositionedSchedules(schedules: List<TimeTableScheduleWithSubject>):
     return result
 }
 
+/** Grid bounds, shared by the gutter and the columns so they cannot drift. */
+val TimetableHours = (8..21).toList()
+const val GRID_START_MINUTES = 8 * 60
+const val GRID_END_MINUTES = 22 * 60
+
+/**
+ * Swipeable day / three-day / week grid.
+ *
+ * Two things are deliberately hoisted out of here. The vertical scroll position
+ * and the zoom level belong to the screen, so that swiping to another day or
+ * switching between Day and Week keeps you at the same time of day instead of
+ * snapping back. And the time gutter sits outside the pager: it is identical on
+ * every page, and rendering one per page would register the same shared-element
+ * key several times over.
+ *
+ * @param anchorDate the date in focus; the visible window is derived from it
+ * @param numDays 1, 3 or 7 — also the number of days a swipe travels
+ * @param animatedVisibilityScope the view-switch transition this grid lives in,
+ *   used to morph the gutter, columns and cards into the next view
+ */
 @Composable
-fun TimetableCalendarView(
-    weeklySchedule: Map<Int, List<TimeTableScheduleWithSubject>>,
-    onClassClick: (TimeTableScheduleWithSubject) -> Unit,
-    onClassLongClick: (TimeTableScheduleWithSubject) -> Unit = {},
-    onEmptySlotClick: (dayOfWeek: Int, startMinutes: Int) -> Unit = { _, _ -> },
-    onShiftDays: (delta: Int) -> Unit = {},
+fun SharedTransitionScope.TimetableCalendarView(
+    weeklyClasses: Map<Int, List<TimeTableScheduleWithSubject>>,
+    anchorDate: LocalDate,
+    numDays: Int,
+    animatedVisibilityScope: AnimatedVisibilityScope,
+    verticalScrollState: ScrollState,
+    hourHeight: Float,
+    onHourHeightChange: (Float) -> Unit,
+    onAnchorDateChange: (LocalDate) -> Unit,
+    onClassClick: (TimeTableScheduleWithSubject, LocalDate) -> Unit,
     modifier: Modifier = Modifier,
-    numDays: Int = 7, // 1 (Day), 3 (Three-Day), 7 (Week)
-    startDay: Int = 1,
+    onClassLongClick: (TimeTableScheduleWithSubject) -> Unit = {},
+    onEmptySlotClick: (date: LocalDate, startMinutes: Int) -> Unit = { _, _ -> },
     currentClassId: Int? = null,
-    snapToNow: Boolean = false,
-    onSnapConsumed: () -> Unit = {},
-    bottomPadding: Dp = LocalFloatingNavBarPadding.current.takeIf { it > 0.dp } ?: 100.dp
+    bottomPadding: Dp = 100.dp
 ) {
-    val displayedDays = when (numDays) {
-        1 -> listOf(startDay.coerceIn(1, 7))
-        3 -> (0..2).map { offset ->
-            val d = (startDay + offset - 1) % 7 + 1
-            if (d < 1) d + 7 else d
-        }
-        else -> listOf(1, 2, 3, 4, 5, 6, 7) // Full Week: Mon to Sun
-    }
-
-    val hours = (8..21).toList()
-    var hourHeightDp by remember { mutableFloatStateOf(72f) }
     val timeColumnWidth = 46.dp
-    val density = LocalDensity.current
-
-    val gridStartMinutes = 8 * 60  // 08:00
-    val gridEndMinutes = 22 * 60   // 22:00
-
-    val verticalScrollState = rememberScrollState()
-
     val surfaceColor = MaterialTheme.colorScheme.surfaceContainerLow
     val gridDividerColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f)
-    val indicatorColor = MaterialTheme.colorScheme.primary
 
-    // Realtime live time that ticks every 10 seconds
-    var todayDow by remember { mutableIntStateOf(LocalDate.now().dayOfWeek.value) }
     var currentMinutes by remember {
         val now = LocalTime.now()
         mutableIntStateOf(now.hour * 60 + now.minute)
     }
+    var todayDate by remember { mutableStateOf(LocalDate.now()) }
 
     LaunchedEffect(Unit) {
         while (true) {
             val now = LocalTime.now()
-            todayDow = LocalDate.now().dayOfWeek.value
+            todayDate = LocalDate.now()
             currentMinutes = now.hour * 60 + now.minute
             delay(10_000L)
         }
     }
 
-    val hourHeightPx = with(density) { hourHeightDp.dp.toPx() }
+    // Kept fresh for the gesture handler below, which outlives any single
+    // composition and would otherwise pinch against a stale height.
+    val latestHourHeight by rememberUpdatedState(hourHeight)
+    val latestOnHourHeightChange by rememberUpdatedState(onHourHeightChange)
 
-    // Auto-scroll to current time on launch
-    LaunchedEffect(Unit) {
-        if (currentMinutes in gridStartMinutes..gridEndMinutes) {
-            val scrollTarget = ((currentMinutes - gridStartMinutes).toFloat() / 60f * hourHeightPx).toInt()
-            val centered = (scrollTarget - hourHeightPx).toInt().coerceAtLeast(0)
-            verticalScrollState.scrollTo(centered)
-        }
-    }
-
-    // Snap to now
-    LaunchedEffect(snapToNow) {
-        if (snapToNow) {
-            if (currentMinutes in gridStartMinutes..gridEndMinutes) {
-                val scrollTarget = ((currentMinutes - gridStartMinutes).toFloat() / 60f * hourHeightPx).toInt()
-                val centered = (scrollTarget - hourHeightPx).toInt().coerceAtLeast(0)
-                verticalScrollState.animateScrollTo(centered)
-            }
-            onSnapConsumed()
-        }
-    }
+    val windowStart = CalendarPaging.windowStart(anchorDate, numDays)
 
     Column(
         modifier = modifier
             .fillMaxSize()
             .background(surfaceColor)
-            // Multi-touch pinch-to-zoom for vertical time scale granularity & horizontal swipe to shift days
-            .pointerInput(numDays) {
-                val swipeThresholdPx = with(density) { 72.dp.toPx() }
+            // Pinch-to-zoom only. Single-finger drags are left untouched so the
+            // pager below can read them; consuming multi-touch on the initial
+            // pass stops a zoom being mistaken for a page swipe.
+            //
+            // The gesture block is never re-keyed, so it must not read the hour
+            // height through the parameter — that value is captured once and the
+            // zoom would forever scale from the height the screen opened at.
+            .pointerInput(Unit) {
                 awaitEachGesture {
-                    var wasMultiTouch = false
-                    var totalPanX = 0f
-                    var totalPanY = 0f
-
                     awaitFirstDown(pass = PointerEventPass.Initial)
                     do {
                         val event = awaitPointerEvent(pass = PointerEventPass.Initial)
                         if (event.changes.size >= 2) {
-                            wasMultiTouch = true
-                            val zoomChange = event.calculateZoom()
-                            hourHeightDp = (hourHeightDp * zoomChange).coerceIn(48f, 150f)
+                            val zoom = event.calculateZoom()
+                            if (zoom != 1f) {
+                                latestOnHourHeightChange(
+                                    (latestHourHeight * zoom)
+                                        .coerceIn(MIN_HOUR_HEIGHT, MAX_HOUR_HEIGHT)
+                                )
+                            }
                             event.changes.forEach { it.consume() }
-                        } else if (!wasMultiTouch && numDays < 7) {
-                            val pan = event.calculatePan()
-                            totalPanX += pan.x
-                            totalPanY += pan.y
                         }
                     } while (event.changes.any { it.pressed })
-
-                    // Only trigger day shift if it was purely a horizontal swipe (not multi-touch/zoom and not vertical scroll)
-                    if (!wasMultiTouch && numDays < 7) {
-                        val absX = abs(totalPanX)
-                        val absY = abs(totalPanY)
-                        if (absX >= swipeThresholdPx && absX > absY * 1.8f) {
-                            if (totalPanX < 0) {
-                                onShiftDays(if (numDays == 1) 1 else 3)
-                            } else {
-                                onShiftDays(if (numDays == 1) -1 else -3)
-                            }
-                        }
-                    }
                 }
             }
     ) {
-        // Days Header Row (Fixed time spacer + evenly weighted day headers)
-        TimetableDaysHeader(
-            dayIndices = displayedDays,
-            timeColumnWidth = timeColumnWidth,
-            currentDayOfWeek = todayDow,
-            onDayClick = { /* Can switch focus */ }
-        )
+        InfiniteSwipePager(
+            reference = windowStart,
+            offsetOf = { current, base -> CalendarPaging.pageOffsetOf(current, base, numDays) },
+            referenceAt = { base, offset -> CalendarPaging.windowStartAt(base, offset, numDays) },
+            onReferenceChange = onAnchorDateChange,
+            modifier = Modifier.fillMaxSize(),
+            key = { it }
+        ) { pageStart ->
+            val dates = CalendarPaging.windowDates(pageStart, numDays)
 
-        HorizontalDivider(color = gridDividerColor, thickness = 0.5.dp)
+            // Only the settled page takes part in the view-switch morph. Its
+            // neighbours are composed ahead of time and would otherwise register
+            // the same day and class keys twice over.
+            val isCurrentPage = pageStart == windowStart
 
-        // Scrollable Grid Body
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f)
-        ) {
-            // Time Column Gutter (12-hour AM/PM format matching XCalendar)
-            TimetableTimeColumn(
-                hours = hours,
-                hourHeight = hourHeightDp.dp,
-                width = timeColumnWidth,
-                scrollState = verticalScrollState,
-                modifier = Modifier.padding(top = 4.dp, bottom = bottomPadding)
-            )
+            Column(modifier = Modifier.fillMaxSize()) {
+                TimetableDaysHeader(
+                    dates = dates,
+                    timeColumnWidth = timeColumnWidth,
+                    today = todayDate,
+                    onDayClick = onAnchorDateChange,
+                    badgeModifier = { date ->
+                        if (isCurrentPage) {
+                            Modifier.sharedElement(
+                                sharedContentState = rememberSharedContentState(
+                                    key = DayHeaderKey(date)
+                                ),
+                                animatedVisibilityScope = animatedVisibilityScope,
+                                renderInOverlayDuringTransition = false
+                            )
+                        } else {
+                            Modifier
+                        }
+                    }
+                )
 
-            // Multi-Day Columns Area
-            Row(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight()
-                    .verticalScroll(verticalScrollState)
-                    .padding(top = 4.dp, end = 4.dp, bottom = bottomPadding)
-            ) {
-                displayedDays.forEach { dayOfWeek ->
-                    val isToday = dayOfWeek == todayDow
-                    val daySchedules = weeklySchedule[dayOfWeek] ?: emptyList()
-                    val positionedCards = calculatePositionedSchedules(daySchedules)
+                HorizontalDivider(color = gridDividerColor, thickness = 0.5.dp)
 
-                    // Individual Day Column (weight 1f matches XCalendar)
-                    Box(
+                Row(modifier = Modifier.fillMaxWidth().fillMaxHeight()) {
+                    TimetableTimeColumn(
+                        hours = TimetableHours,
+                        hourHeight = hourHeight.dp,
+                        width = timeColumnWidth,
+                        scrollState = verticalScrollState,
+                        modifier = Modifier
+                            .padding(top = 4.dp, bottom = bottomPadding)
+                            .then(
+                                // One gutter per view, so it slides and rescales
+                                // between Day and Week instead of cross-fading.
+                                if (isCurrentPage) {
+                                    Modifier.sharedElement(
+                                        sharedContentState = rememberSharedContentState(
+                                            key = TIME_COLUMN_KEY
+                                        ),
+                                        animatedVisibilityScope = animatedVisibilityScope,
+                                        renderInOverlayDuringTransition = false
+                                    )
+                                } else {
+                                    Modifier
+                                }
+                            )
+                    )
+
+                    Row(
                         modifier = Modifier
                             .weight(1f)
-                            .height(hourHeightDp.dp * hours.size)
+                            .fillMaxHeight()
+                            .verticalScroll(verticalScrollState)
+                            .padding(top = 4.dp, end = 4.dp, bottom = bottomPadding)
                     ) {
-                        // Background Rounded Time Slot Cells
-                        Column(modifier = Modifier.fillMaxSize()) {
-                            hours.forEach { hour ->
-                                val slotStartMin = hour * 60
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(hourHeightDp.dp)
-                                        .padding(horizontal = 1.dp, vertical = 1.dp)
-                                        .clip(RoundedCornerShape(6.dp))
-                                        .background(
-                                            if (isToday) MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.95f)
-                                            else MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.6f)
-                                        )
-                                        .clickable {
-                                            onEmptySlotClick(dayOfWeek, slotStartMin)
-                                        }
-                                )
-                            }
-                        }
-
-                        // Scheduled Class Cards Overlay
-                        positionedCards.forEach { posItem ->
-                            val item = posItem.scheduleWithSubject
-                            val startTime = item.schedule.startTime
-                            val endTime = item.schedule.endTime
-                            val durationMin = (endTime - startTime).coerceAtLeast(30)
-                            val offsetMin = startTime - gridStartMinutes
-
-                            val topOffsetDp = (offsetMin.toFloat() / 60f) * hourHeightDp
-                            val heightDp = (durationMin.toFloat() / 60f) * hourHeightDp
-
-                            Box(
-                                modifier = Modifier
-                                    .offset(y = topOffsetDp.dp)
-                                    .fillMaxWidth()
-                                    .height(heightDp.dp)
-                                    .padding(horizontal = 1.dp, vertical = 1.dp)
-                            ) {
-                                TimetableClassCard(
-                                    classItem = item,
-                                    onClick = { onClassClick(it) },
-                                    onLongClick = { onClassLongClick(it) },
-                                    isCurrentClass = item.schedule.id == currentClassId,
-                                    isOverlapping = posItem.totalSubColumns > 1,
-                                    modifier = Modifier.fillMaxSize()
-                                )
-                            }
-                        }
-
-                        // Live Current Time Indicator Marker (Neutral/Primary aligned line and centered dot)
-                        if (isToday && currentMinutes in gridStartMinutes until gridEndMinutes) {
-                            val offsetYDp = ((currentMinutes - gridStartMinutes).toFloat() / 60f) * hourHeightDp
-                            Box(
-                                modifier = Modifier
-                                    .offset(y = (offsetYDp - 1).dp)
-                                    .fillMaxWidth()
-                                    .height(6.dp)
-                                    .zIndex(10f),
-                                contentAlignment = Alignment.CenterStart
-                            ) {
-                                // Time beam line across today's column
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(2.dp)
-                                        .background(indicatorColor)
-                                )
-                                // Centered circle pin
-                                Box(
-                                    modifier = Modifier
-                                        .size(6.dp)
-                                        .clip(CircleShape)
-                                        .background(indicatorColor)
-                                )
-                            }
+                        dates.forEach { date ->
+                            DayColumn(
+                                date = date,
+                                todayDate = todayDate,
+                                classes = classesOn(weeklyClasses, date),
+                                hourHeight = hourHeight,
+                                currentMinutes = currentMinutes,
+                                currentClassId = currentClassId,
+                                isCurrentPage = isCurrentPage,
+                                animatedVisibilityScope = animatedVisibilityScope,
+                                onClassClick = onClassClick,
+                                onClassLongClick = onClassLongClick,
+                                onEmptySlotClick = onEmptySlotClick,
+                                modifier = Modifier.weight(1f)
+                            )
                         }
                     }
                 }
@@ -338,3 +275,146 @@ fun TimetableCalendarView(
         }
     }
 }
+
+@Composable
+private fun SharedTransitionScope.DayColumn(
+    date: LocalDate,
+    todayDate: LocalDate,
+    classes: List<TimeTableScheduleWithSubject>,
+    hourHeight: Float,
+    currentMinutes: Int,
+    currentClassId: Int?,
+    isCurrentPage: Boolean,
+    animatedVisibilityScope: AnimatedVisibilityScope,
+    onClassClick: (TimeTableScheduleWithSubject, LocalDate) -> Unit,
+    onClassLongClick: (TimeTableScheduleWithSubject) -> Unit,
+    onEmptySlotClick: (date: LocalDate, startMinutes: Int) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val isToday = date == todayDate
+    val positionedCards = remember(classes) { calculatePositionedSchedules(classes) }
+    val indicatorColor = MaterialTheme.colorScheme.primary
+
+    Box(
+        modifier = modifier
+            .height(hourHeight.dp * TimetableHours.size)
+            // Keyed by date, so the column for a day shown in both the outgoing
+            // and incoming view expands or contracts into place rather than
+            // fading out and a different one fading in.
+            .then(
+                if (isCurrentPage) {
+                    Modifier.sharedElement(
+                        sharedContentState = rememberSharedContentState(key = DayColumnKey(date)),
+                        animatedVisibilityScope = animatedVisibilityScope,
+                        // Without this the column is lifted into the shared
+                        // transition overlay, where the default ParentClip
+                        // resolves to null (there is no parent shared element)
+                        // and it paints over the app bar mid-transition.
+                        renderInOverlayDuringTransition = false
+                    )
+                } else {
+                    Modifier
+                }
+            )
+    ) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            TimetableHours.forEach { hour ->
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(hourHeight.dp)
+                        .padding(horizontal = 1.dp, vertical = 1.dp)
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(
+                            if (isToday) MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.95f)
+                            else MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.6f)
+                        )
+                        .clickable { onEmptySlotClick(date, hour * 60) }
+                )
+            }
+        }
+
+        positionedCards.forEach { posItem ->
+            val item = posItem.scheduleWithSubject
+            val durationMin = (item.schedule.endTime - item.schedule.startTime).coerceAtLeast(30)
+            val offsetMin = item.schedule.startTime - GRID_START_MINUTES
+
+            val topOffsetDp = (offsetMin.toFloat() / 60f) * hourHeight
+            val heightDp = (durationMin.toFloat() / 60f) * hourHeight
+
+            Box(
+                modifier = Modifier
+                    .offset(y = topOffsetDp.dp)
+                    .fillMaxWidth()
+                    .height(heightDp.dp)
+                    .padding(horizontal = 1.dp, vertical = 1.dp)
+                    // Keyed by class *and* date: the same weekly class appears on
+                    // every page, so the id alone would collide across weeks.
+                    .then(
+                        if (isCurrentPage) {
+                            Modifier.sharedElement(
+                                sharedContentState = rememberSharedContentState(
+                                    key = ClassCardKey(item.schedule.id, date)
+                                ),
+                                animatedVisibilityScope = animatedVisibilityScope,
+                                renderInOverlayDuringTransition = false
+                            )
+                        } else {
+                            Modifier
+                        }
+                    )
+            ) {
+                TimetableClassCard(
+                    classItem = item,
+                    onClick = { onClassClick(it, date) },
+                    onLongClick = { onClassLongClick(it) },
+                    isCurrentClass = item.schedule.id == currentClassId,
+                    isOverlapping = posItem.totalSubColumns > 1,
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
+        }
+
+        if (isToday && currentMinutes in GRID_START_MINUTES until GRID_END_MINUTES) {
+            val offsetYDp = ((currentMinutes - GRID_START_MINUTES).toFloat() / 60f) * hourHeight
+            Box(
+                modifier = Modifier
+                    .offset(y = (offsetYDp - 1).dp)
+                    .fillMaxWidth()
+                    .height(6.dp)
+                    .zIndex(10f),
+                contentAlignment = Alignment.CenterStart
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(2.dp)
+                        .background(indicatorColor)
+                )
+                Box(
+                    modifier = Modifier
+                        .size(6.dp)
+                        .clip(CircleShape)
+                        .background(indicatorColor)
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Shared-element keys. Data classes rather than strings so a day column and a
+ * header badge for the same date cannot accidentally match each other.
+ */
+private const val TIME_COLUMN_KEY = "timetable-time-column"
+
+private data class DayColumnKey(val date: LocalDate)
+
+private data class DayHeaderKey(val date: LocalDate)
+
+private data class ClassCardKey(val scheduleId: Int, val date: LocalDate)
+
+/** Zoom bounds for the hour rows, in dp. */
+const val MIN_HOUR_HEIGHT = 48f
+const val MAX_HOUR_HEIGHT = 150f
+const val DEFAULT_HOUR_HEIGHT = 72f

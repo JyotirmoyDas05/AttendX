@@ -240,6 +240,8 @@
     <string name="view_github_repo_desc">View the open-source codebase on GitHub</string>
     <string name="license_name">GNU General Public License v3.0</string>
     <string name="license_desc">Read the open-source license terms</string>
+    <string name="privacy_policy">Privacy Policy</string>
+    <string name="privacy_policy_desc">What stays on your device, and what does not</string>
     <string name="sponsor_on_github">Sponsor on GitHub</string>
     <string name="developer_quote">The developer who wants to turn every logic into pixels.</string>
     

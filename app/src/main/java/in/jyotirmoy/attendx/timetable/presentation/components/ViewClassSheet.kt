@@ -76,6 +76,7 @@ import java.util.Locale
 @Composable
 fun ViewClassSheet(
     scheduleWithSubject: TimeTableScheduleWithSubject,
+    classDate: LocalDate,
     attendanceListFlow: Flow<List<AttendanceEntity>>,
     attendanceCountsFlow: Flow<SubjectAttendance>,
     onDismiss: () -> Unit,
@@ -91,11 +92,10 @@ fun ViewClassSheet(
     val subject = scheduleWithSubject.subject
     val subjectThemeColor = getSubjectThemeColor(subject.subject)
 
-    // Calculate the target date for this class in current week
-    val today = remember { LocalDate.now() }
-    val dayDiff = (schedule.dayOfWeek - today.dayOfWeek.value).toLong()
-    val classDate = remember(schedule.dayOfWeek) { today.plusDays(dayDiff) }
+    // Supplied by the caller rather than derived from today, so marking a class
+    // while looking at another week records it against the day on screen.
     val classDateString = remember(classDate) { classDate.toString() }
+    val today = remember { LocalDate.now() }
 
     val attendances by attendanceListFlow.collectAsState(initial = emptyList())
     val attendanceCounts by attendanceCountsFlow.collectAsState(initial = SubjectAttendance())

@@ -79,7 +79,9 @@ fun AppEntry(
     Surface {
         Navigation(
             notificationIntent = notificationIntent,
-            onNotificationIntentHandled = onNotificationIntentHandled
+            onNotificationIntentHandled = onNotificationIntentHandled,
+            // Three startup prompts must never stack on one cold start.
+            suppressDialogs = showUpdateSheet || showChangelogSheet
         )
 
         if (showUpdateSheet) {

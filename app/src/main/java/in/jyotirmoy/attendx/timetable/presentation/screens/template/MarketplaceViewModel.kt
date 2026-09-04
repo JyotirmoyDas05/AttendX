@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
@@ -33,7 +34,7 @@ class MarketplaceViewModel @Inject constructor(
 
     private val _state = mutableStateOf(MarketplaceState())
     val state: State<MarketplaceState> = _state
-    
+
     private var searchJob: Job? = null
     private var getTemplatesJob: Job? = null
 
@@ -56,13 +57,33 @@ class MarketplaceViewModel @Inject constructor(
     }
 
     private fun searchTemplates(query: String) {
-        _state.value = _state.value.copy(isLoading = true)
+        _state.value = _state.value.copy(isLoading = true, error = null)
         getTemplatesJob?.cancel()
         getTemplatesJob = repository.searchTemplates(query, null, null)
-            .onEach { templates ->
+            // Failures arrive in-band as Result.failure, so a network or permission
+            // error stays distinguishable from "there genuinely are no templates"
+            // without close(error) tearing the listener down (AGENTS.md 1B).
+            .onEach { result ->
+                _state.value = result.fold(
+                    onSuccess = { templates ->
+                        _state.value.copy(
+                            templates = templates,
+                            isLoading = false,
+                            error = null
+                        )
+                    },
+                    onFailure = { e ->
+                        _state.value.copy(
+                            isLoading = false,
+                            error = e.message ?: "Couldn't load community templates."
+                        )
+                    }
+                )
+            }
+            .catch { e ->
                 _state.value = _state.value.copy(
-                    templates = templates,
-                    isLoading = false
+                    isLoading = false,
+                    error = e.message ?: "Couldn't load community templates."
                 )
             }
             .launchIn(viewModelScope)

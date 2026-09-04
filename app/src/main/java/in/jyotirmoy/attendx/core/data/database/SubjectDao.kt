@@ -19,7 +19,9 @@ interface SubjectDao {
     @Query("SELECT * FROM subjects WHERE id = :id LIMIT 1")
     suspend fun getSubjectEntityById(id: Int): SubjectEntity?
 
-    @Query("SELECT id FROM subjects WHERE subject = :name LIMIT 1")
+    // COLLATE NOCASE so template import matches "Maths" to an existing "maths"
+    // instead of creating a second subject. Query-level, so no Room migration.
+    @Query("SELECT id FROM subjects WHERE subject = :name COLLATE NOCASE LIMIT 1")
     suspend fun getSubjectIdByName(name: String): Int?
 
     @Insert(onConflict = OnConflictStrategy.Companion.REPLACE)

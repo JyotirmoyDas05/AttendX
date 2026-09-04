@@ -90,6 +90,36 @@ class TemplatePreviewViewModel @Inject constructor(
         )
     }
 
+    /**
+     * All-or-nothing. Subjects carry their classes with them, mirroring
+     * [toggleSubject], so clearing all subjects also clears the schedule that
+     * would otherwise import subjects nobody selected.
+     */
+    fun toggleAllSubjects() {
+        val template = _state.value.template ?: return
+        val allSelected = _state.value.selectedSubjects.size == template.subjects.size &&
+            template.subjects.isNotEmpty()
+
+        _state.value = if (allSelected) {
+            _state.value.copy(selectedSubjects = emptyList(), selectedClasses = emptyList())
+        } else {
+            _state.value.copy(
+                selectedSubjects = template.subjects,
+                selectedClasses = template.classes
+            )
+        }
+    }
+
+    fun toggleAllClasses() {
+        val template = _state.value.template ?: return
+        val allSelected = _state.value.selectedClasses.size == template.classes.size &&
+            template.classes.isNotEmpty()
+
+        _state.value = _state.value.copy(
+            selectedClasses = if (allSelected) emptyList() else template.classes
+        )
+    }
+
     fun toggleClass(classEntry: TemplateClassEntry) {
         val current = _state.value.selectedClasses.toMutableList()
         if (current.contains(classEntry)) {
@@ -112,6 +142,7 @@ class TemplatePreviewViewModel @Inject constructor(
         viewModelScope.launch {
             importTemplateUseCase(
                 templateId = id,
+                templateVersion = _state.value.template?.version ?: 1,
                 subjectsToImport = _state.value.selectedSubjects,
                 classesToImport = _state.value.selectedClasses
             )

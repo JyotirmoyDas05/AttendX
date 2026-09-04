@@ -109,6 +109,9 @@ class SettingsDataStore @Inject constructor(
                 is Boolean -> prefs[booleanPreferencesKey(key.name)] ?: default
                 is Int -> prefs[intPreferencesKey(key.name)] ?: default
                 is Float -> prefs[floatPreferencesKey(key.name)] ?: default
+                // String was missing here, so String-typed keys silently read back
+                // as null in the settings backup snapshot.
+                is String -> prefs[stringPreferencesKey(key.name)] ?: default
                 else -> null
             }
             key.name to value

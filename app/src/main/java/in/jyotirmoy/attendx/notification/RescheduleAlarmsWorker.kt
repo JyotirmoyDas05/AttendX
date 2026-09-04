@@ -7,7 +7,6 @@ import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
 import dagger.hilt.components.SingletonComponent
-import `in`.jyotirmoy.attendx.core.domain.repository.ClassScheduleRepository
 import `in`.jyotirmoy.attendx.core.domain.repository.SubjectRepository
 import kotlinx.coroutines.flow.first
 
@@ -18,7 +17,6 @@ import `in`.jyotirmoy.attendx.timetable.domain.repository.TimeTableRepository
 @EntryPoint
 interface RescheduleWorkerEntryPoint {
     fun subjectRepository(): SubjectRepository
-    fun classScheduleRepository(): ClassScheduleRepository
     fun timeTableRepository(): TimeTableRepository
     fun subjectTaskDao(): SubjectTaskDao
 }
@@ -32,7 +30,6 @@ class RescheduleAlarmsWorker(
         try {
             val entryPoint = EntryPointAccessors.fromApplication(applicationContext, RescheduleWorkerEntryPoint::class.java)
             val subjectRepository = entryPoint.subjectRepository()
-            val classScheduleRepository = entryPoint.classScheduleRepository()
             val timeTableRepository = entryPoint.timeTableRepository()
             val subjectTaskDao = entryPoint.subjectTaskDao()
 
@@ -70,27 +67,9 @@ class RescheduleAlarmsWorker(
                 e.printStackTrace()
             }
 
-            // 2. Reschedule legacy classes
-            subjects.forEach { subject ->
-                val schedules = classScheduleRepository.getSchedulesForSubject(subject.id).first()
-
-                schedules.forEach { schedule ->
-                    if (schedule.isEnabled) {
-                        TimetableAlarmScheduler.scheduleClassAlarms(
-                            context = applicationContext,
-                            scheduleId = schedule.id,
-                            subjectId = schedule.subjectId,
-                            subjectName = subject.subject,
-                            dayOfWeek = schedule.dayOfWeek,
-                            startTime = schedule.startTime,
-                            endTime = schedule.endTime,
-                            location = schedule.location
-                        )
-                    }
-                }
-            }
-
-            // 3. Reschedule Pending Task Reminders
+            // 2. Reschedule Pending Task Reminders
+            // NOTE: the legacy class_schedules table is intentionally NOT rescheduled -- its
+            // row ids collide with class_schedule in the alarm request-code space.
             try {
                 val pendingTasks = subjectTaskDao.getPendingTasksWithReminders()
                 for (task in pendingTasks) {

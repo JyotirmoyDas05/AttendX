@@ -1,6 +1,7 @@
 package `in`.jyotirmoy.attendx.notification.worker
 
 import android.Manifest
+import android.app.NotificationManager
 import android.content.Context
 import android.util.Log
 import androidx.annotation.RequiresPermission
@@ -11,20 +12,16 @@ import dagger.hilt.android.EntryPointAccessors
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
-import `in`.jyotirmoy.attendx.core.domain.repository.ClassScheduleRepository
-import `in`.jyotirmoy.attendx.core.domain.repository.SubjectRepository
-import `in`.jyotirmoy.attendx.core.domain.model.toDomain
 import `in`.jyotirmoy.attendx.notification.NotificationSetup
+import `in`.jyotirmoy.attendx.timetable.domain.repository.TimeTableRepository
 import kotlinx.coroutines.flow.first
 import java.time.LocalDateTime
 import java.time.LocalTime
-import java.time.DayOfWeek
 
 @EntryPoint
 @InstallIn(SingletonComponent::class)
 interface TimetableWorkerEntryPoint {
-    fun subjectRepository(): SubjectRepository
-    fun classScheduleRepository(): ClassScheduleRepository
+    fun timeTableRepository(): TimeTableRepository
 }
 
 class TimetableNotificationWorker(
@@ -45,58 +42,55 @@ class TimetableNotificationWorker(
                 applicationContext,
                 TimetableWorkerEntryPoint::class.java
             )
-            val subjectRepository = entryPoint.subjectRepository()
-            val classScheduleRepository = entryPoint.classScheduleRepository()
+            val timeTableRepository = entryPoint.timeTableRepository()
 
             val now = LocalDateTime.now()
             val currentTime = now.toLocalTime()
             val currentDay = now.dayOfWeek.value // 1 = Monday, 7 = Sunday
-            
+
             Log.d(TAG, "Current time: $currentTime, Day: $currentDay")
 
-            // Get all subjects
-            val subjects = subjectRepository.getAllSubjects().first()
-            Log.d(TAG, "Found ${subjects.size} subjects")
-            
+            val todaysClasses = timeTableRepository.getAllClassesWithSubject().first()
+                .filter { it.schedule.isActive && it.schedule.dayOfWeek == currentDay }
+            Log.d(TAG, "Found ${todaysClasses.size} classes for today")
+
+            // Ids already on screen, posted by TimetableAlarmReceiver's exact alarm.
+            val notificationManager =
+                applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            val alreadyPosted = notificationManager.activeNotifications.map { it.id }.toSet()
+
             var notificationsShown = 0
 
-            for (subject in subjects) {
-                // Get all schedules for this subject
-                val schedules = classScheduleRepository.getSchedulesForSubject(subject.id)
-                    .first()
-                    .map { it.toDomain() }
+            for (item in todaysClasses) {
+                val subjectName = item.subject.subject
+                val startTimeStr = formatMinutes(item.schedule.startTime)
+                val endTimeStr = formatMinutes(item.schedule.endTime)
+                val classStartTime = LocalTime.parse(startTimeStr)
 
-                for (schedule in schedules) {
-                    // Check if this schedule is for today
-                    if (schedule.dayOfWeek == currentDay) {
-                        val classStartTime = LocalTime.parse(schedule.startTime)
-                        val classEndTime = LocalTime.parse(schedule.endTime)
-                        
-                        // Check if class is starting within the next 15 minutes or just started (within 5 min)
-                        val minutesUntilStart = java.time.Duration.between(currentTime, classStartTime).toMinutes()
-                        val minutesSinceStart = java.time.Duration.between(classStartTime, currentTime).toMinutes()
-                        
-                        Log.d(TAG, "Subject: ${subject.subject}, Start: $classStartTime, Minutes until: $minutesUntilStart")
-                        
-                        // Show notification if class starts within 15 minutes or just started (within 10 min)
-                        // Changed from -5..5 to -10..15 for more reliable coverage
-                        if (minutesUntilStart in -10..15) {
-                            Log.d(TAG, "Showing notification for ${subject.subject}")
-                            try {
-                                NotificationSetup.showTimetableNotification(
-                                    context = applicationContext,
-                                    subjectId = subject.id,
-                                    subjectName = subject.subject,
-                                    startTime = schedule.startTime,
-                                    endTime = schedule.endTime,
-                                    location = schedule.location,
-                                    scheduleId = schedule.id
-                                )
-                                notificationsShown++
-                            } catch (e: Exception) {
-                                Log.e(TAG, "Error showing notification for ${subject.subject}", e)
-                            }
-                        }
+                // This worker is a BACKUP for an exact alarm the OEM may have killed. It must never
+                // fire before the class actually starts -- doing so posted a "Class Started"
+                // alongside the T-5min "Upcoming Class" notification. Only cover the window from
+                // the start time to one WorkManager cycle later, and only if the alarm did not post.
+                val minutesSinceStart = java.time.Duration.between(classStartTime, currentTime).toMinutes()
+                Log.d(TAG, "Subject: $subjectName, Start: $classStartTime, Minutes since: $minutesSinceStart")
+
+                if (minutesSinceStart in 0..14 && item.schedule.id !in alreadyPosted) {
+                    Log.d(TAG, "Exact alarm did not post for $subjectName - showing backup notification")
+                    try {
+                        // Same notificationId as TimetableAlarmReceiver, so a late alarm replaces
+                        // this instead of stacking a second notification.
+                        NotificationSetup.showTimetableNotification(
+                            context = applicationContext,
+                            subjectId = item.schedule.subjectId,
+                            subjectName = subjectName,
+                            startTime = startTimeStr,
+                            endTime = endTimeStr,
+                            location = item.schedule.room,
+                            scheduleId = item.schedule.id
+                        )
+                        notificationsShown++
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Error showing notification for $subjectName", e)
                     }
                 }
             }
@@ -109,4 +103,7 @@ class TimetableNotificationWorker(
             Result.retry()
         }
     }
+
+    private fun formatMinutes(minutes: Long): String =
+        String.format("%02d:%02d", minutes / 60, minutes % 60)
 }

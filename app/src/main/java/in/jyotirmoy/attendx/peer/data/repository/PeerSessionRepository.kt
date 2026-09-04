@@ -116,13 +116,21 @@ class PeerSessionRepository @Inject constructor(
     }
 
     /**
-     * Mark session as EXPIRED — called when host cancels or TTL fires on client.
+     * Erase the session — called when either participant leaves or the 15-minute
+     * timer fires.
+     *
+     * This deletes the document rather than flagging it EXPIRED. The peer screen
+     * promises "100% Private & Ephemeral" and "data is erased immediately when
+     * the session ends", and these documents hold real attendance percentages,
+     * so flagging alone left that promise unmet. A Firestore TTL policy would be
+     * the tidier backstop but requires the Blaze plan.
+     *
+     * A guest still observing sees the deleted snapshot resolve to EXPIRED, and
+     * results already computed live in memory, so nothing user-visible is lost.
      */
     suspend fun expireSession(sessionId: String) {
         try {
-            collection.document(sessionId)
-                .update("status", PeerSessionDoc.STATUS_EXPIRED)
-                .await()
+            collection.document(sessionId).delete().await()
         } catch (_: Exception) {}
     }
 

@@ -152,4 +152,47 @@ object TimeUtils {
             startTime
         }
     }
+
+    /**
+     * Validates a class time range.
+     *
+     * @return null when the range is usable, otherwise a message ready to show.
+     *
+     * A class is not allowed to wrap past midnight: the app models a class as a
+     * slot inside one weekday, so "11 PM to 1 AM" is a typo, not a night class.
+     * Returning a message rather than a bare Boolean keeps the reason for the
+     * rejection with the rule that produced it.
+     */
+    fun validateRange(startTime: String, endTime: String): String? {
+        val start = parseOrNull(startTime) ?: return "Enter a valid start time"
+        val end = parseOrNull(endTime) ?: return "Enter a valid end time"
+        return when {
+            end == start -> "Start and end time cannot be the same"
+            end.isBefore(start) -> "End time must be after start time"
+            else -> null
+        }
+    }
+
+    /**
+     * Half-open overlap test: a class ending at 10:00 does not clash with one
+     * starting at 10:00, which is how back-to-back periods are normally written.
+     */
+    fun overlaps(
+        startA: String,
+        endA: String,
+        startB: String,
+        endB: String
+    ): Boolean {
+        val aStart = parseOrNull(startA) ?: return false
+        val aEnd = parseOrNull(endA) ?: return false
+        val bStart = parseOrNull(startB) ?: return false
+        val bEnd = parseOrNull(endB) ?: return false
+        return aStart.isBefore(bEnd) && bStart.isBefore(aEnd)
+    }
+
+    private fun parseOrNull(time: String): LocalTime? = try {
+        LocalTime.parse(time, DateTimeFormatter.ofPattern("HH:mm"))
+    } catch (e: Exception) {
+        null
+    }
 }

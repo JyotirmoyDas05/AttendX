@@ -24,3 +24,12 @@ app/google-services.json.bak
 
 #PLAN files
 PLAN.md
+
+# Firestore rules tests
+firestore-tests/node_modules/
+firestore-tests/package-lock.json
+firebase-debug.log
+firestore-debug.log
+
+# T3 code
+t3.json

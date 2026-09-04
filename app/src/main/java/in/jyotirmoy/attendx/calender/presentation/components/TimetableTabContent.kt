@@ -155,6 +155,7 @@ fun TimetableTabContent(
             dayName = getDayName(selectedDay),
             subjectId = subjectId,
             existingSchedule = editingSchedule,
+            existingSchedules = schedules,
             onDismiss = {
                 showAddDialog = false
                 editingSchedule = null

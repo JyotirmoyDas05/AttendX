@@ -3,32 +3,22 @@ package `in`.jyotirmoy.attendx.timetable.domain.usecase
 import `in`.jyotirmoy.attendx.timetable.data.model.TimeTableScheduleWithSubject
 import `in`.jyotirmoy.attendx.timetable.domain.repository.TimeTableRepository
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.map
-import java.time.LocalDate
-import java.time.temporal.ChronoField
 import javax.inject.Inject
 
+/**
+ * Every class scheduled on [dayOfWeek], including ones that only run on odd or
+ * even weeks.
+ *
+ * Week-pattern filtering deliberately does not happen here any more. It used to,
+ * against `LocalDate.now()`, which was correct only while the timetable could
+ * show nothing but the current week. The calendar views now page through weeks,
+ * and a class's visibility depends on the week being looked at — so the caller
+ * applies `WeekPattern.matches` for the date it is drawing. That also keeps this
+ * flow shareable across every page instead of needing one flow per week.
+ */
 class GetDailyScheduleUseCase @Inject constructor(
     private val repository: TimeTableRepository
 ) {
-    operator fun invoke(dayOfWeek: Int): Flow<List<TimeTableScheduleWithSubject>> {
-        return repository.getClassesForDayWithSubject(dayOfWeek).map { schedules ->
-            val currentWeekType = getCurrentWeekType()
-            schedules.filter { item ->
-                when (item.schedule.weekPattern) {
-                    "odd" -> currentWeekType == "odd"
-                    "even" -> currentWeekType == "even"
-                    else -> true // "all" shows always
-                }
-            }
-        }
-    }
-
-    /**
-     * Determines if current week is "odd" or "even" based on ISO week number.
-     */
-    private fun getCurrentWeekType(): String {
-        val weekOfYear = LocalDate.now().get(ChronoField.ALIGNED_WEEK_OF_YEAR)
-        return if (weekOfYear % 2 == 1) "odd" else "even"
-    }
+    operator fun invoke(dayOfWeek: Int): Flow<List<TimeTableScheduleWithSubject>> =
+        repository.getClassesForDayWithSubject(dayOfWeek)
 }

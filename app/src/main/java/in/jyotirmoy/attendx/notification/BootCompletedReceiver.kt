@@ -5,8 +5,6 @@ import android.content.Context
 import android.content.Intent
 import android.util.Log
 import dagger.hilt.android.AndroidEntryPoint
-import `in`.jyotirmoy.attendx.core.domain.repository.ClassScheduleRepository
-import `in`.jyotirmoy.attendx.core.domain.repository.SubjectRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -60,7 +58,6 @@ class BootCompletedReceiver : BroadcastReceiver() {
 
         val database = `in`.jyotirmoy.attendx.core.data.database.SubjectDatabase.getDatabase(context)
         val timeTableDao = database.timeTableDao()
-        val classScheduleDao = database.classScheduleDao()
         val subjectDao = database.subjectDao()
 
         var successCount = 0
@@ -96,40 +93,11 @@ class BootCompletedReceiver : BroadcastReceiver() {
             Log.e(TAG, "❌ Failed to reschedule timetable classes", e)
         }
 
-        // 2. Reschedule legacy classes (ClassScheduleEntity)
-        try {
-            val allSchedules = classScheduleDao.getAllSchedulesOnce()
-            Log.d(TAG, "📋 Found ${allSchedules.size} legacy schedules to reschedule")
-
-            for (schedule in allSchedules) {
-                if (!schedule.isEnabled) continue
-
-                val subject = try {
-                    subjectDao.getSubjectById(schedule.subjectId).first()
-                } catch (e: Exception) {
-                    Log.e(TAG, "❌ Failed to get subject for schedule ${schedule.id}", e)
-                    failCount++
-                    continue
-                }
-
-                val scheduled = TimetableAlarmScheduler.scheduleClassAlarms(
-                    context = context,
-                    scheduleId = schedule.id,
-                    subjectId = schedule.subjectId,
-                    subjectName = subject.subject,
-                    dayOfWeek = schedule.dayOfWeek,
-                    startTime = schedule.startTime,
-                    endTime = schedule.endTime,
-                    location = schedule.location
-                )
-
-                if (scheduled) successCount++ else failCount++
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "❌ Failed to reschedule legacy schedules", e)
-        }
-
-        // 3. Reschedule Pending Task Reminders
+        // 2. Reschedule Pending Task Reminders
+        // NOTE: the legacy class_schedules table is intentionally NOT rescheduled. Its row ids
+        // share the alarm request-code / notification-id space with class_schedule, so stale
+        // legacy rows would silently overwrite real timetable alarms. It is kept only for
+        // backup restore compatibility (BackupAndRestoreRepositoryImpl).
         try {
             val pendingTasks = database.subjectTaskDao().getPendingTasksWithReminders()
             Log.d(TAG, "📋 Found ${pendingTasks.size} pending task reminders to reschedule")

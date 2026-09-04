@@ -24,6 +24,9 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import `in`.jyotirmoy.attendx.core.domain.model.ClassSchedule
+import `in`.jyotirmoy.attendx.core.presentation.components.text.AutoResizeableText
+import `in`.jyotirmoy.attendx.core.presentation.state.ClassScheduleStateListSaver
+import androidx.compose.runtime.saveable.rememberSaveable
 import `in`.jyotirmoy.attendx.core.utils.TimeUtils
 import `in`.jyotirmoy.attendx.home.presentation.components.bottomsheet.TimetableInputBottomSheet
 
@@ -35,7 +38,9 @@ fun TimetableEntryDialog(
     onDismiss: () -> Unit,
     onSave: (List<ClassSchedule>) -> Unit
 ) {
-    val schedules = remember { mutableStateListOf<ClassSchedule>().apply { addAll(initialSchedules) } }
+    val schedules = rememberSaveable(saver = ClassScheduleStateListSaver) {
+        mutableStateListOf<ClassSchedule>().apply { addAll(initialSchedules) }
+    }
     var showAddSheet by remember { mutableStateOf(false) }
     var editingSchedule by remember { mutableStateOf<ClassSchedule?>(null) }
     
@@ -93,9 +98,10 @@ fun TimetableEntryDialog(
                         )
                     ) {
                         Text(
-                            "Save",
+                            text = "Save",
                             style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold
+                            fontWeight = FontWeight.SemiBold,
+                            maxLines = 1
                         )
                     }
                 }
@@ -110,13 +116,12 @@ fun TimetableEntryDialog(
                 ) {
                     Text(
                         text = "Weekly Timetable",
-                        style = MaterialTheme.typography.headlineMedium,
+                        style = MaterialTheme.typography.headlineMediumEmphasized,
                         fontWeight = FontWeight.Bold,
-                        fontSize = 32.sp,
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        text = "${schedules.size} classes added",
+                        text = if (schedules.size == 1) "1 class added" else "${schedules.size} classes added",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.alpha(0.6f)
@@ -163,7 +168,9 @@ fun TimetableEntryDialog(
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                             Text(
-                                "Tap + to add your class schedule for\nthe week.",
+                                // No baked-in line break: where it wraps depends on
+                                // the width and the user's text size, not on us.
+                                "Tap Add Class to set your weekly schedule.",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.alpha(0.7f),
@@ -316,8 +323,8 @@ fun TimetableEntryDialog(
                         modifier = Modifier.size(20.dp)
                     )
                     Spacer(Modifier.width(8.dp))
-                    Text(
-                        "Add Class",
+                    AutoResizeableText(
+                        text = "Add Class",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold
                     )
@@ -327,6 +334,7 @@ fun TimetableEntryDialog(
             // Bottom Sheets
             if (showAddSheet) {
                 TimetableInputBottomSheet(
+                    existingSchedules = schedules,
                     onDismiss = { showAddSheet = false },
                     onSave = { day, start, end, loc ->
                         schedules.add(
@@ -347,6 +355,7 @@ fun TimetableEntryDialog(
                 val schedule = editingSchedule!!
                 TimetableInputBottomSheet(
                     initialSchedule = schedule,
+                    existingSchedules = schedules,
                     onDismiss = { editingSchedule = null },
                     onSave = { day, start, end, loc ->
                         val index = schedules.indexOf(schedule)

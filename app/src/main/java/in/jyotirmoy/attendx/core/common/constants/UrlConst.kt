@@ -7,7 +7,9 @@ object UrlConst {
     const val URL_GITHUB_ISSUE_FEATURE_REQUEST =
         "https://github.com/JyotirmoyDas05/AttendX/issues/new?template=feature_request.yml"
     const val URL_GITHUB_REPO_LICENSE =
-        "https://github.com/JyotirmoyDas05/AttendX/blob/master/LICENSE.md"
+        "https://github.com/JyotirmoyDas05/AttendX/blob/main/LICENSE.md"
+    const val URL_PRIVACY_POLICY =
+        "https://github.com/JyotirmoyDas05/AttendX/blob/main/PRIVACY.md"
     const val URL_DEV_TELEGRAM = ""
     const val URL_DEV_GITHUB = "https://github.com/JyotirmoyDas05"
     const val URL_DEV_LINKEDIN = "https://www.linkedin.com/in/jyotimoydas"

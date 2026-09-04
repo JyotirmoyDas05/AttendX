@@ -33,6 +33,8 @@ vico = "2.0.2"
 qrcodeKotlin = "4.2.0"
 cameraX = "1.4.2"
 mlkitBarcode = "17.3.0"
+credentials = "1.6.0"
+googleid = "1.1.1"
 
 [libraries]
 vico-compose-m3 = { group = "com.patrykandpatrick.vico", name = "compose-m3", version.ref = "vico" }
@@ -81,6 +83,9 @@ firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.r
 firebase-analytics = { group = "com.google.firebase", name = "firebase-analytics" }
 firebase-firestore = { group = "com.google.firebase", name = "firebase-firestore" }
 firebase-auth = { group = "com.google.firebase", name = "firebase-auth" }
+androidx-credentials = { group = "androidx.credentials", name = "credentials", version.ref = "credentials" }
+androidx-credentials-play-services-auth = { group = "androidx.credentials", name = "credentials-play-services-auth", version.ref = "credentials" }
+googleid = { group = "com.google.android.libraries.identity.googleid", name = "googleid", version.ref = "googleid" }
 
 # QR Code
 qrcode-kotlin = { group = "io.github.g0dkar", name = "qrcode-kotlin-android", version.ref = "qrcodeKotlin" }

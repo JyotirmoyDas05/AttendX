@@ -1,51 +1,91 @@
+@file:OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
+
 package `in`.jyotirmoy.attendx.home.presentation.components
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccessTime
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowUp
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
+import androidx.compose.material.icons.rounded.Schedule
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TimeInput
+import androidx.compose.material3.TimePicker
+import androidx.compose.material3.TimePickerDialog
+import androidx.compose.material3.TimePickerDialogDefaults
+import androidx.compose.material3.TimePickerDisplayMode
+import androidx.compose.material3.rememberTimePickerState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import `in`.jyotirmoy.attendx.core.presentation.theme.Shape
+import `in`.jyotirmoy.attendx.core.common.LocalWeakHaptic
 import `in`.jyotirmoy.attendx.core.utils.TimeUtils
+import android.text.format.DateFormat
 
+/**
+ * Read-only field that opens the Material 3 time picker.
+ *
+ * The field is deliberately not a disabled `OutlinedTextField`: a disabled field
+ * is announced as unavailable by TalkBack even though tapping it is the only way
+ * to use this control. It stays enabled and read-only, with the tap handled by a
+ * transparent overlay so the whole field — not just the trailing icon — is the
+ * target.
+ */
 @Composable
 fun TimePickerField(
     label: String,
     time: String,
     onTimeChange: (String) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    isError: Boolean = false
 ) {
     var showDialog by remember { mutableStateOf(false) }
     val displayTime = TimeUtils.format24To12Hour(time)
 
-    OutlinedTextField(
-        value = displayTime,
-        onValueChange = {},
-        modifier = modifier.clickable { showDialog = true },
-        label = { Text(label) },
-        enabled = false,
-        colors = OutlinedTextFieldDefaults.colors(
-            disabledTextColor = MaterialTheme.colorScheme.onSurface,
-            disabledBorderColor = MaterialTheme.colorScheme.outline,
-            disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-        ),
-        trailingIcon = {
-            Icon(Icons.Default.AccessTime, contentDescription = "Select time")
-        }
-    )
+    Box(modifier = modifier) {
+        OutlinedTextField(
+            value = displayTime,
+            onValueChange = {},
+            readOnly = true,
+            singleLine = true,
+            isError = isError,
+            label = {
+                // The label sits in the notch of the outline and cannot wrap, so
+                // it is the first thing to clip once the user scales text up.
+                Text(text = label, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            },
+            trailingIcon = {
+                Icon(Icons.Rounded.Schedule, contentDescription = null)
+            },
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .clickable(
+                    role = Role.Button,
+                    onClickLabel = "Change $label"
+                ) { showDialog = true }
+        )
+    }
 
     if (showDialog) {
-        TimePickerDialog(
+        AttendXTimePickerDialog(
+            title = label,
             initialTime = time,
             onDismiss = { showDialog = false },
             onTimeSelected = {
@@ -56,194 +96,88 @@ fun TimePickerField(
     }
 }
 
+/**
+ * Material 3 time picker dialog with a dial/keyboard toggle.
+ *
+ * Starts in keyboard-entry mode whenever the dial cannot fit — landscape, small
+ * screens, or a large display size — because the dial has a fixed minimum height
+ * and would otherwise be cut off. The toggle stays available either way, so the
+ * choice is a starting point rather than a restriction.
+ */
 @Composable
-private fun TimePickerDialog(
+fun AttendXTimePickerDialog(
+    title: String,
     initialTime: String,
     onDismiss: () -> Unit,
     onTimeSelected: (String) -> Unit
 ) {
-    var hour by remember { mutableStateOf(TimeUtils.getHour(initialTime)) }
-    var minute by remember { mutableStateOf(TimeUtils.getMinute(initialTime)) }
-    var isPM by remember { mutableStateOf(hour >= 12) }
+    val context = LocalContext.current
+    val configuration = LocalConfiguration.current
+    val weakHaptic = LocalWeakHaptic.current
 
-    val displayHour = when {
-        hour == 0 -> 12
-        hour > 12 -> hour - 12
-        else -> hour
+    val state = rememberTimePickerState(
+        initialHour = TimeUtils.getHour(initialTime),
+        initialMinute = TimeUtils.getMinute(initialTime),
+        is24Hour = DateFormat.is24HourFormat(context)
+    )
+
+    val dialFits = configuration.screenHeightDp.dp >= MIN_HEIGHT_FOR_DIAL
+    var displayMode by remember {
+        mutableStateOf(
+            if (dialFits) TimePickerDisplayMode.Picker else TimePickerDisplayMode.Input
+        )
     }
 
-    AlertDialog(
+    TimePickerDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Select Time") },
-        text = {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                Text(
-                    text = String.format("%02d:%02d %s", displayHour, minute, if (isPM) "PM" else "AM"),
-                    style = MaterialTheme.typography.headlineMedium
-                )
-
-                Text("Quick Select", style = MaterialTheme.typography.labelMedium)
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    val quickTimes = listOf(
-                        "8:00 AM" to "08:00",
-                        "9:00 AM" to "09:00",
-                        "10:00 AM" to "10:00",
-                        "11:00 AM" to "11:00",
-                        "12:00 PM" to "12:00",
-                        "1:00 PM" to "13:00",
-                        "2:00 PM" to "14:00",
-                        "3:00 PM" to "15:00",
-                        "4:00 PM" to "16:00"
-                    )
-                    items(quickTimes) { (label, time24) ->
-                        FilterChip(
-                            selected = false,
-                            onClick = { onTimeSelected(time24) },
-                            label = { Text(label, style = MaterialTheme.typography.labelSmall) }
-                        )
+        title = {
+            // "Start time" / "End time" beats the default "Select time" when two
+            // of these dialogs are reachable from the same form.
+            Text(
+                text = title,
+                style = MaterialTheme.typography.labelMedium,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
+        },
+        modeToggleButton = {
+            TimePickerDialogDefaults.DisplayModeToggle(
+                displayMode = displayMode,
+                onDisplayModeChange = {
+                    weakHaptic()
+                    displayMode = if (displayMode == TimePickerDisplayMode.Picker) {
+                        TimePickerDisplayMode.Input
+                    } else {
+                        TimePickerDisplayMode.Picker
                     }
                 }
-
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    NumberPicker(
-                        value = displayHour,
-                        onValueChange = {
-                            var newHour = it
-                            if (isPM && it != 12) newHour += 12
-                            if (!isPM && it == 12) newHour = 0
-                            hour = newHour
-                        },
-                        range = 1..12,
-                        label = "Hour"
-                    )
-
-                    Text(":", style = MaterialTheme.typography.headlineSmall)
-
-                    NumberPicker(
-                        value = minute,
-                        onValueChange = { minute = it },
-                        range = 0..59,
-                        label = "Min",
-                        step = 5
-                    )
-
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("Period", style = MaterialTheme.typography.labelSmall)
-                        Row(
-                            modifier = Modifier
-                                .clip(Shape.cardCornerMedium)
-                                .background(MaterialTheme.colorScheme.surfaceVariant)
-                        ) {
-                            listOf(false to "AM", true to "PM").forEach { (pm, label) ->
-                                Box(
-                                    modifier = Modifier
-                                        .clickable {
-                                            if (isPM != pm) {
-                                                isPM = pm
-                                                if (pm) {
-                                                    if (hour < 12) hour += 12
-                                                } else {
-                                                    if (hour >= 12) hour -= 12
-                                                }
-                                            }
-                                        }
-                                        .background(
-                                            if (isPM == pm)
-                                                MaterialTheme.colorScheme.primary
-                                            else
-                                                MaterialTheme.colorScheme.surfaceVariant
-                                        )
-                                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        label,
-                                        color = if (isPM == pm)
-                                            MaterialTheme.colorScheme.onPrimary
-                                        else
-                                            MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+            )
         },
         confirmButton = {
             TextButton(onClick = {
-                val time24 = TimeUtils.formatTime(hour, minute)
-                onTimeSelected(time24)
+                weakHaptic()
+                onTimeSelected(TimeUtils.formatTime(state.hour, state.minute))
             }) {
-                Text("OK")
+                Text("OK", maxLines = 1)
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text("Cancel", maxLines = 1)
             }
         }
-    )
-}
-
-@Composable
-private fun NumberPicker(
-    value: Int,
-    onValueChange: (Int) -> Unit,
-    range: IntRange,
-    label: String,
-    step: Int = 1,
-    modifier: Modifier = Modifier
-) {
-    Column(
-        modifier = modifier,
-        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(label, style = MaterialTheme.typography.labelSmall)
-        
-        IconButton(
-            onClick = {
-                val newValue = value + step
-                if (newValue <= range.last) {
-                    onValueChange(newValue)
-                } else {
-                    onValueChange(range.first)
-                }
-            }
-        ) {
-            Icon(Icons.Default.KeyboardArrowUp, "Increase")
-        }
-
-        Text(
-            text = String.format("%02d", value),
-            style = MaterialTheme.typography.headlineSmall,
-            modifier = Modifier
-                .background(
-                    MaterialTheme.colorScheme.surfaceVariant,
-                    Shape.cardCornerSmall
-                )
-                .padding(horizontal = 16.dp, vertical = 8.dp)
-        )
-
-        IconButton(
-            onClick = {
-                val newValue = value - step
-                if (newValue >= range.first) {
-                    onValueChange(newValue)
-                } else {
-                    onValueChange(range.last)
-                }
-            }
-        ) {
-            Icon(Icons.Default.KeyboardArrowDown, "Decrease")
+        if (displayMode == TimePickerDisplayMode.Input) {
+            TimeInput(state = state)
+        } else {
+            TimePicker(state = state)
         }
     }
 }
+
+/**
+ * Below this the clock dial plus the dialog's title and buttons stop fitting, so
+ * the dialog opens in keyboard-entry mode instead. Matches the height Material
+ * uses to switch its own picker to a horizontal layout.
+ */
+private val MIN_HEIGHT_FOR_DIAL = 400.dp

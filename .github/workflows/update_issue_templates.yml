@@ -13,7 +13,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0
@@ -36,10 +36,10 @@ jobs:
           git config user.name "JyotirmoyDas05"
           git config user.email "jyotirmoyofficial@gmail.com"
 
-      - name: Fetch and check out master as branch
+      - name: Fetch and check out the default branch
         run: |
-          git fetch origin master
-          git checkout master
+          git fetch origin main
+          git checkout main
 
       - name: Install dependencies
         run: |
@@ -56,4 +56,4 @@ jobs:
           git add .github/ISSUE_TEMPLATE/bug_report.yml
           git add .github/ISSUE_TEMPLATE/crash_report.yml
           git commit -m "Sync version dropdown: $VERSION" || echo "No changes to commit"
-          git push origin master
+          git push origin main

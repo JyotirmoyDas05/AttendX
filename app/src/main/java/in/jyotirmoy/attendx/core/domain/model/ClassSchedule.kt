@@ -2,7 +2,11 @@ package `in`.jyotirmoy.attendx.core.domain.model
 
 import `in`.jyotirmoy.attendx.core.data.model.ClassScheduleEntity
 import `in`.jyotirmoy.attendx.timetable.data.model.TimeTableScheduleEntity
+import kotlinx.serialization.Serializable
 
+// Serializable so an in-progress list of these can survive a rotation via
+// rememberSaveable; see ClassScheduleSavers.
+@Serializable
 data class ClassSchedule(
     val id: Int = 0,
     val subjectId: Int,

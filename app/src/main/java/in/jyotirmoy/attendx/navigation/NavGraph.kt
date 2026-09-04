@@ -28,13 +28,39 @@ import kotlinx.serialization.Serializable
 
 import android.content.Intent
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import `in`.jyotirmoy.attendx.timetable.presentation.screens.template.update.TemplateUpdateDialog
+import `in`.jyotirmoy.attendx.timetable.presentation.screens.template.update.TemplateUpdateViewModel
 
 @Composable
 fun Navigation(
     notificationIntent: Intent? = null,
-    onNotificationIntentHandled: () -> Unit = {}
+    onNotificationIntentHandled: () -> Unit = {},
+    /** Set while AppEntry is already showing its own startup sheet. */
+    suppressDialogs: Boolean = false
 ) {
     val navController = rememberNavController()
+    val templateUpdateViewModel: TemplateUpdateViewModel = hiltViewModel()
+    val pendingTemplateUpdate by templateUpdateViewModel.pending.collectAsStateWithLifecycle()
+    var showTemplateUpdateDialog by rememberSaveable { mutableStateOf(false) }
+
+    // Throttled to one remote read per 24h inside the use case, so this is not a
+    // Firestore hit on every cold start.
+    LaunchedEffect(Unit) { templateUpdateViewModel.check() }
+
+    LaunchedEffect(pendingTemplateUpdate) {
+        if (pendingTemplateUpdate != null) showTemplateUpdateDialog = true
+    }
+
+    // Badge taps in the timetable header re-open the dialog.
+    LaunchedEffect(Unit) {
+        templateUpdateViewModel.showRequests.collect { showTemplateUpdateDialog = true }
+    }
 
     LaunchedEffect(notificationIntent) {
         if (notificationIntent != null && notificationIntent.getStringExtra("EXTRA_NAVIGATE_TO") == "CALENDAR") {
@@ -48,6 +74,29 @@ fun Navigation(
     }
 
     CompositionLocalProvider(LocalNavController provides navController) {
+        pendingTemplateUpdate?.let { info ->
+            if (showTemplateUpdateDialog && !suppressDialogs) {
+                TemplateUpdateDialog(
+                    info = info,
+                    onReview = {
+                        showTemplateUpdateDialog = false
+                        templateUpdateViewModel.onReviewing()
+                        // The preview screen's existing per-item checkboxes are the
+                        // review UI; importing there rewrites the stored version.
+                        navController.navigate(TemplatePreviewScreen(info.templateId))
+                    },
+                    onNotNow = {
+                        showTemplateUpdateDialog = false
+                        templateUpdateViewModel.dismissVersion()
+                    },
+                    onStopChecking = {
+                        showTemplateUpdateDialog = false
+                        templateUpdateViewModel.stopChecking()
+                    }
+                )
+            }
+        }
+
         NavHost(
             navController = navController, startDestination = MainScreenRoute
         ) {

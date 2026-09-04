@@ -1,0 +1,147 @@
+rules_version = '2';
+
+// AttendX Firestore security rules.
+//
+// Threat model: every client is anonymous and untrusted. The app ships the
+// Firebase API key, so anything these rules do not forbid, a scripted client
+// can do. Hence identity and counters are server-derived, never client-supplied.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+
+    // ── Community templates ────────────────────────────────────────────────
+
+    function ownsTemplate() {
+      return signedIn() && request.auth.uid == resource.data.authorId;
+    }
+
+    function uname(n) { return /databases/$(database)/documents/usernames/$(n.lower()); }
+
+    // authorName must be the default, or a username this uid has reserved.
+    function nameOk(d) {
+      return d.authorName == 'Anonymous Student' || (
+        d.authorName.matches('^[A-Za-z0-9._-]{3,24}$') &&
+        exists(uname(d.authorName)) &&
+        get(uname(d.authorName)).data.uid == request.auth.uid
+      );
+    }
+
+    function sizesOk(d) {
+      return d.name.size() <= 200
+          && d.college.size() <= 120 && d.department.size() <= 120
+          && d.section.size() <= 20  && d.academicYear.size() <= 20
+          && d.semester is int && d.semester >= 1 && d.semester <= 12
+          && d.classes.size()  <= 100
+          && d.subjects.size() <= 80;
+    }
+
+    match /templates/{templateId} {
+      // Anonymous auth required even to browse. Cheap bot friction, and every
+      // read path in TemplateRepositoryImpl already calls getOrCreateUid().
+      allow read: if signedIn();
+
+      allow create: if signedIn()
+        && request.resource.data.authorId  == request.auth.uid
+        && request.resource.data.id        == templateId
+        && request.resource.data.likes     == 0
+        && request.resource.data.downloads == 0
+        && request.resource.data.version   == 1
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time
+        && sizesOk(request.resource.data)
+        && nameOk(request.resource.data);
+
+      // Owner edit. The two allow-update blocks OR together, which is how the
+      // download counter below keeps working under an owner-only edit rule.
+      //
+      // get('version', 0) is not optional: every template published before this
+      // feature has no version field, and without the default those documents
+      // would become permanently uneditable.
+      allow update: if ownsTemplate()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+             'name','college','department','semester','section','academicYear',
+             'classes','subjects','authorName','updatedAt','version'
+           ])
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.version   == resource.data.get('version', 0) + 1
+        && sizesOk(request.resource.data)
+        // Only validated when the name actually changes. Enforcing it on every
+        // update would make a template permanently uneditable as soon as its
+        // authorName lost its reservation — which happens on every rename, since
+        // renaming releases the old name without rewriting already-published
+        // templates.
+        && (request.resource.data.authorName == resource.data.authorName
+            || nameOk(request.resource.data));
+
+      // Anyone may bump the download counter, by exactly one, and nothing else.
+      allow update: if signedIn()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['downloads'])
+        && request.resource.data.downloads == resource.data.downloads + 1;
+
+      allow delete: if ownsTemplate();
+    }
+
+    // ── Username reservations ──────────────────────────────────────────────
+    //
+    // The document id IS the lock: a create on a fixed id fails atomically if
+    // that id already exists, which buys uniqueness with no backend and no
+    // transaction.
+    match /usernames/{name} {
+      allow read: if signedIn();                      // availability check
+      allow create: if signedIn()
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.keys().hasOnly(['uid'])
+        && name.matches('^[a-z0-9._-]{3,24}$');
+      allow delete: if signedIn() && request.auth.uid == resource.data.uid;
+      allow update: if false;                         // rename = delete + create
+    }
+
+    // ── Peer attendance comparison sessions ────────────────────────────────
+    //
+    // These documents carry real attendance percentages, so they are the most
+    // sensitive data in the project. Session ids are Firestore auto-ids (~120
+    // bits) shared out-of-band via QR, which is the only pairing channel
+    // available without a backend — but readability narrows to the two
+    // participants as soon as the session is PAIRED, so someone who learns an
+    // id after the fact cannot read the attendance data.
+    match /peer_sessions/{sessionId} {
+      function participant() {
+        return signedIn() && (
+          request.auth.uid == resource.data.hostAnonUid ||
+          request.auth.uid == resource.data.guestAnonUid
+        );
+      }
+
+      allow read: if participant()
+        || (signedIn() && resource.data.status == 'WAITING');
+
+      allow create: if signedIn()
+        && request.resource.data.sessionId    == sessionId
+        && request.resource.data.hostAnonUid  == request.auth.uid
+        && request.resource.data.status       == 'WAITING'
+        && request.resource.data.guestAnonUid == null
+        && request.resource.data.guestData.size() == 0
+        && request.resource.data.hostData.size() <= 100;
+
+      // Guest joins: WAITING -> PAIRED, claiming the empty guest slot.
+      allow update: if signedIn()
+        && resource.data.status == 'WAITING'
+        && resource.data.guestAnonUid == null
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['guestAnonUid','guestData','status'])
+        && request.resource.data.guestAnonUid == request.auth.uid
+        && request.resource.data.status == 'PAIRED'
+        && request.resource.data.guestData.size() <= 100;
+
+      // Either participant may expire the session, and change nothing else.
+      allow update: if participant()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+        && request.resource.data.status == 'EXPIRED';
+
+      // Either participant erases the session on leaving — the app deletes rather
+      // than flagging EXPIRED, so both sides need this.
+      allow delete: if participant();
+    }
+  }
+}

@@ -39,19 +39,33 @@ abstract class SubjectDatabase : RoomDatabase() {
         private var INSTANCE: SubjectDatabase? = null
 
         /**
-         * Get database instance for non-DI contexts (e.g., BroadcastReceiver)
+         * The single Room instance for the app. Hilt's DatabaseModule delegates here so
+         * that DI callers and non-DI callers (BroadcastReceivers, Workers) can never end
+         * up on different database files or migration sets.
          */
         fun getDatabase(context: Context): SubjectDatabase {
             return INSTANCE ?: synchronized(this) {
-                val instance = Room.databaseBuilder(
+                INSTANCE ?: Room.databaseBuilder(
                     context.applicationContext,
                     SubjectDatabase::class.java,
-                    "subject_database"
+                    "attendance_app_db"
                 )
-                    .fallbackToDestructiveMigration(false)
+                    .addMigrations(
+                        MIGRATION_2_3,
+                        MIGRATION_3_4,
+                        MIGRATION_4_5,
+                        MIGRATION_5_6,
+                        MIGRATION_6_7,
+                        MIGRATION_7_8,
+                        MIGRATION_8_9,
+                        MIGRATION_9_10,
+                        MIGRATION_10_11,
+                        MIGRATION_11_12,
+                        MIGRATION_12_13
+                    )
+                    .fallbackToDestructiveMigration()
                     .build()
-                INSTANCE = instance
-                instance
+                    .also { INSTANCE = it }
             }
         }
     }

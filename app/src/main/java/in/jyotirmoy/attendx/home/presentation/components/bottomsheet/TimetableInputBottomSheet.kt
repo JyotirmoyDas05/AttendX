@@ -1,447 +1,310 @@
+@file:OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class, ExperimentalLayoutApi::class)
+
 package `in`.jyotirmoy.attendx.home.presentation.components.bottomsheet
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.ErrorOutline
+import androidx.compose.material.icons.rounded.Schedule
+import androidx.compose.material3.BottomSheetDefaults
+import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.datastore.preferences.core.intPreferencesKey
 import `in`.jyotirmoy.attendx.core.common.LocalWeakHaptic
-import `in`.jyotirmoy.attendx.core.presentation.components.picker.WheelPicker
+import `in`.jyotirmoy.attendx.core.domain.model.ClassSchedule
+import `in`.jyotirmoy.attendx.core.presentation.components.layout.AdaptiveTwoColumn
+import `in`.jyotirmoy.attendx.core.presentation.components.text.AutoResizeableText
+import `in`.jyotirmoy.attendx.core.utils.TimeUtils
+import `in`.jyotirmoy.attendx.home.presentation.components.TimePickerField
 import `in`.jyotirmoy.attendx.settings.data.local.SettingsKeys
 import `in`.jyotirmoy.attendx.settings.data.local.provider.settingsDataStore
-import androidx.compose.ui.platform.LocalContext
-import androidx.datastore.preferences.core.intPreferencesKey
 import kotlinx.coroutines.launch
+import java.time.DayOfWeek
+import java.time.format.TextStyle
+import java.util.Locale
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
+/**
+ * Adds or edits a single weekly class slot.
+ *
+ * @param existingSchedules the slots already on this subject's timetable. Used
+ *   to reject an overlap before it is saved; [initialSchedule] is excluded from
+ *   the comparison so editing a slot does not clash with itself.
+ */
 @Composable
 fun TimetableInputBottomSheet(
-    initialSchedule: `in`.jyotirmoy.attendx.core.domain.model.ClassSchedule? = null,
+    initialSchedule: ClassSchedule? = null,
+    existingSchedules: List<ClassSchedule> = emptyList(),
     onDismiss: () -> Unit,
     onSave: (dayOfWeek: Int, startTime: String, endTime: String, location: String?) -> Unit
 ) {
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)  // Open fully!
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val scope = rememberCoroutineScope()
     val weakHaptic = LocalWeakHaptic.current
-    
-    // Data Sources
-    val days = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
-    val hours = (1..12).map { it.toString() }
-    val minutes = (0..59 step 5).map { it.toString().padStart(2, '0') }
-    val amPm = listOf("AM", "PM")
+    val isEditing = initialSchedule != null
 
-    // Define a local data class for initial state to avoid destructuring issues
-    data class InitialState(
-        val dayIndex: Int,
-        val startHourIdx: Int,
-        val startMinIdx: Int,
-        val startAmPm: Int,
-        val endHourIdx: Int,
-        val endMinIdx: Int,
-        val endAmPm: Int,
-        val location: String
-    )
-
-    // Parse initial schedule if editing
-    val initialState = remember(initialSchedule) {
-        if (initialSchedule != null) {
-            // Parse initial data
-            val dayIndex = initialSchedule.dayOfWeek - 1 // dayOfWeek is 1-7, index 0-6
-            
-            // Parse start time (format: "HH:mm")
-            val startParts = initialSchedule.startTime.split(":")
-            val startHour24 = startParts[0].toInt()
-            val startMinute = startParts[1].toInt()
-            val startAmPmValue = if (startHour24 >= 12) 1 else 0
-            val startHour12 = when {
-                startHour24 == 0 -> 12
-                startHour24 > 12 -> startHour24 - 12
-                else -> startHour24
-            }
-            val startHourIdx = startHour12 - 1
-            val startMinIdx = minutes.indexOfFirst { it.toInt() == startMinute }.coerceAtLeast(0)
-            
-            // Parse end time
-            val endParts = initialSchedule.endTime.split(":")
-            val endHour24 = endParts[0].toInt()
-            val endMinute = endParts[1].toInt()
-            val endAmPmValue = if (endHour24 >= 12) 1 else 0
-            val endHour12 = when {
-                endHour24 == 0 -> 12
-                endHour24 > 12 -> endHour24 - 12
-                else -> endHour24
-            }
-            val endHourIdx = endHour12 - 1
-            val endMinIdx = minutes.indexOfFirst { it.toInt() == endMinute }.coerceAtLeast(0)
-            
-            InitialState(dayIndex, startHourIdx, startMinIdx, startAmPmValue, endHourIdx, endMinIdx, endAmPmValue, initialSchedule.location ?: "")
-        } else {
-            InitialState(0, 8, 0, 0, 9, 0, 0, "")
-        }
-    }
-
-    // State
-    var selectedDayIndex by remember { mutableIntStateOf(initialState.dayIndex) }
-    var startHourIndex by remember { mutableIntStateOf(initialState.startHourIdx) }
-    var startMinuteIndex by remember { mutableIntStateOf(initialState.startMinIdx) }
-    var startAmPmIndex by remember { mutableIntStateOf(initialState.startAmPm) }
-    var endHourIndex by remember { mutableIntStateOf(initialState.endHourIdx) }
-    var endMinuteIndex by remember { mutableIntStateOf(initialState.endMinIdx) }
-    var endAmPmIndex by remember { mutableIntStateOf(initialState.endAmPm) }
-    var location by remember { mutableStateOf(initialState.location) }
-    
-    // Auto-fill Logic State (disable if editing)
-    var isEndTimeManuallySet by remember { mutableStateOf(initialSchedule != null) }
-
-    // Settings
     val context = LocalContext.current
-    val settings = context.settingsDataStore.data.collectAsState(initial = null).value
-    val defaultDuration = settings?.get(intPreferencesKey(SettingsKeys.DEFAULT_CLASS_DURATION.name)) ?: 60
-    val defaultStartMin = settings?.get(intPreferencesKey(SettingsKeys.DEFAULT_START_MINUTE.name)) ?: 45
-    
-    // Initialize defaults on first load (only if NOT editing)
-    LaunchedEffect(Unit) {
-        if (initialSchedule == null) {
-            // Find close match for default Start Minute (e.g. 45 -> index of "45")
-            // minute list is 00, 05, ...
-            val targetMin = defaultStartMin.toString().padStart(2, '0')
-            val minIndex = minutes.indexOf(targetMin)
-            if (minIndex != -1) {
-                 startMinuteIndex = minIndex
-            }
+    val settings by context.settingsDataStore.data.collectAsState(initial = null)
+    val defaultDuration =
+        settings?.get(intPreferencesKey(SettingsKeys.DEFAULT_CLASS_DURATION.name)) ?: 60
+    val defaultStartMinute =
+        settings?.get(intPreferencesKey(SettingsKeys.DEFAULT_START_MINUTE.name)) ?: 45
+
+    var selectedDay by remember {
+        mutableIntStateOf(initialSchedule?.dayOfWeek ?: DayOfWeek.MONDAY.value)
+    }
+    var startTime by remember { mutableStateOf(initialSchedule?.startTime ?: "09:00") }
+    var endTime by remember { mutableStateOf(initialSchedule?.endTime ?: "10:00") }
+    var location by remember { mutableStateOf(initialSchedule?.location.orEmpty()) }
+
+    // Only a confirmed pick in the end-time dialog counts as manual. The previous
+    // wheel picker reported a selection during its own first layout, which set
+    // this flag before the user had touched anything and silently killed the
+    // auto-fill below.
+    var isEndTimeManuallySet by remember { mutableStateOf(isEditing) }
+
+    // Apply the preferred start minute once, and only for a new slot.
+    LaunchedEffect(defaultStartMinute) {
+        if (!isEditing && startTime == "09:00" && defaultStartMinute in 0..59) {
+            startTime = TimeUtils.formatTime(9, defaultStartMinute)
         }
     }
 
-    // Auto-Calculate End Time when Start Time changes (if not manually set)
-    LaunchedEffect(startHourIndex, startMinuteIndex, startAmPmIndex) {
+    // Keep the end time a class-length after the start until the user overrides
+    // it. Clamped to 23:59 so a late start cannot roll past midnight and leave
+    // the form permanently invalid.
+    LaunchedEffect(startTime, defaultDuration, isEndTimeManuallySet) {
         if (!isEndTimeManuallySet) {
-            // Convert Start to Minutes
-            val sHr = hours[startHourIndex].toInt()
-            val sMin = minutes[startMinuteIndex].toInt()
-            val sIsPm = startAmPmIndex == 1
-            val sHr24 = when {
-                sIsPm && sHr != 12 -> sHr + 12
-                !sIsPm && sHr == 12 -> 0
-                else -> sHr
-            }
-            val startTotalMin = sHr24 * 60 + sMin
-            
-            // Add Duration
-            val endTotalMin = startTotalMin + defaultDuration
-            
-            // Convert back to Index
-            val eHr24 = (endTotalMin / 60) % 24
-            val eMin = endTotalMin % 60
-            
-            val eIsPm = eHr24 >= 12
-            val eHr12 = when {
-                eHr24 == 0 -> 12
-                eHr24 > 12 -> eHr24 - 12
-                else -> eHr24
-            }
-            
-            // Map to indices
-            val hIndex = hours.indexOf(eHr12.toString())
-            // Find closest 5-step minute
-            val mStr = (eMin / 5 * 5).toString().padStart(2, '0') // round down to nearest 5
-            val mIndex = minutes.indexOf(mStr)
-            
-            if (hIndex != -1) endHourIndex = hIndex
-            if (mIndex != -1) endMinuteIndex = mIndex
-            endAmPmIndex = if (eIsPm) 1 else 0
+            val startMinutes = TimeUtils.getHour(startTime) * 60 + TimeUtils.getMinute(startTime)
+            val endMinutes = (startMinutes + defaultDuration).coerceAtMost(23 * 60 + 59)
+            endTime = TimeUtils.formatTime(endMinutes / 60, endMinutes % 60)
         }
     }
+
+    val rangeError = TimeUtils.validateRange(startTime, endTime)
+    val clash = remember(selectedDay, startTime, endTime, existingSchedules, initialSchedule) {
+        if (rangeError != null) {
+            null
+        } else {
+            existingSchedules.firstOrNull { other ->
+                other !== initialSchedule &&
+                    other.dayOfWeek == selectedDay &&
+                    TimeUtils.overlaps(startTime, endTime, other.startTime, other.endTime)
+            }
+        }
+    }
+    val clashError = clash?.let {
+        "Overlaps an existing class at " +
+            "${TimeUtils.format24To12Hour(it.startTime)} – ${TimeUtils.format24To12Hour(it.endTime)}"
+    }
+    val error = rangeError ?: clashError
+    val isValid = error == null
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
         containerColor = MaterialTheme.colorScheme.surface,
-        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
         dragHandle = { BottomSheetDefaults.DragHandle() }
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
                 .padding(horizontal = 24.dp)
-                .padding(bottom = 32.dp)
-                .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(24.dp)
+                .padding(bottom = 32.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
-            // Large Title
             Text(
-                text = "Add Class",
-                style = MaterialTheme.typography.headlineMedium,
+                text = if (isEditing) "Edit Class" else "Add Class",
+                style = MaterialTheme.typography.headlineMediumEmphasized,
                 fontWeight = FontWeight.Bold,
-                fontSize = 32.sp,
                 color = MaterialTheme.colorScheme.onSurface
             )
 
-            // Day Selector Pills
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                days.forEachIndexed { index, day ->
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(
-                                if (selectedDayIndex == index) 
-                                    MaterialTheme.colorScheme.primary
-                                else 
-                                    MaterialTheme.colorScheme.surfaceVariant
-                            )
-                            .padding(horizontal = 20.dp, vertical = 12.dp)
-                            .then(
-                                Modifier.wrapContentWidth()
-                            ),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = day,
-                            style = MaterialTheme.typography.labelLarge,
-                            fontWeight = FontWeight.Medium,
-                            color = if (selectedDayIndex == index)
-                                MaterialTheme.colorScheme.onPrimary
-                            else
-                                MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier
-                                .run {
-                                    if (selectedDayIndex != index) {
-                                        this.then(
-                                            Modifier.clickable(
-                                                onClick = {
-                                                    weakHaptic()
-                                                    selectedDayIndex = index
-                                                },
-                                                indication = null,
-                                                interactionSource = remember { MutableInteractionSource() }
-                                            )
-                                        )
-                                    } else this
-                                }
-                        )
-                    }
-                }
-            }
-
-            // Time Pickers Section
-            Row(
+            // Wraps to as many rows as the width and text size need, so the last
+            // day is never pushed off-screen the way a single scrolling row did.
+            FlowRow(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                // FROM Time
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Text(
-                        text = "FROM",
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontSize = 11.sp,
-                        letterSpacing = 0.5.sp
-                    )
-                    
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(MaterialTheme.colorScheme.surfaceContainerHighest)
-                            .padding(vertical = 8.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(140.dp),
-                            horizontalArrangement = Arrangement.SpaceEvenly,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            WheelPicker(
-                                items = hours,
-                                initialIndex = startHourIndex,
-                                visibleItemsCount = 3,
-                                itemHeight = 46.dp,
-                                onSelectionChanged = { startHourIndex = it },
-                                modifier = Modifier.weight(1f)
-                            )
+                DayOfWeek.entries.forEach { day ->
+                    FilterChip(
+                        selected = selectedDay == day.value,
+                        onClick = {
+                            weakHaptic()
+                            selectedDay = day.value
+                        },
+                        label = {
                             Text(
-                                ":",
-                                style = MaterialTheme.typography.headlineMedium,
-                                fontWeight = FontWeight.Bold
-                            )
-                            WheelPicker(
-                                items = minutes,
-                                initialIndex = startMinuteIndex,
-                                visibleItemsCount = 3,
-                                itemHeight = 46.dp,
-                                onSelectionChanged = { startMinuteIndex = it },
-                                modifier = Modifier.weight(1f)
-                            )
-                            WheelPicker(
-                                items = amPm,
-                                initialIndex = startAmPmIndex,
-                                visibleItemsCount = 3,
-                                itemHeight = 46.dp,
-                                onSelectionChanged = { startAmPmIndex = it },
-                                modifier = Modifier.weight(0.9f)
+                                text = day.getDisplayName(TextStyle.SHORT, Locale.getDefault()),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
                         }
-                    }
-                }
-                
-                // TO Time
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Text(
-                        text = "TO",
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontSize = 11.sp,
-                        letterSpacing = 0.5.sp
                     )
-                    
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(MaterialTheme.colorScheme.surfaceContainerHighest)
-                            .padding(vertical = 8.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(140.dp),
-                            horizontalArrangement = Arrangement.SpaceEvenly,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            WheelPicker(
-                                items = hours,
-                                initialIndex = endHourIndex,
-                                visibleItemsCount = 3,
-                                itemHeight = 46.dp,
-                                onSelectionChanged = { 
-                                    endHourIndex = it 
-                                    isEndTimeManuallySet = true
-                                },
-                                modifier = Modifier.weight(1f)
-                            )
-                            Text(
-                                ":",
-                                style = MaterialTheme.typography.headlineMedium,
-                                fontWeight = FontWeight.Bold
-                            )
-                            WheelPicker(
-                                items = minutes,
-                                initialIndex = endMinuteIndex,
-                                visibleItemsCount = 3,
-                                itemHeight = 46.dp,
-                                onSelectionChanged = { 
-                                    endMinuteIndex = it 
-                                    isEndTimeManuallySet = true
-                                },
-                                modifier = Modifier.weight(1f)
-                            )
-                            WheelPicker(
-                                items = amPm,
-                                initialIndex = endAmPmIndex,
-                                visibleItemsCount = 3,
-                                itemHeight = 46.dp,
-                                onSelectionChanged = { 
-                                    endAmPmIndex = it 
-                                    isEndTimeManuallySet = true
-                                },
-                                modifier = Modifier.weight(0.9f)
-                            )
-                        }
-                    }
                 }
             }
-            
-            // ========== TIME CONVERSION: 12-hour to 24-hour ==========
-            // This conversion is TIMEZONE-AGNOSTIC - it only deals with integers
-            // No Date/Calendar objects are used to prevent timezone issues
-            
-            // START TIME CONVERSION
-            val startHr = hours[startHourIndex].toInt()  // 1-12
-            val startMin = minutes[startMinuteIndex].toInt()  // 0-59
-            val startIsPm = startAmPmIndex == 1
-            val startHour24 = when {
-                startIsPm && startHr != 12 -> startHr + 12  // 1 PM = 13, 11 PM = 23
-                !startIsPm && startHr == 12 -> 0            // 12 AM = 00
-                else -> startHr                              // 1-11 AM = 1-11, 12 PM = 12
-            }
-            val startTotalMinutes = startHour24 * 60 + startMin
 
-            // END TIME CONVERSION
-            val endHr = hours[endHourIndex].toInt()  // 1-12
-            val endMin = minutes[endMinuteIndex].toInt()  // 0-59
-            val endIsPm = endAmPmIndex == 1
-            val endHour24 = when {
-                endIsPm && endHr != 12 -> endHr + 12  // 1 PM = 13, 11 PM = 23
-                !endIsPm && endHr == 12 -> 0          // 12 AM = 00
-                else -> endHr                          // 1-11 AM = 1-11, 12 PM = 12
-            }
-            val endTotalMinutes = endHour24 * 60 + endMin
-            
-            // VALIDATION: End time must be after start time
-            val isValid = endTotalMinutes > startTotalMinutes
+            TimeRangeFields(
+                startTime = startTime,
+                endTime = endTime,
+                isError = !isValid,
+                onStartChange = { startTime = it },
+                onEndChange = {
+                    endTime = it
+                    isEndTimeManuallySet = true
+                }
+            )
 
-            // Add to Timetable Button
-            val addToTimetableInteraction = remember { MutableInteractionSource() }
+            if (error != null) {
+                SheetMessage(
+                    icon = Icons.Rounded.ErrorOutline,
+                    text = error,
+                    color = MaterialTheme.colorScheme.error
+                )
+            } else {
+                SheetMessage(
+                    icon = Icons.Rounded.Schedule,
+                    text = "Duration: " + TimeUtils.formatDuration(
+                        TimeUtils.calculateDuration(startTime, endTime)
+                    ),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            OutlinedTextField(
+                value = location,
+                onValueChange = { location = it },
+                label = { Text("Room (optional)", maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
+            )
+
             Button(
                 onClick = {
                     weakHaptic()
-                    val dayOfWeek = selectedDayIndex + 1
-                    
-                    // IMPORTANT: Convert 12-hour to 24-hour format WITHOUT using any Date/Calendar objects
-                    // This prevents timezone-related bugs on different devices
-                    // Direct integer calculation ensures the time is stored exactly as selected
-                    val startTime = String.format("%02d:%02d", startHour24, startMin)
-                    val endTime = String.format("%02d:%02d", endHour24, endMin)
-                    
                     scope.launch {
-                        onSave(dayOfWeek, startTime, endTime, null)
+                        onSave(
+                            selectedDay,
+                            startTime,
+                            endTime,
+                            location.trim().takeIf { it.isNotBlank() }
+                        )
                         sheetState.hide()
                         onDismiss()
                     }
                 },
                 enabled = isValid,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
-                    shape = RoundedCornerShape(28.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = if (isValid) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.errorContainer,
-                    contentColor = if (isValid) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onErrorContainer,
-                    disabledContainerColor = MaterialTheme.colorScheme.errorContainer,
-                    disabledContentColor = MaterialTheme.colorScheme.onErrorContainer
-                )
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Text(
-                    text = if (isValid) "Add to Timetable" else "End time must be after start time",
+                // Height comes from the label, not a fixed dp, so a scaled-up or
+                // wider translated label grows the button instead of being cut.
+                AutoResizeableText(
+                    text = if (isEditing) "Save Changes" else "Add to Timetable",
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
+                    fontWeight = FontWeight.SemiBold,
+                    textAlign = TextAlign.Center,
+                    maxLines = 2
                 )
             }
         }
+    }
+}
+
+/**
+ * Start and end side by side, stacking when they would be too narrow to read.
+ */
+@Composable
+private fun TimeRangeFields(
+    startTime: String,
+    endTime: String,
+    isError: Boolean,
+    onStartChange: (String) -> Unit,
+    onEndChange: (String) -> Unit
+) {
+    AdaptiveTwoColumn(
+        first = {
+            TimePickerField(
+                label = "Starts at",
+                time = startTime,
+                onTimeChange = onStartChange,
+                isError = isError,
+                modifier = Modifier.fillMaxWidth()
+            )
+        },
+        second = {
+            TimePickerField(
+                label = "Ends at",
+                time = endTime,
+                onTimeChange = onEndChange,
+                isError = isError,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+    )
+}
+
+@Composable
+private fun SheetMessage(
+    icon: ImageVector,
+    text: String,
+    color: Color
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.Top
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = color,
+            modifier = Modifier
+                .padding(top = 2.dp)
+                .size(16.dp)
+        )
+        // Wraps freely: a validation message that is clipped is worse than one
+        // that costs an extra line.
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodySmall,
+            color = color,
+            modifier = Modifier.weight(1f)
+        )
     }
 }

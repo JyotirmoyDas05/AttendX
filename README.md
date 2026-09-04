@@ -41,13 +41,12 @@ Unlike traditional apps that only show percentages, AttendX provides an intuitiv
 
 ---
 
-## 🚀 Major Update: Pomodoro Timer & Selective Export!
+## 🚀 Major Update: Liquid Glass Navigation & Visual Engine
 
-- **Focus Timer**: New Pomodoro-based timer with wavy progress and expressive UI.
-- **Interactive UI**: Physics-based button interactions for a lively feel.
-- **Template Management**: Choose specific subjects and classes when importing or exporting templates.
-- **Timer Notification**: Added 'Reset' option for better control.
-- **Bug Fixes**: Automatically generate names for exported templates to prevent missing data.
+- **AGSL Runtime Shaders**: Real-time glassmorphic bottom navigation with live backdrop sampling, depth effects, and chromatic dispersion.
+- **G2 Continuous Squircles**: Super-ellipse squircle pill geometry with fluid gooey tab indicator animations.
+- **Customization Studio**: Fine-tune glass surface opacity, tint colors, blur intensity, and refraction parameters with real-time previews.
+- **Material 3 Expressive Fallback**: Seamless fallback to solid/translucent styling on devices without AGSL support (< Android 12).
 
 ---
 
@@ -80,16 +79,41 @@ The app doesn't just show a percentage. It tells you what to do:
 - _"You are safe at 75%. Don't miss the next class!"_
 - _"Attend the next **2** classes to reach your target."_
 
-### 🔔 Intelligent Timetable Notifications (New!)
+### 🔔 Intelligent Timetable Notifications
 
 - **Exact Alarms**: Alerts fire precisely at class time using `AlarmManager`.
 - **Interactive**: Mark status directly from the notification.
 - **Resilient**: Alarms auto-restore after device reboots.
 
+### 📱 Liquid Glass Navigation (New!)
+
+- **AGSL Shaders**: Real-time glassmorphism with depth effects and chromatic dispersion.
+- **G2 Squircles**: Fluid gooey tab indicator animations.
+- **Customization Studio**: Adjust glass opacity, tint, blur, and refraction.
+
+### 📊 Expressive Pomodoro Focus Suite (New!)
+
+- **Material 3 Expressive Timer**: Dynamic session transitions with custom themes.
+- **Rich Analytics**: Interactive charts for focus vs break ratios and weekly/monthly trends.
+- **Topic Tags**: Organize study sessions with custom labels and color tags.
+- **Foreground Service**: Reliable background timer with live notification controls.
+
+### 👥 QR-Based Peer Attendance Comparison (New!)
+
+- **Ephemeral QR Sharing**: Compare attendance stats instantly with classmates via encrypted QR codes.
+- **Realtime Session Sync**: Live Firestore synchronization with auto-expiring sessions.
+- **Smart Subject Matching**: Fuzzy match engine for subject alignment.
+
+### 📚 Subject Study Resources (New!)
+
+- **Tasks & Deadlines**: Track assignments with due dates and completion checklists.
+- **Course Materials**: Attach PDFs, lecture notes, and reference links.
+- **Media Viewers**: Built-in audio player and image preview.
+
 ### 🎨 Modern Material You Design
 
 - **Dynamic Theming**: Adapts to your device wallpaper.
-- **Expressive UI**: Fluid animations and clean typography (One UI Sans).
+- **Expressive UI**: Fluid animations and clean typography.
 
 ### 💾 Backup & Restore
 
@@ -127,9 +151,25 @@ The app doesn't just show a percentage. It tells you what to do:
 
 ## Installation
 
-You can download the latest APK from the [Releases](https://github.com/xtractiion/self.attendance/releases) section.
+You can download the latest APK from the [Releases](https://github.com/JyotirmoyDas05/AttendX/releases) section.
 
-1.  Download `app-arm64-v8a-release.apk` (Recommended).
+### Choose the Right APK for Your Device
+
+| Architecture | APK | Size | Recommended For |
+| :----------- | :-- | :--- | :-------------- |
+| **arm64-v8a** | `AttendX-vX.X.X-arm64-v8a.apk` | ~18 MB | Most modern Android devices (2017+) — **Recommended** |
+| **armeabi-v7a** | `AttendX-vX.X.X-armeabi-v7a.apk` | ~16 MB | Older 32-bit ARM devices (2015-2017) |
+| **x86_64** | `AttendX-vX.X.X-x86_64.apk` | ~19 MB | Android emulators, Chromebooks, Intel-based tablets |
+| **universal** | `AttendX-vX.X.X-universal.apk` | ~34 MB | Any Android device (all architectures combined) |
+
+### How to Find Your Architecture
+
+1.  **Settings → About Phone → Architecture** (varies by device)
+2.  Or install the APK and let it fail — by failing you learn ( JK ;} by if it fails you will know you haven't installed the correct arch and try the other one, or if unsure just Install the **UNIVERSAL** package for No install issues | although it would take significant app size due to all architecture combined for most compatibility )
+
+### Installation Steps
+
+1.  Download the appropriate APK for your device.
 2.  Install on your Android device.
 3.  Grant Notification & Alarm permissions when prompted.
 

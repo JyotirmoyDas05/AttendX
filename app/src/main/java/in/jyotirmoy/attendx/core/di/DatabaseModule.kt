@@ -1,7 +1,6 @@
 package `in`.jyotirmoy.attendx.core.di
 
 import android.content.Context
-import androidx.room.Room
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -10,17 +9,6 @@ import dagger.hilt.components.SingletonComponent
 import `in`.jyotirmoy.attendx.core.data.database.AttendanceDao
 import `in`.jyotirmoy.attendx.core.data.database.ClassScheduleDao
 import `in`.jyotirmoy.attendx.core.data.database.CourseMaterialDao
-import `in`.jyotirmoy.attendx.core.data.database.MIGRATION_10_11
-import `in`.jyotirmoy.attendx.core.data.database.MIGRATION_11_12
-import `in`.jyotirmoy.attendx.core.data.database.MIGRATION_12_13
-import `in`.jyotirmoy.attendx.core.data.database.MIGRATION_2_3
-import `in`.jyotirmoy.attendx.core.data.database.MIGRATION_3_4
-import `in`.jyotirmoy.attendx.core.data.database.MIGRATION_4_5
-import `in`.jyotirmoy.attendx.core.data.database.MIGRATION_5_6
-import `in`.jyotirmoy.attendx.core.data.database.MIGRATION_6_7
-import `in`.jyotirmoy.attendx.core.data.database.MIGRATION_7_8
-import `in`.jyotirmoy.attendx.core.data.database.MIGRATION_8_9
-import `in`.jyotirmoy.attendx.core.data.database.MIGRATION_9_10
 import `in`.jyotirmoy.attendx.core.data.database.SubjectDao
 import `in`.jyotirmoy.attendx.core.data.database.SubjectDatabase
 import `in`.jyotirmoy.attendx.core.data.database.SubjectTaskDao
@@ -34,26 +22,7 @@ object DatabaseModule {
     @Provides
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): SubjectDatabase =
-        Room.databaseBuilder(
-            context,
-            SubjectDatabase::class.java,
-            "attendance_app_db"
-        )
-            .addMigrations(
-                MIGRATION_2_3,
-                MIGRATION_3_4,
-                MIGRATION_4_5,
-                MIGRATION_5_6,
-                MIGRATION_6_7,
-                MIGRATION_7_8,
-                MIGRATION_8_9,
-                MIGRATION_9_10,
-                MIGRATION_10_11,
-                MIGRATION_11_12,
-                MIGRATION_12_13
-            )
-            .fallbackToDestructiveMigration()
-            .build()
+        SubjectDatabase.getDatabase(context)
 
     @Provides
     fun provideSubjectDao(db: SubjectDatabase): SubjectDao = db.subjectDao()

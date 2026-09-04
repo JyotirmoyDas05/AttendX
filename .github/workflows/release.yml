@@ -171,9 +171,21 @@ jobs:
 
       - name: Publish Release using gh CLI
         run: |
-          gh release create "${{ steps.version.outputs.tag }}" \
-            release-apks/*.apk \
-            --title "AttendX ${{ steps.version.outputs.tag }}" \
-            --notes-file changelog.txt
+          TAG="${{ steps.version.outputs.tag }}"
+
+          # The release may already exist because the tag was published with
+          # its notes written up front (see AGENTS.md). Only attach the APKs in
+          # that case: recreating would replace hand-written notes with the
+          # generated fallback, and those notes are what the in-app changelog
+          # screen shows.
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release $TAG already exists; uploading APKs, keeping its notes."
+            gh release upload "$TAG" release-apks/*.apk --clobber
+          else
+            gh release create "$TAG" \
+              release-apks/*.apk \
+              --title "AttendX $TAG" \
+              --notes-file changelog.txt
+          fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

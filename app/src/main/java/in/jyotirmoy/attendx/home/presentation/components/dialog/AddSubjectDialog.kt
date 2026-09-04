@@ -44,6 +44,8 @@ import `in`.jyotirmoy.attendx.core.common.LocalWeakHaptic
 import `in`.jyotirmoy.attendx.core.domain.model.ClassSchedule
 import `in`.jyotirmoy.attendx.core.domain.model.SubjectError
 import `in`.jyotirmoy.attendx.core.presentation.components.text.AutoResizeableText
+import `in`.jyotirmoy.attendx.core.presentation.state.ClassScheduleListSaver
+import androidx.compose.runtime.saveable.rememberSaveable
 import `in`.jyotirmoy.attendx.core.presentation.theme.Shape
 import `in`.jyotirmoy.attendx.home.presentation.viewmodel.HomeViewModel
 import kotlinx.coroutines.flow.first
@@ -64,8 +66,10 @@ fun AddSubjectDialog(
     val subjectError by viewModel.subjectError.collectAsState()
     val weakHaptic = LocalWeakHaptic.current
 
-    var showTimetableDialog by remember { mutableStateOf(false) }
-    var timetableSchedules by remember { mutableStateOf<List<ClassSchedule>>(emptyList()) }
+    var showTimetableDialog by rememberSaveable { mutableStateOf(false) }
+    var timetableSchedules by rememberSaveable(stateSaver = ClassScheduleListSaver) {
+        mutableStateOf<List<ClassSchedule>>(emptyList())
+    }
 
     val interactionSources = remember { List(2) { MutableInteractionSource() } }
 

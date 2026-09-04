@@ -1,7 +1,6 @@
 package `in`.jyotirmoy.attendx.notification
 
 import android.app.AlarmManager
-import android.app.AlarmManager.AlarmClockInfo
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
@@ -170,18 +169,15 @@ object TimetableAlarmScheduler {
         return try {
             // Try exact alarm first, fallback to inexact
             if (canScheduleExact) {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                    val clockInfo = AlarmManager.AlarmClockInfo(triggerAtMillis, pendingIntent)
-                    alarmManager.setAlarmClock(clockInfo, pendingIntent)
-                    Log.d(TAG, "✅ Alarm set with setAlarmClock (exact)! ReqCode: $requestCode")
-                } else {
-                    alarmManager.setExactAndAllowWhileIdle(
-                        AlarmManager.RTC_WAKEUP,
-                        triggerAtMillis,
-                        pendingIntent
-                    )
-                    Log.d(TAG, "✅ Alarm set with setExactAndAllowWhileIdle! ReqCode: $requestCode")
-                }
+                // Deliberately NOT setAlarmClock(): that registers a system-wide alarm state, which
+                // Chinese OEM skins surface as a permanent status-bar alarm-clock icon for as long
+                // as any class is scheduled. setExactAndAllowWhileIdle keeps exact timing without it.
+                alarmManager.setExactAndAllowWhileIdle(
+                    AlarmManager.RTC_WAKEUP,
+                    triggerAtMillis,
+                    pendingIntent
+                )
+                Log.d(TAG, "✅ Alarm set with setExactAndAllowWhileIdle! ReqCode: $requestCode")
             } else {
                 // Fallback to inexact alarm - less precise but works without permission
                 alarmManager.setAndAllowWhileIdle(
