@@ -141,6 +141,7 @@ fun TimeTableScreen(
 
     val subjects by viewModel.subjects.collectAsState()
     val anchorDate by viewModel.anchorDate.collectAsState()
+    val today by viewModel.today.collectAsState()
     val selectedDay by viewModel.selectedDay.collectAsState()
     val dailySchedule by viewModel.dailySchedule.collectAsState()
     val nextClass by viewModel.nextClass.collectAsState()
@@ -294,7 +295,10 @@ fun TimeTableScreen(
                             },
                             modifier = Modifier.size(34.dp)
                         ) {
-                            TodayCalendarIcon(tint = MaterialTheme.colorScheme.primary)
+                            TodayCalendarIcon(
+                                dayOfMonth = today.dayOfMonth,
+                                tint = MaterialTheme.colorScheme.primary
+                            )
                         }
 
                         Spacer(modifier = Modifier.width(2.dp))
@@ -405,7 +409,10 @@ fun TimeTableScreen(
                                 },
                                 modifier = Modifier.size(40.dp)
                             ) {
-                                TodayCalendarIcon(tint = MaterialTheme.colorScheme.primary)
+                                TodayCalendarIcon(
+                                    dayOfMonth = today.dayOfMonth,
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
                             }
 
                             Spacer(modifier = Modifier.width(4.dp))
@@ -549,6 +556,7 @@ fun TimeTableScreen(
                             Column(modifier = Modifier.fillMaxSize()) {
                                 DaySelector(
                                     selectedDate = anchorDate,
+                                    today = today,
                                     onDaySelected = viewModel::onDaySelected
                                 )
 

@@ -1,10 +1,14 @@
 package `in`.jyotirmoy.attendx.core.presentation.components.pager
 
+import androidx.compose.foundation.interaction.DragInteraction
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 
@@ -57,11 +61,31 @@ fun <T> InfiniteSwipePager(
 
     fun referenceForPage(page: Int): T = referenceAt(base, page - HALF_RANGE)
 
+    // Whether the page the pager is on is one the user put it on.
+    //
+    // settledPage falls back to currentPage the instant a scroll stops, and a
+    // programmatic scroll cut short — by a second tap arriving while the first
+    // is still animating — stops on whatever page it had reached. Reporting
+    // that as a swipe sent a page the user never chose back to the caller,
+    // which moved the reference, which started another scroll: rapid taps on
+    // the day strip flickered and settled on a date nobody picked.
+    //
+    // A drag is the one unambiguous signal that the user, not us, is driving.
+    var draggedSinceReport by remember { mutableStateOf(false) }
+
+    LaunchedEffect(pagerState) {
+        pagerState.interactionSource.interactions.collect { interaction ->
+            if (interaction is DragInteraction.Start) draggedSinceReport = true
+        }
+    }
+
     // settledPage, not currentPage: currentPage changes the moment a drag crosses
     // the halfway point, which would emit references for pages the user is still
     // dragging through and may yet flick back from.
     LaunchedEffect(pagerState, base) {
         snapshotFlow { pagerState.settledPage }.collect { page ->
+            if (!draggedSinceReport) return@collect
+            draggedSinceReport = false
             val settled = referenceForPage(page)
             if (settled != reference) onReferenceChange(settled)
         }
@@ -72,6 +96,9 @@ fun <T> InfiniteSwipePager(
     LaunchedEffect(reference) {
         val target = HALF_RANGE + offsetOf(reference, base)
         if (pagerState.settledPage != target) {
+            // We are driving from here on, so a drag that ended back on the page
+            // it started from no longer counts as the user choosing this settle.
+            draggedSinceReport = false
             pagerState.animateScrollToPage(target)
         }
     }

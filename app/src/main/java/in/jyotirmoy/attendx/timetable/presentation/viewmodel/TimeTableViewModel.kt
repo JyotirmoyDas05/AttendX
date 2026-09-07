@@ -14,6 +14,7 @@ import `in`.jyotirmoy.attendx.timetable.data.model.TimeTableScheduleEntity
 import `in`.jyotirmoy.attendx.timetable.data.model.TimeTableScheduleWithSubject
 import `in`.jyotirmoy.attendx.timetable.domain.classesOn
 import `in`.jyotirmoy.attendx.timetable.domain.usecase.TimeTableUseCases
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -24,6 +25,8 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.temporal.ChronoUnit
 import javax.inject.Inject
 
 enum class TimetableViewMode {
@@ -53,6 +56,25 @@ class TimeTableViewModel @Inject constructor(
     private val _anchorDate = MutableStateFlow(LocalDate.now())
     val anchorDate: StateFlow<LocalDate> = _anchorDate.asStateFlow()
 
+    /**
+     * Today, kept current across a midnight rollover.
+     *
+     * The next-up card already refreshed itself on its own ticker, so at 00:00
+     * it moved on to the new day while the day strip and the agenda under it
+     * stayed on yesterday. This is the missing half of that.
+     *
+     * One coroutine that sleeps to the next midnight, so the rollover lands on
+     * the second rather than whenever a poll happens to fall. The minute cap is
+     * for the other case: a delay's clock stops while the device is in deep
+     * sleep, so a sleep set at 23:00 can run hours late. Capping it means the
+     * date is at worst a minute stale after a wake, instead of a day.
+     *
+     * A no-op wakeup a minute is a sixth of what the next-class ticker on this
+     * same screen already costs, and it does not query anything.
+     */
+    private val _today = MutableStateFlow(LocalDate.now())
+    val today: StateFlow<LocalDate> = _today.asStateFlow()
+
     /** Day of week currently focused, for callers that only care about that. */
     val selectedDay: StateFlow<Int> = _anchorDate
         .map { it.dayOfWeek.value }
@@ -73,6 +95,26 @@ class TimeTableViewModel @Inject constructor(
     val viewMode: StateFlow<TimetableViewMode> = _viewMode.asStateFlow()
 
     init {
+        viewModelScope.launch {
+            while (true) {
+                val now = LocalDateTime.now()
+                val untilMidnight = ChronoUnit.MILLIS.between(
+                    now, now.toLocalDate().plusDays(1).atStartOfDay()
+                )
+                // +1s so we land past the boundary rather than racing it.
+                delay((untilMidnight + 1_000L).coerceIn(1_000L, 60_000L))
+
+                val fresh = LocalDate.now()
+                val previous = _today.value
+                if (fresh != previous) {
+                    _today.value = fresh
+                    // Follow the rollover only for someone who was looking at
+                    // today; anyone who paged somewhere else meant to be there.
+                    if (_anchorDate.value == previous) _anchorDate.value = fresh
+                }
+            }
+        }
+
         viewModelScope.launch {
             settingsRepository.getString(SettingsKeys.TIMETABLE_VIEW_MODE).collect { saved ->
                 if (saved.isNotBlank()) {

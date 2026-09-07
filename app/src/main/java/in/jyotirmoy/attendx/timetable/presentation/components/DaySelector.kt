@@ -37,10 +37,10 @@ import java.util.Locale
 @Composable
 fun DaySelector(
     selectedDate: LocalDate,
+    today: LocalDate,
     onDaySelected: (LocalDate) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val today = remember { LocalDate.now() }
     // The week containing the selection, not the week containing today: the
     // agenda pages through dates, so the strip has to follow it rather than
     // staying pinned to this week.

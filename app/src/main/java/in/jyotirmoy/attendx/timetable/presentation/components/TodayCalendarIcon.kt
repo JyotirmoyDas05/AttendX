@@ -17,17 +17,17 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import java.time.LocalDate
 
 /**
  * Google Calendar-style "Today" icon — calendar with today's date and a creased corner
  */
 @Composable
 fun TodayCalendarIcon(
+    dayOfMonth: Int,
     modifier: Modifier = Modifier,
     tint: Color = MaterialTheme.colorScheme.primary
 ) {
-    val today = remember { LocalDate.now().dayOfMonth.toString() }
+    val today = dayOfMonth.toString()
     val textMeasurer = rememberTextMeasurer()
     val textStyle = TextStyle(
         fontSize = 11.sp,
