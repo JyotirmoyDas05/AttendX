@@ -39,7 +39,9 @@ jobs:
           java-version: '21'
 
       - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+        # v4 no longer installs the `tools` package, which cmdline-tools 16.0 dropped;
+        # v3's sdkmanager call fails the job on current runner images.
+        uses: android-actions/setup-android@v4
 
       - name: Decode Keystore
         env:
