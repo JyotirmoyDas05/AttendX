@@ -17,6 +17,8 @@ import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -55,12 +57,20 @@ import `in`.jyotirmoy.attendx.settings.presentation.viewmodel.SettingsViewModel
 import `in`.jyotirmoy.attendx.timetable.presentation.screens.TimeTableScreen
 import kotlinx.coroutines.launch
 
+/** Index of the Timetable tab in [MainScreen]'s nav bar. */
+private const val TIMETABLE_TAB = 2
+
 @Composable
 fun MainScreen(
     settingsViewModel: SettingsViewModel = hiltViewModel()
 ) {
     val navController = LocalNavController.current
     var selectedTab by rememberSaveable { mutableIntStateOf(0) }
+    // The Schedule widget opens a class on the Timetable tab; switch to it, and that screen opens the sheet.
+    val timetableLaunch by `in`.jyotirmoy.attendx.navigation.TimetableLaunch.pending.collectAsState()
+    LaunchedEffect(timetableLaunch) {
+        if (timetableLaunch != null) selectedTab = TIMETABLE_TAB
+    }
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
     val scope = rememberCoroutineScope()
@@ -160,7 +170,7 @@ fun MainScreen(
                                 navController.navigate(UploadTemplateScreen)
                             }
                         )
-                        2 -> TimeTableScreen(
+                        TIMETABLE_TAB -> TimeTableScreen(
                             onNavigateToUpload = { navController.navigate(UploadTemplateScreen) },
                             onNavigateToMarketplace = { navController.navigate(MarketplaceScreen()) },
                             onNavigateToSettings = { navController.navigate(SettingsScreen) }

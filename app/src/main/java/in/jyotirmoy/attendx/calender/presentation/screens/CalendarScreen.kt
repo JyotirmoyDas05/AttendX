@@ -48,6 +48,8 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material.icons.rounded.Settings
 import androidx.core.content.FileProvider
+import `in`.jyotirmoy.attendx.core.domain.usecase.bunkAllowance
+import `in`.jyotirmoy.attendx.core.domain.usecase.classesNeeded
 import java.io.File
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -120,9 +122,6 @@ fun calculateAttendanceInsight(
     val C = totalCount
     val T = targetPercentage
     
-    // STEP 1: Convert target percentage to fraction
-    val P = T / 100.0
-    
     // STEP 2: Calculate current attendance percentage (DISPLAY ONLY)
     val currentPercentage = if (C > 0) {
         (A.toDouble() / C.toDouble()) * 100
@@ -131,12 +130,10 @@ fun calculateAttendanceInsight(
     }
     
     // STEP 3: Calculate BUNK COUNT (MOST IMPORTANT)
-    val rawBunk = if (P > 0) (A / P) - C else 0.0
-    val bunkCount = kotlin.math.floor(rawBunk).toInt().coerceAtLeast(0)
-    
+    val bunkCount = bunkAllowance(A, C, T)
+
     // STEP 4: Calculate REQUIRED ATTEND COUNT (only if below target)
-    val rawNeed = if (P < 1.0) ((P * C) - A) / (1 - P) else 0.0
-    val requiredAttend = kotlin.math.ceil(rawNeed).toInt().coerceAtLeast(0)
+    val requiredAttend = classesNeeded(A, C, T)
     
     // STEP 5: Decide attendance state (STRICT FLOW)
     return when {

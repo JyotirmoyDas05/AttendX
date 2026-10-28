@@ -143,6 +143,9 @@ class MainActivity : ComponentActivity() {
                                     intent?.removeExtra("EXTRA_NAVIGATE_TO")
                                     intent?.removeExtra("EXTRA_SUBJECT_ID")
                                     intent?.removeExtra("EXTRA_SUBJECT_NAME")
+                                    intent?.removeExtra("EXTRA_SCHEDULE_ID")
+                                    intent?.removeExtra("EXTRA_DATE")
+                                    intent?.removeExtra("EXTRA_ADD_CLASS")
                                 }
                             )
                         }

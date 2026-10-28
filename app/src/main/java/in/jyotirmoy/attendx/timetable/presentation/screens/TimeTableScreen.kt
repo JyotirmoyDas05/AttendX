@@ -94,6 +94,7 @@ import `in`.jyotirmoy.attendx.core.presentation.components.state.StatusMessage
 import `in`.jyotirmoy.attendx.timetable.domain.classesOn
 import `in`.jyotirmoy.attendx.timetable.presentation.components.CalendarPaging
 import java.time.LocalDate
+import `in`.jyotirmoy.attendx.navigation.TimetableLaunch
 import java.time.format.TextStyle
 import java.util.Locale
 import androidx.compose.ui.platform.LocalDensity
@@ -186,6 +187,17 @@ fun TimeTableScreen(
         // so scrolling immediately would clamp to 0 and leave the view at 8am.
         snapshotFlow { gridScrollState.maxValue }.first { it > 0 }
         nowScrollTarget()?.let { gridScrollState.scrollTo(it) }
+    }
+
+    // A Schedule widget launch: act on it once and clear it, so a recomposition or rotation can't reopen the sheet.
+    val widgetLaunch by TimetableLaunch.pending.collectAsState()
+    LaunchedEffect(widgetLaunch) {
+        val request = widgetLaunch ?: return@LaunchedEffect
+        TimetableLaunch.pending.value = null
+        when {
+            request.addClass -> viewModel.showAddSheet()
+            request.date != null -> viewModel.openClassOn(request.scheduleId, request.date)
+        }
     }
 
     LaunchedEffect(snapToNow) {

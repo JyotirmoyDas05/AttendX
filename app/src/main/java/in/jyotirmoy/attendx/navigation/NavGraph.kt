@@ -63,6 +63,17 @@ fun Navigation(
     }
 
     LaunchedEffect(notificationIntent) {
+        // From the Schedule widget: a class on a specific date, or the add-class sheet. Back to the
+        // main screen first, so the Timetable tab (and its nav bar) is what opens.
+        if (notificationIntent != null && notificationIntent.getStringExtra("EXTRA_NAVIGATE_TO") == "TIMETABLE") {
+            navController.popBackStack(MainScreenRoute, inclusive = false)
+            TimetableLaunch.pending.value = TimetableLaunchRequest(
+                scheduleId = notificationIntent.getIntExtra("EXTRA_SCHEDULE_ID", -1),
+                date = notificationIntent.getStringExtra("EXTRA_DATE")?.let { runCatching { java.time.LocalDate.parse(it) }.getOrNull() },
+                addClass = notificationIntent.getBooleanExtra("EXTRA_ADD_CLASS", false)
+            )
+            onNotificationIntentHandled()
+        }
         if (notificationIntent != null && notificationIntent.getStringExtra("EXTRA_NAVIGATE_TO") == "CALENDAR") {
             val subjectId = notificationIntent.getIntExtra("EXTRA_SUBJECT_ID", -1)
             val subjectName = notificationIntent.getStringExtra("EXTRA_SUBJECT_NAME") ?: ""

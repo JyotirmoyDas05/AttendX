@@ -41,12 +41,12 @@ Unlike traditional apps that only show percentages, AttendX provides an intuitiv
 
 ---
 
-## 🚀 Major Update: Liquid Glass Navigation & Visual Engine
+## 🚀 Major Update: Home Screen Widgets
 
-- **AGSL Runtime Shaders**: Real-time glassmorphic bottom navigation with live backdrop sampling, depth effects, and chromatic dispersion.
-- **G2 Continuous Squircles**: Super-ellipse squircle pill geometry with fluid gooey tab indicator animations.
-- **Customization Studio**: Fine-tune glass surface opacity, tint colors, blur intensity, and refraction parameters with real-time previews.
-- **Material 3 Expressive Fallback**: Seamless fallback to solid/translucent styling on devices without AGSL support (< Android 12).
+- **Four Expressive Widgets**: Overall attendance, Subject attendance, Next class and Schedule — built with Glance, Google Sans Flex figures and wavy progress bars.
+- **Layouts That Fill Their Space**: Every widget resizes both ways and reveals more content as it grows, instead of padding out empty space.
+- **Always Current**: Widgets roll over the moment a class ends, refresh at midnight, and recover after a reboot or a time-zone change.
+- **One-Tap Deep Links**: Tapping a class opens it on the Timetable tab; "Add class" opens the sheet with the floating nav bar still in reach.
 
 ---
 
@@ -85,26 +85,34 @@ The app doesn't just show a percentage. It tells you what to do:
 - **Interactive**: Mark status directly from the notification.
 - **Resilient**: Alarms auto-restore after device reboots.
 
-### 📱 Liquid Glass Navigation (New!)
+### 🧩 Home Screen Widgets (New!)
+
+- **Overall Attendance**: Your percentage, the present/absent split, and how many classes you can still skip.
+- **Subject Attendance**: Pick a subject when you place it; tracks that subject against its own target.
+- **Next Class**: What's on now, what's next and when it ends, recalculated the minute a class rolls over.
+- **Schedule**: Your week day by day — a compact list on small sizes, a full board at 3×3 and above.
+- **Material 3 Expressive**: Google Sans Flex figures, wavy progress, concentric corners, dynamic color and dark theme.
+
+### 📱 Liquid Glass Navigation
 
 - **AGSL Shaders**: Real-time glassmorphism with depth effects and chromatic dispersion.
 - **G2 Squircles**: Fluid gooey tab indicator animations.
 - **Customization Studio**: Adjust glass opacity, tint, blur, and refraction.
 
-### 📊 Expressive Pomodoro Focus Suite (New!)
+### 📊 Expressive Pomodoro Focus Suite
 
 - **Material 3 Expressive Timer**: Dynamic session transitions with custom themes.
 - **Rich Analytics**: Interactive charts for focus vs break ratios and weekly/monthly trends.
 - **Topic Tags**: Organize study sessions with custom labels and color tags.
 - **Foreground Service**: Reliable background timer with live notification controls.
 
-### 👥 QR-Based Peer Attendance Comparison (New!)
+### 👥 QR-Based Peer Attendance Comparison
 
 - **Ephemeral QR Sharing**: Compare attendance stats instantly with classmates via encrypted QR codes.
 - **Realtime Session Sync**: Live Firestore synchronization with auto-expiring sessions.
 - **Smart Subject Matching**: Fuzzy match engine for subject alignment.
 
-### 📚 Subject Study Resources (New!)
+### 📚 Subject Study Resources
 
 - **Tasks & Deadlines**: Track assignments with due dates and completion checklists.
 - **Course Materials**: Attach PDFs, lecture notes, and reference links.

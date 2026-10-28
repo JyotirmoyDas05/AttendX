@@ -17,8 +17,8 @@ android {
         applicationId = "in.jyotirmoy.attendx"
         minSdk = 26
         targetSdk = 36
-        versionCode = 42
-        versionName = "2.9.1"
+        versionCode = 43
+        versionName = "2.10.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -158,6 +158,8 @@ dependencies {
     implementation(libs.androidx.security.crypto)
 
     implementation(libs.lottie.compose)
+
+    implementation(libs.androidx.glance.appwidget)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

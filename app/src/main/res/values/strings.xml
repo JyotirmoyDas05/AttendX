@@ -370,4 +370,53 @@
     <string name="restart_app">Restart app</string>
     <string name="create_new_topic">Create new topic</string>
     <string name="edit_topic">Edit topic</string>
+
+    <!-- Home screen widgets -->
+    <string name="widget_overall_label">Overall attendance</string>
+    <string name="widget_overall_description">Your attendance across all subjects at a glance.</string>
+    <string name="widget_subject_label">Subject attendance</string>
+    <string name="widget_subject_description">Track one subject and its bunk allowance.</string>
+    <string name="widget_overall_title">Overall</string>
+    <string name="widget_subject_config_title">Choose subject</string>
+    <string name="widget_subject_pick">Tap to choose a subject</string>
+    <string name="widget_change">Change</string>
+    <string name="widget_save">Save</string>
+    <string name="widget_no_subjects_config">Add a subject in AttendX first</string>
+    <string name="widget_next_label">Next class</string>
+    <string name="widget_next_description">The class on now and the one after it.</string>
+    <string name="widget_next_now">Now</string>
+    <string name="widget_next_upcoming">Up next</string>
+    <string name="widget_no_more_classes">No more classes today</string>
+    <string name="widget_next_today">Today</string>
+    <string name="widget_next_tomorrow">Tomorrow</string>
+    <string name="widget_until">until %1$s</string>
+    <string name="widget_last_class">Last class today</string>
+    <string name="widget_more_today">+%1$d more today</string>
+    <string name="widget_tile_present">present</string>
+    <string name="widget_tile_absent">absent</string>
+    <string name="widget_tile_no_classes">no data</string>
+    <string name="widget_tile_to_reach">to %1$d%%</string>
+    <string name="widget_tile_can_skip">can skip</string>
+    <string name="widget_tile_attended">attended</string>
+    <string name="widget_by_subject">By subject</string>
+    <string name="widget_coming_up">Coming up</string>
+    <string name="widget_later_today">Later today</string>
+    <string name="widget_later_tomorrow">Later tomorrow</string>
+    <string name="widget_later_on">Later on %1$s</string>
+    <string name="widget_upcoming">Upcoming</string>
+    <string name="widget_nothing_coming_up">Nothing else in the next few days</string>
+    <string name="widget_recent">Recent classes</string>
+    <string name="widget_no_history">No classes marked yet</string>
+    <string name="widget_next_class">Next class</string>
+    <string name="widget_not_scheduled">Not on your timetable</string>
+    <string name="widget_status_present">Present</string>
+    <string name="widget_status_absent">Absent</string>
+    <string name="widget_schedule_label">Schedule</string>
+    <string name="widget_schedule_description">Your classes, day by day.</string>
+    <string name="widget_nothing_scheduled">Nothing scheduled</string>
+    <string name="widget_add_class">Add class</string>
+    <plurals name="widget_subjects">
+        <item quantity="one">%d subject</item>
+        <item quantity="other">%d subjects</item>
+    </plurals>
 </resources>

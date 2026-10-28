@@ -21,6 +21,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -221,6 +222,21 @@ class TimeTableViewModel @Inject constructor(
 
     fun showViewSheet(schedule: TimeTableScheduleWithSubject, date: LocalDate) {
         _viewingSchedule.value = ViewedClass(schedule, date)
+    }
+
+    /**
+     * Opens [scheduleId]'s sheet for [date] with the views anchored there, as if the
+     * class had been tapped on that day. Used by the home-screen Schedule widget.
+     * Gives up quietly if the class was deleted after the widget last drew it.
+     */
+    fun openClassOn(scheduleId: Int, date: LocalDate) {
+        viewModelScope.launch {
+            val match = kotlinx.coroutines.withTimeoutOrNull(3_000) {
+                weeklyClasses.first { weekly -> weekly.values.any { list -> list.any { it.schedule.id == scheduleId } } }
+            }?.values?.flatten()?.firstOrNull { it.schedule.id == scheduleId } ?: return@launch
+            _anchorDate.value = date
+            _viewingSchedule.value = ViewedClass(match, date)
+        }
     }
 
     fun hideViewSheet() {

@@ -96,6 +96,75 @@
             android:enabled="true"
             android:exported="false" />
 
+        <!-- Home screen widgets -->
+        <receiver
+            android:name=".widget.OverallAttendanceWidgetReceiver"
+            android:exported="false"
+            android:label="@string/widget_overall_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/overall_attendance_widget_info" />
+        </receiver>
+
+        <receiver
+            android:name=".widget.SubjectAttendanceWidgetReceiver"
+            android:exported="false"
+            android:label="@string/widget_subject_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/subject_attendance_widget_info" />
+        </receiver>
+
+        <receiver
+            android:name=".widget.NextClassWidgetReceiver"
+            android:exported="false"
+            android:label="@string/widget_next_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/next_class_widget_info" />
+        </receiver>
+
+        <receiver
+            android:name=".widget.ScheduleWidgetReceiver"
+            android:exported="false"
+            android:label="@string/widget_schedule_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/schedule_widget_info" />
+        </receiver>
+
+        <receiver
+            android:name=".widget.WidgetClockReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+            </intent-filter>
+        </receiver>
+
+        <activity
+            android:name=".widget.SubjectWidgetConfigActivity"
+            android:exported="true"
+            android:label="@string/widget_subject_config_title"
+            android:theme="@style/Theme.SelfAttendance">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+            </intent-filter>
+        </activity>
+
     </application>
 
 </manifest>
