@@ -39,3 +39,8 @@
 -keep class in.jyotirmoy.attendx.core.ui.glass.backdrop.** { *; }
 -keep class in.jyotirmoy.attendx.core.ui.glass.shapes.** { *; }
 -keep class in.jyotirmoy.attendx.core.ui.glass.floatingtabbar.** { *; }
+
+# Glance keys its receiver->widget map on each widget class name. R8 merges the structurally
+# identical widget classes into one, so every widget resolves to the same provider and
+# updateAll() on one repaints them all (Next class turned into Overall). Keep them distinct.
+-keep class * extends androidx.glance.appwidget.GlanceAppWidget

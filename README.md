@@ -41,6 +41,10 @@ Unlike traditional apps that only show percentages, AttendX provides an intuitiv
 
 ---
 
+## 🩹 Hotfix 2.10.1
+
+- **Widgets no longer swap**: In release builds the Next class widget could turn into the Overall attendance widget after marking attendance or editing a class. Each widget now keeps its own identity.
+
 ## 🚀 Major Update: Home Screen Widgets
 
 - **Four Expressive Widgets**: Overall attendance, Subject attendance, Next class and Schedule — built with Glance, Google Sans Flex figures and wavy progress bars.
