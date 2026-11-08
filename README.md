@@ -27,6 +27,13 @@
     <img src="https://img.shields.io/badge/Kotlin-100%25-purple?style=for-the-badge&logo=kotlin" alt="Kotlin">
 </p>
 
+<!-- Orion Store Badge -->
+<p align="center">
+  <a href="https://rookieenough.github.io/Orion-Data/app/?id=attendx">
+    <img src="https://raw.githubusercontent.com/RookieEnough/Orion-Store/refs/heads/main/assets/orion-badge.png" alt="Get it on Orion Store" height="55" />
+  </a>
+</p>
+
 <!-- DeepWiki Badge -->
 <p align="center">
   <a href="https://deepwiki.com/JyotirmoyDas05/AttendX">
@@ -164,7 +171,13 @@ The app doesn't just show a percentage. It tells you what to do:
 
 ## Installation
 
-You can download the latest APK from the [Releases](https://github.com/JyotirmoyDas05/AttendX/releases) section.
+You can get AttendX from the **Orion Store** or download the latest APK directly from the [Releases](https://github.com/JyotirmoyDas05/AttendX/releases) section.
+
+<p align="center">
+  <a href="https://rookieenough.github.io/Orion-Data/app/?id=attendx">
+    <img src="https://raw.githubusercontent.com/RookieEnough/Orion-Store/refs/heads/main/assets/orion-badge.png" alt="Get it on Orion Store" height="60" />
+  </a>
+</p>
 
 ### Choose the Right APK for Your Device
 
