@@ -5,14 +5,15 @@
 <h1 align="center">AttendX</h1>
 
 <p align="center">
-  <img src="./right%20now/img%201.jpg" width="31%" style="border-radius:26px; margin: 2px;"/>
-  <img src="./right%20now/img%202.jpg" width="31%" style="border-radius:26px; margin: 2px;"/>
-  <img src="./right%20now/img%203.jpg" width="31%" style="border-radius:26px; margin: 2px;"/>
+  <img src="./assets/screenshots/01-hero.png" width="31%" style="border-radius:18px; margin: 2px;" alt="AttendX Overview" />
+  <img src="./assets/screenshots/02-device-bottom.png" width="31%" style="border-radius:18px; margin: 2px;" alt="Smart Timetable" />
+  <img src="./assets/screenshots/03-device-top.png" width="31%" style="border-radius:18px; margin: 2px;" alt="One-Tap Marking" />
 </p>
 
 <p align="center">
-  <img src="./right%20now/img%204.jpg" width="31%" style="border-radius:26px; margin: 2px;"/>
-  <img src="./right%20now/img%205.jpg" width="31%" style="border-radius:26px; margin: 2px;"/>
+  <img src="./assets/screenshots/04-device-bottom.png" width="31%" style="border-radius:18px; margin: 2px;" alt="Subject Calendar" />
+  <img src="./assets/screenshots/05-no-device.png" width="31%" style="border-radius:18px; margin: 2px;" alt="Class Reminders Notification" />
+  <img src="./assets/screenshots/06-no-device.png" width="31%" style="border-radius:18px; margin: 2px;" alt="Home Screen Widgets" />
 </p>
 
 <p align="center">

@@ -31,5 +31,10 @@ firestore-tests/package-lock.json
 firebase-debug.log
 firestore-debug.log
 
-# T3 code
+# Harness Files
 t3.json
+.commandcode/
+.claude/
+.agents/
+skills-lock.json
+screenshots-editor/
